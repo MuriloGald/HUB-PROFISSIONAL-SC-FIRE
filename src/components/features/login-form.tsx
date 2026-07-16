@@ -20,13 +20,13 @@ export function LoginForm() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="text-center z-10 mb-8">
-        <div className="w-28 h-28 mx-auto rounded-3xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shadow-2xl shadow-red-500/10 mb-6 p-4">
+        <div className="mb-6 flex justify-center">
           <Image
             src="/logo-sc-fire.png"
             alt="SC FIRE"
-            width={120}
-            height={120}
-            className="object-contain w-full h-full"
+            width={240}
+            height={110}
+            className="object-contain h-[110px] w-auto"
             priority
           />
         </div>
