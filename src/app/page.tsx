@@ -12,9 +12,9 @@ export default async function RootPage() {
 
   // Fetch statistics in parallel with error fallbacks
   const [clientesRes, condominiosRes, laudosRes] = await Promise.all([
-    supabase.from("laudos_clientes").select("*", { count: "exact", head: true }),
-    supabase.from("condominios").select("*", { count: "exact", head: true }),
-    supabase.from("laudos_eventos").select("*", { count: "exact", head: true }),
+    supabase.from("clientes").select("*", { count: "exact", head: true }),
+    supabase.from("clientes").select("*", { count: "exact", head: true }).eq("tipo", "condominio"),
+    supabase.from("laudos").select("*", { count: "exact", head: true }),
   ]);
 
   const stats = {
