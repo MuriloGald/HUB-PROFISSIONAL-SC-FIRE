@@ -392,7 +392,7 @@ export default function IdentidadeVisualPage() {
                 <div className="flex items-center gap-4 flex-1">
                   <img src="/logo-sc-fire.png" alt="SC FIRE Logo" className="h-[72px] object-contain" />
                   <div className="flex flex-col text-[10px] text-gray-800 leading-tight">
-                    <strong className="font-bold text-[11px] text-black">EZS Consultoria e Treinamentos Eireli ME</strong>
+                    <strong className="font-bold text-[11px] text-black">EZS Consultoria e Treinamentos LTDA</strong>
                     <span>CNPJ 20.544.712/0001-89</span>
                   </div>
                 </div>
