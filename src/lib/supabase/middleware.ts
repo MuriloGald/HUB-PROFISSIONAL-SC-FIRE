@@ -16,6 +16,7 @@ const PROTECTED_SEGMENTS = [
   "/habitese",
   "/laudos",
   "/orcamentos",
+  "/plano-ensino",
   "/relatorios",
   "/treinamentos",
 ];

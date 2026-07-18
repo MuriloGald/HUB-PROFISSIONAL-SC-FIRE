@@ -176,7 +176,7 @@ export interface DiagnosticoPrevio {
   created_at: string;
 }
 
-export type ClienteTipo = "condominio" | "restaurante" | "deposito" | "comercial" | "evento" | "outro";
+export type ClienteTipo = "condominio" | "restaurante" | "deposito" | "comercial" | "evento" | "imovel" | "outro";
 
 export interface Cliente {
   id: string;
@@ -208,7 +208,7 @@ export interface Cliente {
   updated_at: string;
 }
 
-export type LaudoTipoDocumento = "SAVE23" | "IN24" | "Brigada" | "Habite-se" | "Outro";
+export type LaudoTipoDocumento = "SAVE23" | "IN24" | "Brigada" | "Habite-se" | "PlanoEnsino" | "Outro";
 export type LaudoStatus = "rascunho" | "concluido" | "cancelado";
 
 export interface Laudo {

@@ -26,6 +26,7 @@ import {
   LibraryBig,
   BarChart2,
   Palette,
+  NotebookPen,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { BniModal } from "@/components/features/bni-modal";
@@ -80,7 +81,19 @@ const navItems: NavItem[] = [
     items: [
       { label: "Dashboard", href: "/habitese" },
       { label: "Proprietários", href: "/habitese/responsaveis" },
-      { label: "Nova Vistoria", href: "/habitese/novo" },
+      { label: "Novo Termo", href: "/habitese/novo" },
+      { label: "Consultar Termos", href: "/habitese/termos" },
+    ],
+  },
+  {
+    type: "group",
+    label: "Plano de Ensino",
+    icon: NotebookPen,
+    basePath: "/plano-ensino",
+    items: [
+      { label: "Dashboard", href: "/plano-ensino" },
+      { label: "Novo Plano", href: "/plano-ensino/novo" },
+      { label: "Consultar Planos", href: "/plano-ensino/lista" },
     ],
   },
   {

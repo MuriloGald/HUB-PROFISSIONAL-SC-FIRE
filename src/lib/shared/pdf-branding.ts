@@ -64,31 +64,41 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   const logo = await carregarLogoScFire();
 
   let logoW = 0;
-  const logoH = 28;
+  const logoH = 28 * (2 / 3); // ~18,7mm — 2/3 do tamanho anterior
   if (logo) {
     const props = doc.getImageProperties(logo.dataUrl);
     logoW = (props.width / props.height) * logoH;
     doc.addImage(logo.dataUrl, logo.format, MARGIN_LEFT, top, logoW, logoH);
   }
 
+  // Texto ancorado perto do topo (nao mais centralizado em cima da altura da logo) —
+  // assim ele fica alinhado com o topo da logo em vez de "puxado pra baixo" quando a
+  // logo e mais alta que as duas linhas de texto.
   const textX = MARGIN_LEFT + logoW + (logo ? 3 : 0);
-  doc.setFontSize(9);
+  const rightX = PAGE_WIDTH - MARGIN_RIGHT;
+  const dividerX = (textX + rightX) / 2;
+  const larguraDisponivelTexto = dividerX - textX - 2;
+
   doc.setFont("helvetica", "bold");
+  let fonteEmpresa = 9;
+  doc.setFontSize(fonteEmpresa);
+  while (doc.getTextWidth("EZS Consultoria e Treinamentos LTDA") > larguraDisponivelTexto && fonteEmpresa > 6.5) {
+    fonteEmpresa -= 0.5;
+    doc.setFontSize(fonteEmpresa);
+  }
   doc.setTextColor(0, 0, 0);
-  doc.text("EZS Consultoria e Treinamentos LTDA", textX, top + logoH / 2 - 1);
+  doc.text("EZS Consultoria e Treinamentos LTDA", textX, top + 4);
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-  doc.text("CNPJ 20.544.712/0001-89", textX, top + logoH / 2 + 3);
+  doc.text("CNPJ 20.544.712/0001-89", textX, top + 8);
 
   // Divisor fica no meio do espaco disponivel depois da logo, nao no centro da pagina —
   // assim os dados administrativos (esquerda) e os dados de endereco (direita) ficam com
   // a mesma largura, independente da largura da logo.
-  const rightX = PAGE_WIDTH - MARGIN_RIGHT;
-  const dividerX = (textX + rightX) / 2;
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.2);
-  doc.line(dividerX, top + 1, dividerX, top + logoH - 1);
+  doc.line(dividerX, top + 1, dividerX, top + Math.max(logoH, 12) - 1);
 
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
@@ -102,7 +112,7 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
   doc.text("contato@scfire.com.br", rightX, top + 12.5, { align: "right" });
 
-  const borderY = top + logoH + 4;
+  const borderY = top + Math.max(logoH, 12) + 4;
   doc.setDrawColor(...COR_VERMELHO_ESCURO);
   doc.setLineWidth(0.8);
   doc.line(MARGIN_LEFT, borderY, PAGE_WIDTH - MARGIN_RIGHT, borderY);
