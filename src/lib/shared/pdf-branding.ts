@@ -18,11 +18,16 @@ import type { jsPDF } from "jspdf";
 export const MARGIN_TOP = 15;
 export const MARGIN_LEFT = 30;
 export const MARGIN_RIGHT = 20;
-export const MARGIN_BOTTOM = 20;
+export const MARGIN_BOTTOM = 20; // 2,0cm
 export const PAGE_WIDTH = 210;
 export const PAGE_HEIGHT = 297;
-/** Ponto a partir do qual o conteudo deve quebrar de pagina, respeitando a margem inferior. */
-export const PAGE_BREAK_Y = PAGE_HEIGHT - MARGIN_BOTTOM - 17;
+/**
+ * Ponto a partir do qual o conteudo deve quebrar de pagina, respeitando a margem
+ * inferior de 2,0cm (PAGE_HEIGHT - MARGIN_BOTTOM = 277mm). A folga de 10mm antes
+ * disso e so pra dar espaco pro bloco de conteudo que esta prestes a ser desenhado
+ * (um par de linhas, uma pequena tabela) nao ultrapassar a margem real.
+ */
+export const PAGE_BREAK_Y = PAGE_HEIGHT - MARGIN_BOTTOM - 10;
 
 export const COR_VERMELHO_ESCURO: [number, number, number] = [168, 29, 7];
 export const COR_CINZA_INSTITUCIONAL: [number, number, number] = [100, 116, 139];
@@ -59,7 +64,7 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   const logo = await carregarLogoScFire();
 
   let logoW = 0;
-  const logoH = 14;
+  const logoH = 28;
   if (logo) {
     const props = doc.getImageProperties(logo.dataUrl);
     logoW = (props.width / props.height) * logoH;
@@ -102,16 +107,26 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   doc.setLineWidth(0.8);
   doc.line(MARGIN_LEFT, borderY, PAGE_WIDTH - MARGIN_RIGHT, borderY);
 
+  // Titulos longos nao cabem numa linha centralizada na largura da pagina inteira —
+  // "centralizar" um texto mais largo que o conteudo estoura a margem esquerda e
+  // parece desalinhado. Quebra em quantas linhas forem necessarias, cada uma centrada
+  // na area de conteudo (nao na pagina inteira).
+  const tituloContentWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text(title, PAGE_WIDTH / 2, borderY + 8, { align: "center" });
+  const linhasTitulo: string[] = doc.splitTextToSize(title, tituloContentWidth);
+  let tituloY = borderY + 8;
+  for (const linha of linhasTitulo) {
+    doc.text(linha, PAGE_WIDTH / 2, tituloY, { align: "center" });
+    tituloY += 6;
+  }
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-  doc.text(subtitle + (codigoRef ? ` · ${codigoRef}` : ""), PAGE_WIDTH / 2, borderY + 14, { align: "center" });
+  doc.text(subtitle + (codigoRef ? ` · ${codigoRef}` : ""), PAGE_WIDTH / 2, tituloY, { align: "center" });
   doc.setTextColor(0, 0, 0);
 
-  return borderY + 22;
+  return tituloY + 8;
 }

@@ -44,6 +44,8 @@ const AUTOTABLE_MARGIN = { left: MARGIN_LEFT, right: MARGIN_RIGHT };
 // Texto normal do documento: fonte 11, espaçamento ~1,5 entre linhas (11pt × 1,5 ≈ 5,8mm).
 const FONTE_NORMAL = 11;
 const ALTURA_LINHA_NORMAL = 5.8;
+// Texto comum levemente acinzentado em vez de preto puro (mais suave na leitura).
+const COR_TEXTO_NORMAL: [number, number, number] = [55, 65, 81];
 
 // Cores de status (Identidade Visual/mostruario.html) — vermelho/cinza institucionais
 // vêm do cabeçalho compartilhado em lib/shared/pdf-branding.
@@ -315,11 +317,13 @@ async function drawSetorAnexo(
     }
 
     if (s.altObs) {
-      doc.setFontSize(8);
+      doc.setFontSize(FONTE_NORMAL);
       doc.setFont("helvetica", "normal");
+      doc.setTextColor(...COR_TEXTO_NORMAL);
       const linhasTexto = doc.splitTextToSize(`Detalhes das adequações propostas: ${s.altObs}`, contentWidth);
       doc.text(linhasTexto, margin, y);
-      y += linhasTexto.length * 4 + 4;
+      doc.setTextColor(0, 0, 0);
+      y += linhasTexto.length * ALTURA_LINHA_NORMAL + 4;
     }
   }
 
@@ -328,13 +332,15 @@ async function drawSetorAnexo(
       doc.addPage();
       y = MARGIN_TOP + 10;
     }
-    doc.setFontSize(8);
+    doc.setFontSize(FONTE_NORMAL);
     doc.setFont("helvetica", "bold");
     doc.text("Observações do setor:", margin, y);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COR_TEXTO_NORMAL);
     const linhasObs = doc.splitTextToSize(s.observacoes, contentWidth);
-    doc.text(linhasObs, margin, y + 4);
-    y += linhasObs.length * 4 + 8;
+    doc.text(linhasObs, margin, y + ALTURA_LINHA_NORMAL);
+    doc.setTextColor(0, 0, 0);
+    y += linhasObs.length * ALTURA_LINHA_NORMAL + 8;
   }
 
   if (s.imagens.length) {
@@ -381,8 +387,10 @@ export async function gerarPdfVistoria(state: VistoriaWizardState): Promise<stri
     doc.setFont("helvetica", "bold");
     doc.text("Observações gerais", margin, y);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COR_TEXTO_NORMAL);
     const linhas = doc.splitTextToSize(state.observacoesGerais, contentWidth);
     doc.text(linhas, margin, y + ALTURA_LINHA_NORMAL);
+    doc.setTextColor(0, 0, 0);
     y += linhas.length * ALTURA_LINHA_NORMAL + 8;
   }
 
@@ -410,6 +418,7 @@ function formatarCorpo(doc: DocWithAutoTable, texto: string | undefined, x: numb
   const blocos = texto.split(/\n\s*\n/);
   doc.setFontSize(FONTE_NORMAL);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(...COR_TEXTO_NORMAL);
   for (const bloco of blocos) {
     const linhas = bloco.split("\n").map((l) => l.trim()).filter(Boolean);
     if (!linhas.length) continue;
@@ -430,6 +439,7 @@ function formatarCorpo(doc: DocWithAutoTable, texto: string | undefined, x: numb
       cursorY += texto2.length * ALTURA_LINHA_NORMAL;
     }
   }
+  doc.setTextColor(0, 0, 0);
   return cursorY + 2;
 }
 
@@ -468,6 +478,7 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
     doc.text("Histórico de alterações de projeto:", margin, y);
     y += ALTURA_LINHA_NORMAL;
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COR_TEXTO_NORMAL);
     for (const h of historicoPreenchido) {
       const rotulo = h.tituloData.trim() && h.descricao.trim() ? `${h.tituloData}: ${h.descricao}` : h.tituloData.trim() || h.descricao.trim();
       const linhas = doc.splitTextToSize(`•  ${rotulo}`, contentWidth);
@@ -478,6 +489,7 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
       doc.text(linhas, margin, y);
       y += linhas.length * ALTURA_LINHA_NORMAL;
     }
+    doc.setTextColor(0, 0, 0);
     y += 3;
   }
 
