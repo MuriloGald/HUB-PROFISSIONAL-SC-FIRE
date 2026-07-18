@@ -98,7 +98,10 @@ const navItems: NavItem[] = [
     icon: BarChart2,
     basePath: "/relatorios",
     items: [
-      { label: "SAVE — IN 23", href: "/relatorios/save-in23" },
+      { label: "SAVE — IN 23 (Dashboard)", href: "/relatorios/save-in23" },
+      { label: "Edificações", href: "/relatorios/save-in23/clientes" },
+      { label: "Vistorias de Campo", href: "/relatorios/save-in23/vistorias" },
+      { label: "Laudos Técnicos", href: "/relatorios/save-in23/laudos" },
     ],
   },
 

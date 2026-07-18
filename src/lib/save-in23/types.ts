@@ -1,0 +1,165 @@
+import type { Enquadramento } from "./classificador";
+
+/**
+ * Snapshot do cliente (edificacao) embutido no documento no momento da geracao —
+ * preserva os dados exibidos no PDF mesmo que o cadastro do cliente mude depois.
+ * Mesma ideia de ClienteEventoSnapshot em lib/laudos/types.ts.
+ */
+export interface ClienteSave23Snapshot {
+  id: string;
+  razao_social: string;
+  cnpj?: string;
+  cpf?: string;
+  nome_responsavel?: string;
+  email?: string;
+  telefone?: string;
+  logradouro?: string;
+  numero?: string;
+  bairro?: string;
+  complemento?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
+  re?: string;
+  preexistente?: boolean;
+  area_construida?: string;
+  pavimentos?: string;
+  altura?: string;
+  validade_atestado?: string;
+}
+
+export interface Imagem {
+  url: string;
+  legenda?: string;
+}
+
+/**
+ * Medidas de ventilacao natural (Art. 6º, § 1º da IN 23) — capturadas como valores
+ * brutos para o classificador calcular os percentuais, em vez de um Sim/Não manual
+ * como no app legado.
+ */
+export interface VentilacaoNatural {
+  doisLados?: boolean;
+  areaAbertura?: string;
+  areaFachada?: string;
+  comprimentoAbertura?: string;
+  perimetroPavimento?: string;
+}
+
+export type Possibilidade = boolean | "financeiro";
+
+export interface Alteracao {
+  key: string;
+  label: string;
+  possivel?: Possibilidade;
+}
+
+export const OCUPACOES_ART6 = ["A-1", "A-2", "C-1", "C-2", "D", "H-4"] as const;
+export type OcupacaoArt6 = (typeof OCUPACOES_ART6)[number];
+
+export interface SetorVistoria {
+  id: string;
+  nome: string;
+  vagas?: string;
+  ocupacao?: OcupacaoArt6 | "";
+  areaTotal?: string;
+  areaPavimento?: string;
+  externo?: boolean;
+  deteccao?: boolean;
+  extracao?: boolean;
+  ventilacao: VentilacaoNatural;
+  sprinklerIN15?: boolean;
+  hidChaveFluxo?: boolean;
+  hidDreno?: boolean;
+  hidManometro?: boolean;
+  compartRotas?: boolean;
+  compartSaidas?: boolean;
+  compartEntreSave?: boolean;
+  alteracoes: Alteracao[];
+  altObs?: string;
+  observacoes?: string;
+  imagens: Imagem[];
+}
+
+/** Estado completo do wizard de Vistoria de Campo — tambem e o que fica salvo em laudos.dados */
+export interface VistoriaWizardState {
+  step?: number;
+  laudoId?: string;
+  codigo?: string;
+  cliente_id?: string;
+  cliente?: ClienteSave23Snapshot;
+
+  vistoriador?: string;
+  respTecnico?: string;
+
+  setores: SetorVistoria[];
+  observacoesGerais?: string;
+
+  data_emissao?: string;
+}
+
+export interface HistoricoItem {
+  id: string;
+  tituloData: string;
+  descricao: string;
+}
+
+export interface ClausulaLaudo {
+  id: string;
+  titulo: string;
+  texto: string;
+  incluir: boolean;
+}
+
+export interface Subsecao {
+  id: string;
+  titulo: string;
+  corpo: string;
+  imagens: Imagem[];
+}
+
+export interface Cenario {
+  id: string;
+  titulo: string;
+  fundamentacao?: string;
+  subsecoes: Subsecao[];
+}
+
+/** Estado completo do wizard de Laudo Tecnico — tambem e o que fica salvo em laudos.dados */
+export interface LaudoTecnicoWizardState {
+  step?: number;
+  laudoId?: string;
+  codigo?: string;
+  cliente_id?: string;
+  cliente?: ClienteSave23Snapshot;
+
+  tituloDocumento?: string;
+  subtitulo?: string;
+  propriedade?: string;
+  revisao?: string;
+  respTecnico?: string;
+
+  capitulo1: {
+    areaConstruida?: string;
+    pavimentos?: string;
+    altura?: string;
+    validadeAtestado?: string;
+    textoIntro?: string;
+    historico: HistoricoItem[];
+    notaObservacao?: string;
+  };
+  capitulo2: {
+    clausulas: ClausulaLaudo[];
+  };
+  capitulo3: {
+    paragrafoContextual?: string;
+    cenarios: Cenario[];
+  };
+  capitulo4: {
+    texto?: string;
+  };
+
+  data_emissao?: string;
+}
+
+export type { Enquadramento };

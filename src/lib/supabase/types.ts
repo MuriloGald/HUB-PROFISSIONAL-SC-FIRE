@@ -195,6 +195,14 @@ export interface Cliente {
   cidade: string | null;
   estado: string | null;
   cep: string | null;
+  // Campos de edificacao usados pelo modulo SAVE 23 (migration 003) — reutilizaveis
+  // por outros modulos de edificacao (Brigada, Habite-se) no futuro.
+  re: string | null;
+  preexistente: boolean | null;
+  area_construida: string | null;
+  pavimentos: string | null;
+  altura: string | null;
+  validade_atestado: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
