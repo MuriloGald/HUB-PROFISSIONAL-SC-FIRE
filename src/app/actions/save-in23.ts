@@ -91,6 +91,19 @@ export async function buscarClienteSave23(id: string) {
   return { data: data as Cliente };
 }
 
+/**
+ * Exclui um cliente permanentemente. ATENÇÃO: laudos.cliente_id tem
+ * "on delete cascade" — isso apaga junto todas as vistorias e laudos técnicos
+ * vinculados a este cliente. A UI deve confirmar isso explicitamente antes de chamar.
+ */
+export async function excluirClienteSave23(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("clientes").delete().eq("id", id);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
 /** Salva (cria ou atualiza) a Vistoria de Campo, gerando um código V-AAAA-NNN quando nova. */
 export async function salvarVistoria(state: VistoriaWizardState) {
   const supabase = await createClient();

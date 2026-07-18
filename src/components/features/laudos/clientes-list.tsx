@@ -3,12 +3,25 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Pencil, CalendarPlus, PackageOpen, MapPin } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, CalendarPlus, PackageOpen, MapPin } from "lucide-react";
+import { excluirClienteEvento } from "@/app/actions/laudos";
 import type { Cliente } from "@/lib/supabase/types";
 
 export function ClientesList({ clientes }: { clientes: Cliente[] }) {
   const router = useRouter();
   const [termo, setTermo] = useState("");
+  const [excluindo, setExcluindo] = useState<string | null>(null);
+
+  async function handleExcluir(c: Cliente) {
+    const ok = confirm(
+      `Excluir "${c.razao_social}" permanentemente?\n\nIsso também apaga TODOS os eventos/laudos vinculados a este cliente. Essa ação não pode ser desfeita.`
+    );
+    if (!ok) return;
+    setExcluindo(c.id);
+    await excluirClienteEvento(c.id);
+    setExcluindo(null);
+    router.refresh();
+  }
 
   const filtrados = useMemo(() => {
     const t = termo.toLowerCase();
@@ -77,6 +90,14 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
               >
                 <Pencil className="w-4 h-4" />
               </Link>
+              <button
+                onClick={() => handleExcluir(c)}
+                disabled={excluindo === c.id}
+                title="Excluir cliente"
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-red-500/10 text-gray-300 hover:text-red-400 transition-all disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => router.push(`/laudos/eventos/novo?clienteId=${c.id}`)}
                 className="px-3 py-2 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5"

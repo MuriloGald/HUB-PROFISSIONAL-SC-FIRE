@@ -2,11 +2,26 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Plus, Pencil, ClipboardList, FileText, PackageOpen, MapPin } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Plus, Pencil, Trash2, ClipboardList, FileText, PackageOpen, MapPin } from "lucide-react";
+import { excluirClienteSave23 } from "@/app/actions/save-in23";
 import type { Cliente } from "@/lib/supabase/types";
 
 export function ClientesList({ clientes }: { clientes: Cliente[] }) {
+  const router = useRouter();
   const [termo, setTermo] = useState("");
+  const [excluindo, setExcluindo] = useState<string | null>(null);
+
+  async function handleExcluir(c: Cliente) {
+    const ok = confirm(
+      `Excluir "${c.razao_social}" permanentemente?\n\nIsso também apaga TODAS as vistorias e laudos técnicos vinculados a esta edificação. Essa ação não pode ser desfeita.`
+    );
+    if (!ok) return;
+    setExcluindo(c.id);
+    await excluirClienteSave23(c.id);
+    setExcluindo(null);
+    router.refresh();
+  }
 
   const filtrados = useMemo(() => {
     const t = termo.toLowerCase();
@@ -81,6 +96,14 @@ export function ClientesList({ clientes }: { clientes: Cliente[] }) {
               >
                 <Pencil className="w-4 h-4" />
               </Link>
+              <button
+                onClick={() => handleExcluir(c)}
+                disabled={excluindo === c.id}
+                title="Excluir cliente"
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-red-500/10 text-gray-300 hover:text-red-400 transition-all disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
               <Link
                 href={`/relatorios/save-in23/vistorias/nova?clienteId=${c.id}`}
                 className="px-3 py-2 border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white hover:text-red-400 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5"

@@ -65,6 +65,19 @@ export async function listarClientesEvento() {
   return { data: (data ?? []) as Cliente[] };
 }
 
+/**
+ * Exclui um cliente permanentemente. ATENÇÃO: laudos.cliente_id tem
+ * "on delete cascade" — isso apaga junto todos os eventos/laudos vinculados a
+ * este cliente. A UI deve confirmar isso explicitamente antes de chamar.
+ */
+export async function excluirClienteEvento(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("clientes").delete().eq("id", id);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
 /** Salva (cria ou atualiza) o laudo de evento IN 24, gerando um codigo EVT-AAAA-NNN quando novo. */
 export async function salvarLaudoEvento(state: EventoWizardState) {
   const supabase = await createClient();
