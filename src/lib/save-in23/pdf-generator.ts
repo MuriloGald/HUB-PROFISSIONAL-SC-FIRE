@@ -14,7 +14,16 @@ import { jsPDF } from "jspdf";
 import { applyPlugin, type RowInput } from "jspdf-autotable";
 import { RESPONSAVEIS_TECNICOS } from "./constants";
 import { avaliarSetor } from "./classificador";
-import { carregarImagemComoDataUrl, drawCabecalhoInstitucional, COR_VERMELHO_ESCURO, COR_CINZA_INSTITUCIONAL } from "../shared/pdf-branding";
+import {
+  carregarImagemComoDataUrl,
+  drawCabecalhoInstitucional,
+  COR_VERMELHO_ESCURO,
+  COR_CINZA_INSTITUCIONAL,
+  MARGIN_LEFT,
+  MARGIN_RIGHT,
+  PAGE_WIDTH,
+  PAGE_BREAK_Y,
+} from "../shared/pdf-branding";
 import type { ClienteSave23Snapshot, Imagem, LaudoTecnicoWizardState, SetorVistoria, VistoriaWizardState } from "./types";
 
 applyPlugin(jsPDF);
@@ -24,9 +33,10 @@ type DocWithAutoTable = jsPDF & {
   lastAutoTable: { finalY: number };
 };
 
-const margin = 14;
-const pageWidth = 210;
-const contentWidth = pageWidth - margin * 2;
+// Margens ABNT (30mm topo/esquerda, 20mm direita/baixo) — ver lib/shared/pdf-branding.
+const margin = MARGIN_LEFT;
+const pageWidth = PAGE_WIDTH;
+const contentWidth = pageWidth - MARGIN_LEFT - MARGIN_RIGHT;
 
 // Cores de status (Identidade Visual/mostruario.html) — vermelho/cinza institucionais
 // vêm do cabeçalho compartilhado em lib/shared/pdf-branding.
@@ -61,12 +71,17 @@ async function drawHeader(doc: DocWithAutoTable, title: string, subtitle: string
   return drawCabecalhoInstitucional(doc, title, subtitle, codigo ? `RG ${codigo}` : undefined);
 }
 
-async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: number): Promise<number> {
+/** Contador de imagens do documento inteiro — mutado por referência para a numeração ("Imagem 01", "02"...) ser contínua entre setores/subseções, não reiniciar a cada chamada. */
+export interface ContadorImagem {
+  n: number;
+}
+
+async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: number, contador: ContadorImagem): Promise<number> {
   let y = startY;
   for (let i = 0; i < imagens.length; i++) {
     const img = imagens[i];
     const carregada = await carregarImagemComoDataUrl(img.url);
-    if (y > 230) {
+    if (y > PAGE_BREAK_Y) {
       doc.addPage();
       y = margin + 10;
     }
@@ -85,7 +100,7 @@ async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COR_CINZA);
-    doc.text(`Imagem ${String(i + 1).padStart(2, "0")}${img.legenda ? ` – ${img.legenda}` : ""}`, margin, y + h + 4);
+    doc.text(`Imagem ${String(contador.n++).padStart(2, "0")}${img.legenda ? ` – ${img.legenda}` : ""}`, margin, y + h + 4);
     doc.setTextColor(0, 0, 0);
     y += h + 10;
   }
@@ -151,7 +166,13 @@ function drawResumoSetores(doc: DocWithAutoTable, startY: number, setores: Setor
   return doc.lastAutoTable.finalY + 6;
 }
 
-async function drawSetorAnexo(doc: DocWithAutoTable, s: SetorVistoria, index: number, state: VistoriaWizardState): Promise<void> {
+async function drawSetorAnexo(
+  doc: DocWithAutoTable,
+  s: SetorVistoria,
+  index: number,
+  state: VistoriaWizardState,
+  contadorImg: ContadorImagem
+): Promise<void> {
   doc.addPage();
   const c = (state.cliente || {}) as ClienteSave23Snapshot;
   const av = avaliarSetor(s, c.preexistente);
@@ -223,7 +244,7 @@ async function drawSetorAnexo(doc: DocWithAutoTable, s: SetorVistoria, index: nu
   });
   y = doc.lastAutoTable.finalY + 5;
 
-  if (y > 250) {
+  if (y > PAGE_BREAK_Y) {
     doc.addPage();
     y = margin + 10;
   }
@@ -240,7 +261,7 @@ async function drawSetorAnexo(doc: DocWithAutoTable, s: SetorVistoria, index: nu
   y += 22;
 
   if (s.alteracoes.length || s.altObs) {
-    if (y > 240) {
+    if (y > PAGE_BREAK_Y) {
       doc.addPage();
       y = margin + 10;
     }
@@ -277,7 +298,7 @@ async function drawSetorAnexo(doc: DocWithAutoTable, s: SetorVistoria, index: nu
   }
 
   if (s.observacoes) {
-    if (y > 250) {
+    if (y > PAGE_BREAK_Y) {
       doc.addPage();
       y = margin + 10;
     }
@@ -291,13 +312,13 @@ async function drawSetorAnexo(doc: DocWithAutoTable, s: SetorVistoria, index: nu
   }
 
   if (s.imagens.length) {
-    await embutirImagens(doc, s.imagens, y);
+    await embutirImagens(doc, s.imagens, y, contadorImg);
   }
 }
 
 function drawAssinaturasVistoria(doc: DocWithAutoTable, startY: number, state: VistoriaWizardState): void {
   let y = startY;
-  if (y > 230) {
+  if (y > PAGE_BREAK_Y) {
     doc.addPage();
     y = margin + 10;
   }
@@ -307,9 +328,9 @@ function drawAssinaturasVistoria(doc: DocWithAutoTable, startY: number, state: V
   doc.text("Vistoriador", margin, y + 25);
   doc.text(state.vistoriador || "", margin, y + 30);
 
-  doc.line(pageWidth - margin - 75, y + 20, pageWidth - margin, y + 20);
-  doc.text("Responsável Técnico", pageWidth - margin - 75, y + 25);
-  doc.text(state.respTecnico || "", pageWidth - margin - 75, y + 30);
+  doc.line(pageWidth - MARGIN_RIGHT - 75, y + 20, pageWidth - MARGIN_RIGHT, y + 20);
+  doc.text("Responsável Técnico", pageWidth - MARGIN_RIGHT - 75, y + 25);
+  doc.text(state.respTecnico || "", pageWidth - MARGIN_RIGHT - 75, y + 30);
 }
 
 function nomeArquivoVistoria(state: VistoriaWizardState): string {
@@ -336,8 +357,9 @@ export async function gerarPdfVistoria(state: VistoriaWizardState): Promise<stri
 
   drawAssinaturasVistoria(doc, y, state);
 
+  const contadorImg: ContadorImagem = { n: 1 };
   for (let i = 0; i < state.setores.length; i++) {
-    await drawSetorAnexo(doc, state.setores[i], i, state);
+    await drawSetorAnexo(doc, state.setores[i], i, state, contadorImg);
   }
 
   const fileName = nomeArquivoVistoria(state);
@@ -402,7 +424,7 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
   y = formatarCorpo(doc, cap1.textoIntro, margin, y);
 
   if (cap1.historico.length) {
-    if (y > 260) {
+    if (y > PAGE_BREAK_Y) {
       doc.addPage();
       y = margin + 10;
     }
@@ -420,7 +442,7 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
   }
 
   if (cap1.notaObservacao) {
-    if (y > 255) {
+    if (y > PAGE_BREAK_Y) {
       doc.addPage();
       y = margin + 10;
     }
@@ -444,7 +466,7 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
 
 function drawCapitulo2(doc: DocWithAutoTable, startY: number, state: LaudoTecnicoWizardState): number {
   let y = startY;
-  if (y > 260) {
+  if (y > PAGE_BREAK_Y) {
     doc.addPage();
     y = margin + 10;
   }
@@ -457,7 +479,7 @@ function drawCapitulo2(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
 
   for (const cl of state.capitulo2.clausulas) {
     if (!cl.incluir) continue;
-    if (y > 260) {
+    if (y > PAGE_BREAK_Y) {
       doc.addPage();
       y = margin + 10;
     }
@@ -473,7 +495,7 @@ function drawCapitulo2(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
 
 function drawCapitulo3(doc: DocWithAutoTable, startY: number, state: LaudoTecnicoWizardState): number {
   let y = startY;
-  if (y > 260) {
+  if (y > PAGE_BREAK_Y) {
     doc.addPage();
     y = margin + 10;
   }
@@ -488,7 +510,7 @@ function drawCapitulo3(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
 
   let contadorSub = 1;
   for (const cen of state.capitulo3.cenarios) {
-    if (y > 255) {
+    if (y > PAGE_BREAK_Y) {
       doc.addPage();
       y = margin + 10;
     }
@@ -498,7 +520,7 @@ function drawCapitulo3(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
     y += 6;
 
     for (const sub of cen.subsecoes) {
-      if (y > 258) {
+      if (y > PAGE_BREAK_Y) {
         doc.addPage();
         y = margin + 10;
       }
@@ -515,7 +537,7 @@ function drawCapitulo3(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
 
 function drawCapitulo4(doc: DocWithAutoTable, startY: number, state: LaudoTecnicoWizardState): number {
   let y = startY;
-  if (y > 260) {
+  if (y > PAGE_BREAK_Y) {
     doc.addPage();
     y = margin + 10;
   }
@@ -530,7 +552,7 @@ function drawCapitulo4(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
 
 function drawAssinaturaLaudo(doc: DocWithAutoTable, startY: number, respTecnico: string): void {
   let y = startY + 15;
-  if (y > 260) {
+  if (y > PAGE_BREAK_Y) {
     doc.addPage();
     y = margin + 30;
   }
@@ -565,14 +587,15 @@ export async function gerarPdfLaudo(state: LaudoTecnicoWizardState): Promise<str
   y = drawCapitulo3(doc, y, state);
 
   // Imagens das subsecoes do capitulo 3 — embutidas apos o texto, na ordem dos cenarios.
+  const contadorImg: ContadorImagem = { n: 1 };
   for (const cen of state.capitulo3.cenarios) {
     for (const sub of cen.subsecoes) {
       if (!sub.imagens.length) continue;
-      if (y > 260) {
+      if (y > PAGE_BREAK_Y) {
         doc.addPage();
         y = margin + 10;
       }
-      y = await embutirImagens(doc, sub.imagens, y + 2);
+      y = await embutirImagens(doc, sub.imagens, y + 2, contadorImg);
     }
   }
 

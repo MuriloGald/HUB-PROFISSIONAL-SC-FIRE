@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileDown, Loader2 } from "lucide-react";
 import { salvarLaudoTecnico } from "@/app/actions/save-in23";
+import { mensagemErroGeracao } from "@/lib/shared/errors";
 import type { LaudoTecnicoWizardState } from "@/lib/save-in23/types";
 
 interface StepRevisaoProps {
@@ -39,7 +40,7 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
       router.refresh();
     } catch (err) {
       console.error("Erro ao gerar laudo:", err);
-      setErro(err instanceof Error ? err.message : "Ocorreu um erro ao gerar o PDF.");
+      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o PDF. O laudo já foi salvo — tente baixar o PDF novamente."));
     } finally {
       setGerando(false);
     }

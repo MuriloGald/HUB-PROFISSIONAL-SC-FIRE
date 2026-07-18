@@ -13,8 +13,15 @@
 
 import type { jsPDF } from "jspdf";
 
-const margin = 14;
-const pageWidth = 210;
+// Margens ABNT (NBR 14724): superior/esquerda 3cm, inferior/direita 2cm.
+export const MARGIN_TOP = 30;
+export const MARGIN_LEFT = 30;
+export const MARGIN_RIGHT = 20;
+export const MARGIN_BOTTOM = 20;
+export const PAGE_WIDTH = 210;
+export const PAGE_HEIGHT = 297;
+/** Ponto a partir do qual o conteudo deve quebrar de pagina, respeitando a margem inferior. */
+export const PAGE_BREAK_Y = PAGE_HEIGHT - MARGIN_BOTTOM - 17;
 
 export const COR_VERMELHO_ESCURO: [number, number, number] = [168, 29, 7];
 export const COR_CINZA_INSTITUCIONAL: [number, number, number] = [100, 116, 139];
@@ -47,7 +54,7 @@ export async function carregarLogoScFire(): Promise<{ dataUrl: string; format: s
 
 /** Desenha o cabeçalho institucional completo e devolve o Y onde o conteúdo do documento deve começar. */
 export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subtitle: string, codigoRef?: string): Promise<number> {
-  const top = margin;
+  const top = MARGIN_TOP;
   const logo = await carregarLogoScFire();
 
   let logoW = 0;
@@ -55,10 +62,10 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   if (logo) {
     const props = doc.getImageProperties(logo.dataUrl);
     logoW = (props.width / props.height) * logoH;
-    doc.addImage(logo.dataUrl, logo.format, margin, top, logoW, logoH);
+    doc.addImage(logo.dataUrl, logo.format, MARGIN_LEFT, top, logoW, logoH);
   }
 
-  const textX = margin + logoW + (logo ? 3 : 0);
+  const textX = MARGIN_LEFT + logoW + (logo ? 3 : 0);
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
@@ -71,7 +78,7 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   // Divisor fica no meio do espaco disponivel depois da logo, nao no centro da pagina —
   // assim os dados administrativos (esquerda) e os dados de endereco (direita) ficam com
   // a mesma largura, independente da largura da logo.
-  const rightX = pageWidth - margin;
+  const rightX = PAGE_WIDTH - MARGIN_RIGHT;
   const dividerX = (textX + rightX) / 2;
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.2);
@@ -92,17 +99,17 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   const borderY = top + logoH + 4;
   doc.setDrawColor(...COR_VERMELHO_ESCURO);
   doc.setLineWidth(0.8);
-  doc.line(margin, borderY, pageWidth - margin, borderY);
+  doc.line(MARGIN_LEFT, borderY, PAGE_WIDTH - MARGIN_RIGHT, borderY);
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text(title, pageWidth / 2, borderY + 8, { align: "center" });
+  doc.text(title, PAGE_WIDTH / 2, borderY + 8, { align: "center" });
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-  doc.text(subtitle + (codigoRef ? ` · ${codigoRef}` : ""), pageWidth / 2, borderY + 14, { align: "center" });
+  doc.text(subtitle + (codigoRef ? ` · ${codigoRef}` : ""), PAGE_WIDTH / 2, borderY + 14, { align: "center" });
   doc.setTextColor(0, 0, 0);
 
   return borderY + 22;

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileDown, Loader2 } from "lucide-react";
 import { avaliarSetor } from "@/lib/save-in23/classificador";
 import { salvarVistoria } from "@/app/actions/save-in23";
+import { mensagemErroGeracao } from "@/lib/shared/errors";
 import type { VistoriaWizardState } from "@/lib/save-in23/types";
 
 interface StepRevisaoProps {
@@ -37,7 +38,7 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
       router.refresh();
     } catch (err) {
       console.error("Erro ao gerar vistoria:", err);
-      setErro(err instanceof Error ? err.message : "Ocorreu um erro ao gerar o relatório.");
+      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o relatório. A vistoria já foi salva — tente baixar o PDF novamente."));
     } finally {
       setGerando(false);
     }

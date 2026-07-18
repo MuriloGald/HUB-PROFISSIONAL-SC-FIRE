@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileDown, Loader2 } from "lucide-react";
 import { PERGUNTAS_MAP } from "@/lib/laudos/constants";
 import { salvarLaudoEvento } from "@/app/actions/laudos";
+import { mensagemErroGeracao } from "@/lib/shared/errors";
 import type { EventoWizardState } from "@/lib/laudos/types";
 
 function displayValor(valor: string): string {
@@ -49,7 +50,7 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
       router.refresh();
     } catch (err) {
       console.error("Erro ao gerar PDF:", err);
-      setErro(err instanceof Error ? err.message : "Ocorreu um erro ao gerar o PDF.");
+      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o PDF. Tente novamente."));
     } finally {
       setGerando(false);
     }
