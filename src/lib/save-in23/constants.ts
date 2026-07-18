@@ -48,5 +48,5 @@ export const PERGUNTAS_SETOR: Record<string, string> = {
   hidManometro: "§ 2º — manômetro instalado de forma visível?",
   compartRotas: "Compartimentação do local em relação às demais rotas de fuga?",
   compartSaidas: "Compartimentação em relação às saídas de emergência?",
-  compartEntreSave: "Compartimentação entre ambientes com SAVE, TRF ≥ 1h (§ 5º)?",
+  compartEntreSave: "Compartimentação entre ambientes com SAVE, TRF mínimo de 1h (§ 5º)?",
 };

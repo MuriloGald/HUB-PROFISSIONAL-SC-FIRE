@@ -187,7 +187,7 @@ async function drawSetorAnexo(doc: DocWithAutoTable, s: SetorVistoria, index: nu
     ["Local externo/descoberto ou com cobertura leve (inciso I)", { content: sn(s.externo), styles: { textColor: corSn(s.externo) } }],
     ["Detecção automática de incêndio (IN 12)", { content: sn(s.deteccao), styles: { textColor: corSn(s.deteccao) } }],
     ["Extração mecânica de fumaça (IN 10)", { content: sn(s.extracao), styles: { textColor: corSn(s.extracao) } }],
-    ["Ventilação natural — aberturas em ≥ 2 lados", { content: sn(s.ventilacao.doisLados), styles: { textColor: corSn(s.ventilacao.doisLados) } }],
+    ["Ventilação natural — aberturas em pelo menos 2 lados", { content: sn(s.ventilacao.doisLados), styles: { textColor: corSn(s.ventilacao.doisLados) } }],
     [
       `Área das aberturas / área da fachada (§1º, I — mín. 20%)`,
       {
@@ -209,7 +209,7 @@ async function drawSetorAnexo(doc: DocWithAutoTable, s: SetorVistoria, index: nu
     ["§ 2º — manômetro visível", { content: sn(s.hidManometro), styles: { textColor: corSn(s.hidManometro) } }],
     ["Compartimentação em relação às rotas de fuga (III, a)", { content: sn(s.compartRotas), styles: { textColor: corSn(s.compartRotas) } }],
     ["Compartimentação em relação às saídas de emergência (IV, b)", { content: sn(s.compartSaidas), styles: { textColor: corSn(s.compartSaidas) } }],
-    ["Compartimentação entre ambientes SAVE, TRF ≥ 1h (§ 5º)", { content: sn(s.compartEntreSave), styles: { textColor: corSn(s.compartEntreSave) } }],
+    ["Compartimentação entre ambientes SAVE, TRF mínimo de 1h (§ 5º)", { content: sn(s.compartEntreSave), styles: { textColor: corSn(s.compartEntreSave) } }],
   ];
 
   doc.autoTable({
