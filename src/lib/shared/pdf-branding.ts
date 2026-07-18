@@ -68,12 +68,15 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
   doc.text("CNPJ 20.544.712/0001-89", textX, top + logoH / 2 + 3);
 
-  const dividerX = pageWidth / 2;
+  // Divisor fica no meio do espaco disponivel depois da logo, nao no centro da pagina —
+  // assim os dados administrativos (esquerda) e os dados de endereco (direita) ficam com
+  // a mesma largura, independente da largura da logo.
+  const rightX = pageWidth - margin;
+  const dividerX = (textX + rightX) / 2;
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.2);
   doc.line(dividerX, top + 1, dividerX, top + logoH - 1);
 
-  const rightX = pageWidth - margin;
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);

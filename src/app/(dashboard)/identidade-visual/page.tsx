@@ -388,24 +388,24 @@ export default function IdentidadeVisualPage() {
           <div className="flex flex-col items-center gap-4">
             <div className="w-full max-w-4xl p-10 bg-white text-gray-800 rounded-xl shadow-2xl border border-gray-100 flex flex-col gap-6">
               {/* PDF Header Simulation */}
-              <div className="flex justify-between items-center border-b-2 border-[#a81d07] pb-4">
-                <div className="flex items-center gap-4 flex-1">
-                  <img src="/logo-sc-fire.png" alt="SC FIRE Logo" className="h-[72px] object-contain" />
-                  <div className="flex flex-col text-[10px] text-gray-800 leading-tight">
+              <div className="flex items-center gap-4 border-b-2 border-[#a81d07] pb-4">
+                <img src="/logo-sc-fire.png" alt="SC FIRE Logo" className="h-[72px] object-contain flex-shrink-0" />
+                <div className="flex items-center flex-1">
+                  <div className="flex flex-col text-[10px] text-gray-800 leading-tight flex-1">
                     <strong className="font-bold text-[11px] text-black">EZS Consultoria e Treinamentos LTDA</strong>
                     <span>CNPJ 20.544.712/0001-89</span>
                   </div>
-                </div>
-                <div className="w-[1px] h-12 bg-gray-300 mx-5" />
-                <div className="flex flex-col text-right text-[9.5px] text-gray-600 leading-normal flex-1">
-                  <span>R. Hermes Zapelini, 513 - sala 02</span>
-                  <span>Barreiros, São José - SC, 88.110-050</span>
-                  <span className="flex justify-end gap-2 font-medium text-gray-800">
-                    <span>(48) 99141-2186</span>
-                    <span>|</span>
-                    <span>(48) 3093 6140</span>
-                  </span>
-                  <span>contato@scfire.com.br</span>
+                  <div className="w-[1px] h-12 bg-gray-300 mx-5" />
+                  <div className="flex flex-col text-right text-[9.5px] text-gray-600 leading-normal flex-1">
+                    <span>R. Hermes Zapelini, 513 - sala 02</span>
+                    <span>Barreiros, São José - SC, 88.110-050</span>
+                    <span className="flex justify-end gap-2 font-medium text-gray-800">
+                      <span>(48) 99141-2186</span>
+                      <span>|</span>
+                      <span>(48) 3093 6140</span>
+                    </span>
+                    <span>contato@scfire.com.br</span>
+                  </div>
                 </div>
               </div>
 

@@ -8,6 +8,10 @@ const inputClass =
   "w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all";
 const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider";
 
+const TITULO_SUGERIDO = "LAUDO TÉCNICO DE CONFORMIDADE – IMPLANTAÇÃO DE SAVE (IN 23/CBMSC)";
+const SUBTITULO_SUGERIDO = "Regularização do Sistema de Alimentação para Veículos Elétricos via dispensa de PBD";
+const RESP_TECNICO_SUGERIDO = "Eng.ª Dione Borges — CREA-SC 177797-2";
+
 interface StepProps {
   state: LaudoTecnicoWizardState;
   onNext: (partial: Partial<LaudoTecnicoWizardState>) => void;
@@ -38,13 +42,15 @@ export function StepIdentificacaoCap1({ state, onNext }: StepProps) {
     setHistorico((h) => h.filter((item) => item.id !== id));
   }
 
+  const propriedadeSugerida = state.cliente?.razao_social ?? "";
+
   function handleAvancar() {
     onNext({
-      tituloDocumento,
-      subtitulo,
-      propriedade,
+      tituloDocumento: tituloDocumento.trim() || TITULO_SUGERIDO,
+      subtitulo: subtitulo.trim() || SUBTITULO_SUGERIDO,
+      propriedade: propriedade.trim() || propriedadeSugerida,
       revisao,
-      respTecnico,
+      respTecnico: respTecnico.trim() || RESP_TECNICO_SUGERIDO,
       capitulo1: { areaConstruida, pavimentos, altura, validadeAtestado, textoIntro, historico, notaObservacao },
     });
   }
@@ -57,7 +63,7 @@ export function StepIdentificacaoCap1({ state, onNext }: StepProps) {
           <label className={labelClass}>Título do documento</label>
           <input
             className={inputClass}
-            placeholder="LAUDO TÉCNICO DE CONFORMIDADE – IMPLANTAÇÃO DE SAVE (IN 23/CBMSC)"
+            placeholder={TITULO_SUGERIDO}
             value={tituloDocumento}
             onChange={(e) => setTituloDocumento(e.target.value)}
           />
@@ -66,7 +72,7 @@ export function StepIdentificacaoCap1({ state, onNext }: StepProps) {
           <label className={labelClass}>Subtítulo</label>
           <input
             className={inputClass}
-            placeholder="Regularização do Sistema de Alimentação para Veículos Elétricos via dispensa de PBD"
+            placeholder={SUBTITULO_SUGERIDO}
             value={subtitulo}
             onChange={(e) => setSubtitulo(e.target.value)}
           />
@@ -74,7 +80,12 @@ export function StepIdentificacaoCap1({ state, onNext }: StepProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className={labelClass}>Propriedade</label>
-            <input className={inputClass} value={propriedade} onChange={(e) => setPropriedade(e.target.value)} />
+            <input
+              className={inputClass}
+              placeholder={propriedadeSugerida || "Nome do condomínio"}
+              value={propriedade}
+              onChange={(e) => setPropriedade(e.target.value)}
+            />
           </div>
           <div className="space-y-1.5">
             <label className={labelClass}>Revisão</label>
@@ -85,7 +96,7 @@ export function StepIdentificacaoCap1({ state, onNext }: StepProps) {
           <label className={labelClass}>Responsável Técnico</label>
           <input
             className={inputClass}
-            placeholder="Eng.ª Dione Borges — CREA-SC 177797-2"
+            placeholder={RESP_TECNICO_SUGERIDO}
             value={respTecnico}
             onChange={(e) => setRespTecnico(e.target.value)}
           />
