@@ -9,6 +9,7 @@
 import { jsPDF } from "jspdf";
 import { applyPlugin, type RowInput } from "jspdf-autotable";
 import { RESPONSAVEIS_TECNICOS, EMPRESA, PERGUNTAS_MAP } from "./constants";
+import { drawCabecalhoInstitucional } from "../shared/pdf-branding";
 import type { EventoWizardState, Respostas } from "./types";
 
 applyPlugin(jsPDF);
@@ -393,9 +394,9 @@ const mapAnexoE: MapOrdemItem[] = [
   { key: "EQUIPSGP" },
 ];
 
-function drawAnexoE(doc: DocWithAutoTable, state: EventoWizardState): void {
-  let currentY = drawHeader(doc, "Anexo E - Laudo de Comissionamento", "EVENTO DE GRANDE PORTE");
-  currentY = drawIdentificacao(doc, currentY, state);
+/** Corpo do Anexo E (secao 2 em diante) — usado tanto pela via oficial quanto pela via com identidade visual. */
+function drawAnexoEConteudo(doc: DocWithAutoTable, startY: number, state: EventoWizardState): number {
+  let currentY = startY;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -458,7 +459,13 @@ function drawAnexoE(doc: DocWithAutoTable, state: EventoWizardState): void {
     columnStyles: { 0: { cellWidth: contentWidth * 0.85 }, 1: { cellWidth: contentWidth * 0.15 } },
   });
 
-  currentY = doc.lastAutoTable.finalY + 10;
+  return doc.lastAutoTable.finalY + 10;
+}
+
+function drawAnexoE(doc: DocWithAutoTable, state: EventoWizardState): void {
+  let currentY = drawHeader(doc, "Anexo E - Laudo de Comissionamento", "EVENTO DE GRANDE PORTE");
+  currentY = drawIdentificacao(doc, currentY, state);
+  currentY = drawAnexoEConteudo(doc, currentY, state);
   drawAssinaturas(doc, currentY, state, "grande");
 }
 
@@ -517,6 +524,76 @@ export function gerarPdf(state: EventoWizardState, tipoPdf: TipoPdf = "ambos"): 
     drawAnexoE(docE, state);
 
     const fileNameE = nomeArquivo(state, "_AnexoE");
+    docE.save(fileNameE);
+
+    return [fileNameD, fileNameE];
+  }
+
+  return fileNameD;
+}
+
+function nomeArquivoIdentidadeVisual(state: EventoWizardState, sufixo = ""): string {
+  const nome = (state.nome_evento || "evento").replace(/ /g, "_");
+  return `Laudo_SCFire_${state.porteFinal}_${nome}${sufixo}.pdf`;
+}
+
+/**
+ * Segunda via do laudo, com a identidade visual da SC Fire (logo + dados
+ * institucionais no cabeçalho) em vez do padrão puro do formulário do CBMSC.
+ * O conteúdo (identificação, características, tabela de saídas, assinaturas)
+ * é idêntico ao de gerarPdf() — só o cabeçalho muda. Uso: cópia para o cliente/
+ * arquivo interno; a via oficial enviada ao CBMSC continua sendo gerarPdf().
+ */
+export async function gerarPdfIdentidadeVisual(state: EventoWizardState, tipoPdf: TipoPdf = "ambos"): Promise<string | (string | null)[] | null> {
+  const doc = new jsPDF() as DocWithAutoTable;
+  const porte = state.porteFinal;
+  let currentY = margin;
+
+  if (porte === "pequeno") {
+    currentY = await drawCabecalhoInstitucional(doc, "Anexo B - Termo de Responsabilidade", "EVENTO DE PEQUENO PORTE", state.codigo);
+    currentY = drawIdentificacao(doc, currentY, state);
+    currentY = drawCaracteristicas(doc, currentY, state, state.respostas_pequeno || {});
+    drawAssinaturas(doc, currentY, state, "pequeno");
+
+    const fileName = nomeArquivoIdentidadeVisual(state);
+    doc.save(fileName);
+    return fileName;
+  }
+
+  if (porte === "medio") {
+    currentY = await drawCabecalhoInstitucional(doc, "Anexo C - Laudo técnico", "EVENTO DE MÉDIO PORTE", state.codigo);
+    currentY = drawIdentificacao(doc, currentY, state);
+    currentY = drawCaracteristicas(doc, currentY, state, state.respostas_medio || {});
+    drawAssinaturas(doc, currentY, state, "medio");
+
+    const fileName = nomeArquivoIdentidadeVisual(state);
+    doc.save(fileName);
+    return fileName;
+  }
+
+  // GRANDE PORTE — Anexo D (memorial) + Anexo E (comissionamento)
+  let fileNameD: string | null = null;
+  if (tipoPdf === "ambos" || tipoPdf === "anexod") {
+    currentY = await drawCabecalhoInstitucional(doc, "Anexo D - Memorial Técnico de Segurança Contra Incêndio", "EVENTO DE GRANDE PORTE", state.codigo);
+    currentY = drawIdentificacao(doc, currentY, state);
+    currentY = drawCaracteristicas(doc, currentY, state, state.respostas_grande || {}, 2);
+    currentY = drawTabelaSaidas(doc, currentY, state, 3);
+    drawAssinaturas(doc, currentY, state, "grande");
+
+    fileNameD = nomeArquivoIdentidadeVisual(state, "_AnexoD");
+    doc.save(fileNameD);
+
+    if (tipoPdf === "anexod") return fileNameD;
+  }
+
+  if (tipoPdf === "ambos" || tipoPdf === "anexoe") {
+    const docE = (tipoPdf === "ambos" ? new jsPDF() : doc) as DocWithAutoTable;
+    let currentYE = await drawCabecalhoInstitucional(docE, "Anexo E - Laudo de Comissionamento", "EVENTO DE GRANDE PORTE", state.codigo);
+    currentYE = drawIdentificacao(docE, currentYE, state);
+    currentYE = drawAnexoEConteudo(docE, currentYE, state);
+    drawAssinaturas(docE, currentYE, state, "grande");
+
+    const fileNameE = nomeArquivoIdentidadeVisual(state, "_AnexoE");
     docE.save(fileNameE);
 
     return [fileNameD, fileNameE];

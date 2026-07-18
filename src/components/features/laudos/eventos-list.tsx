@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Eye, Pencil, Download, Trash2, FileSignature, X } from "lucide-react";
+import { Search, Plus, Eye, Pencil, Download, Trash2, FileSignature, Flame, X } from "lucide-react";
 import { excluirLaudoEvento } from "@/app/actions/laudos";
 import { PERGUNTAS_MAP } from "@/lib/laudos/constants";
 import type { Laudo } from "@/lib/supabase/types";
@@ -39,6 +39,12 @@ export function EventosList({ laudos }: { laudos: Laudo[] }) {
   async function handleBaixar(dados: EventoWizardState, tipo: "ambos" | "anexod" | "anexoe" = "ambos") {
     const { gerarPdf } = await import("@/lib/laudos/pdf-generator");
     gerarPdf(dados, tipo);
+  }
+
+  /** Segunda via com a identidade visual da SC Fire — a oficial pro CBMSC continua sendo handleBaixar. */
+  async function handleBaixarSCFire(dados: EventoWizardState, tipo: "ambos" | "anexod" | "anexoe" = "ambos") {
+    const { gerarPdfIdentidadeVisual } = await import("@/lib/laudos/pdf-generator");
+    await gerarPdfIdentidadeVisual(dados, tipo);
   }
 
   const respostasDetalhes = detalhes
@@ -123,15 +129,31 @@ export function EventosList({ laudos }: { laudos: Laudo[] }) {
                     >
                       Anexo E
                     </button>
+                    <button
+                      onClick={() => handleBaixarSCFire(dados, "ambos")}
+                      title="Baixar via com identidade visual SC Fire (D + E)"
+                      className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-gray-300 hover:text-red-400 transition-all"
+                    >
+                      <Flame className="w-4 h-4" />
+                    </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => handleBaixar(dados)}
-                    title="Baixar laudo"
-                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-emerald-500/50 hover:bg-white/[0.04] text-gray-300 hover:text-emerald-400 transition-all"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleBaixar(dados)}
+                      title="Baixar laudo (padrão CBMSC)"
+                      className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-emerald-500/50 hover:bg-white/[0.04] text-gray-300 hover:text-emerald-400 transition-all"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleBaixarSCFire(dados)}
+                      title="Baixar via com identidade visual SC Fire"
+                      className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-gray-300 hover:text-red-400 transition-all"
+                    >
+                      <Flame className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={() => handleExcluir(l.id)}

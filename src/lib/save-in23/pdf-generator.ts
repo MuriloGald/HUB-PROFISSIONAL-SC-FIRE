@@ -14,6 +14,7 @@ import { jsPDF } from "jspdf";
 import { applyPlugin, type RowInput } from "jspdf-autotable";
 import { RESPONSAVEIS_TECNICOS } from "./constants";
 import { avaliarSetor } from "./classificador";
+import { carregarImagemComoDataUrl, drawCabecalhoInstitucional, COR_VERMELHO_ESCURO, COR_CINZA_INSTITUCIONAL } from "../shared/pdf-branding";
 import type { ClienteSave23Snapshot, Imagem, LaudoTecnicoWizardState, SetorVistoria, VistoriaWizardState } from "./types";
 
 applyPlugin(jsPDF);
@@ -27,30 +28,13 @@ const margin = 14;
 const pageWidth = 210;
 const contentWidth = pageWidth - margin * 2;
 
-// Identidade visual SC Fire (Identidade Visual/mostruario.html).
-const COR_VERMELHO_ESCURO: [number, number, number] = [168, 29, 7];
+// Cores de status (Identidade Visual/mostruario.html) — vermelho/cinza institucionais
+// vêm do cabeçalho compartilhado em lib/shared/pdf-branding.
 const COR_VERDE: [number, number, number] = [16, 185, 129];
 const COR_VERMELHO: [number, number, number] = [239, 68, 68];
 const COR_AMBAR: [number, number, number] = [245, 158, 11];
-const COR_CINZA: [number, number, number] = [100, 116, 139];
+const COR_CINZA = COR_CINZA_INSTITUCIONAL;
 const COR_LABEL_BG: [number, number, number] = [248, 250, 252];
-
-async function carregarImagemComoDataUrl(url: string): Promise<{ dataUrl: string; format: string } | null> {
-  try {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    const format = blob.type.includes("png") ? "PNG" : "JPEG";
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-    return { dataUrl, format };
-  } catch {
-    return null;
-  }
-}
 
 function corResultado(resultado: string): [number, number, number] {
   if (resultado === "DISPENSADO") return COR_VERDE;
@@ -72,77 +56,9 @@ function textoPossivel(possivel: boolean | "financeiro" | undefined): string {
   return "—";
 }
 
-let logoCache: { dataUrl: string; format: string } | null | undefined;
-
-async function carregarLogo(): Promise<{ dataUrl: string; format: string } | null> {
-  if (logoCache === undefined) {
-    logoCache = await carregarImagemComoDataUrl("/logo-sc-fire.png");
-  }
-  return logoCache;
-}
-
-/**
- * Cabeçalho institucional — logo + EZS Consultoria (esquerda), divisor, endereço/
- * contato (direita), borda inferior vermelha. Segue Identidade Visual/mostruario.html
- * (aba "Padrão de Laudo PDF"), a mesma marcação usada em identidade-visual/page.tsx.
- */
+/** Cabeçalho institucional (logo + EZS Consultoria + contato) — ver lib/shared/pdf-branding. */
 async function drawHeader(doc: DocWithAutoTable, title: string, subtitle: string, codigo?: string): Promise<number> {
-  const top = margin;
-  const logo = await carregarLogo();
-
-  let logoW = 0;
-  const logoH = 14;
-  if (logo) {
-    const props = doc.getImageProperties(logo.dataUrl);
-    logoW = (props.width / props.height) * logoH;
-    doc.addImage(logo.dataUrl, logo.format, margin, top, logoW, logoH);
-  }
-
-  const textX = margin + logoW + (logo ? 3 : 0);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 0, 0);
-  doc.text("EZS Consultoria e Treinamentos LTDA", textX, top + logoH / 2 - 1);
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...COR_CINZA);
-  doc.text("CNPJ 20.544.712/0001-89", textX, top + logoH / 2 + 3);
-
-  const dividerX = pageWidth / 2;
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.2);
-  doc.line(dividerX, top + 1, dividerX, top + logoH - 1);
-
-  const rightX = pageWidth - margin;
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...COR_CINZA);
-  doc.text("R. Hermes Zapelini, 513 - sala 02", rightX, top + 2, { align: "right" });
-  doc.text("Barreiros, São José - SC, 88.110-050", rightX, top + 5.5, { align: "right" });
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 0, 0);
-  doc.text("(48) 99141-2186  |  (48) 3093 6140", rightX, top + 9, { align: "right" });
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...COR_CINZA);
-  doc.text("contato@scfire.com.br", rightX, top + 12.5, { align: "right" });
-
-  const borderY = top + logoH + 4;
-  doc.setDrawColor(...COR_VERMELHO_ESCURO);
-  doc.setLineWidth(0.8);
-  doc.line(margin, borderY, pageWidth - margin, borderY);
-
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(0, 0, 0);
-  doc.text(title, pageWidth / 2, borderY + 8, { align: "center" });
-
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...COR_CINZA);
-  doc.text(subtitle + (codigo ? ` · RG ${codigo}` : ""), pageWidth / 2, borderY + 14, { align: "center" });
-  doc.setTextColor(0, 0, 0);
-
-  return borderY + 22;
+  return drawCabecalhoInstitucional(doc, title, subtitle, codigo ? `RG ${codigo}` : undefined);
 }
 
 async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: number): Promise<number> {
