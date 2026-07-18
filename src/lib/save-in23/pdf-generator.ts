@@ -72,23 +72,77 @@ function textoPossivel(possivel: boolean | "financeiro" | undefined): string {
   return "—";
 }
 
-function drawHeader(doc: DocWithAutoTable, title: string, subtitle: string, codigo?: string): number {
+let logoCache: { dataUrl: string; format: string } | null | undefined;
+
+async function carregarLogo(): Promise<{ dataUrl: string; format: string } | null> {
+  if (logoCache === undefined) {
+    logoCache = await carregarImagemComoDataUrl("/logo-sc-fire.png");
+  }
+  return logoCache;
+}
+
+/**
+ * Cabeçalho institucional — logo + EZS Consultoria (esquerda), divisor, endereço/
+ * contato (direita), borda inferior vermelha. Segue Identidade Visual/mostruario.html
+ * (aba "Padrão de Laudo PDF"), a mesma marcação usada em identidade-visual/page.tsx.
+ */
+async function drawHeader(doc: DocWithAutoTable, title: string, subtitle: string, codigo?: string): Promise<number> {
+  const top = margin;
+  const logo = await carregarLogo();
+
+  let logoW = 0;
+  const logoH = 14;
+  if (logo) {
+    const props = doc.getImageProperties(logo.dataUrl);
+    logoW = (props.width / props.height) * logoH;
+    doc.addImage(logo.dataUrl, logo.format, margin, top, logoW, logoH);
+  }
+
+  const textX = margin + logoW + (logo ? 3 : 0);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text("EZS Consultoria e Treinamentos LTDA", textX, top + logoH / 2 - 1);
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...COR_CINZA);
+  doc.text("CNPJ 20.544.712/0001-89", textX, top + logoH / 2 + 3);
+
+  const dividerX = pageWidth / 2;
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  doc.line(dividerX, top + 1, dividerX, top + logoH - 1);
+
+  const rightX = pageWidth - margin;
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...COR_CINZA);
+  doc.text("R. Hermes Zapelini, 513 - sala 02", rightX, top + 2, { align: "right" });
+  doc.text("Barreiros, São José - SC, 88.110-050", rightX, top + 5.5, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text("(48) 99141-2186  |  (48) 3093 6140", rightX, top + 9, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(...COR_CINZA);
+  doc.text("contato@scfire.com.br", rightX, top + 12.5, { align: "right" });
+
+  const borderY = top + logoH + 4;
   doc.setDrawColor(...COR_VERMELHO_ESCURO);
   doc.setLineWidth(0.8);
-  doc.line(margin, margin + 2, pageWidth - margin, margin + 2);
+  doc.line(margin, borderY, pageWidth - margin, borderY);
 
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text(title, pageWidth / 2, margin + 10, { align: "center" });
+  doc.text(title, pageWidth / 2, borderY + 8, { align: "center" });
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA);
-  doc.text(subtitle + (codigo ? ` · RG ${codigo}` : ""), pageWidth / 2, margin + 16, { align: "center" });
+  doc.text(subtitle + (codigo ? ` · RG ${codigo}` : ""), pageWidth / 2, borderY + 14, { align: "center" });
   doc.setTextColor(0, 0, 0);
 
-  return margin + 25;
+  return borderY + 22;
 }
 
 async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: number): Promise<number> {
@@ -350,7 +404,7 @@ function nomeArquivoVistoria(state: VistoriaWizardState): string {
 export async function gerarPdfVistoria(state: VistoriaWizardState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
-  let y = drawHeader(doc, "Relatório de Vistoria — Avaliação de Dispensa do PBD (Art. 6º)", "IN 23/CBMSC — SAVE", state.codigo);
+  let y = await drawHeader(doc, "Relatório de Vistoria — Avaliação de Dispensa do PBD (Art. 6º)", "IN 23/CBMSC — SAVE", state.codigo);
   y = drawIdentificacaoVistoria(doc, y, state);
   y = drawResumoSetores(doc, y, state.setores, state.cliente?.preexistente);
 
@@ -582,7 +636,7 @@ function nomeArquivoLaudo(state: LaudoTecnicoWizardState): string {
 export async function gerarPdfLaudo(state: LaudoTecnicoWizardState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
-  let y = drawHeader(doc, state.tituloDocumento || "Laudo Técnico", state.subtitulo || "Orientação Técnica — IN 23/CBMSC", state.codigo);
+  let y = await drawHeader(doc, state.tituloDocumento || "Laudo Técnico", state.subtitulo || "Orientação Técnica — IN 23/CBMSC", state.codigo);
   if (state.propriedade || state.revisao) {
     doc.setFontSize(8);
     doc.setTextColor(...COR_CINZA);
