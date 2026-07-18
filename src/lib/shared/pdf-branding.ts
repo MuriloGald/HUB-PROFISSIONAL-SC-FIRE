@@ -13,8 +13,9 @@
 
 import type { jsPDF } from "jspdf";
 
-// Margens ABNT (NBR 14724): superior/esquerda 3cm, inferior/direita 2cm.
-export const MARGIN_TOP = 30;
+// Margens ABNT (NBR 14724): esquerda 3cm, inferior/direita 2cm. Margem superior
+// reduzida pela metade (1,5cm) a pedido — menor que o padrao ABNT estrito.
+export const MARGIN_TOP = 15;
 export const MARGIN_LEFT = 30;
 export const MARGIN_RIGHT = 20;
 export const MARGIN_BOTTOM = 20;

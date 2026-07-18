@@ -150,10 +150,9 @@ export function LaudoTecnicoWizard({ clientes, clausulasPadrao, clienteIdInicial
 
       {step === 4 && (
         <StepCapitulo3
-          paragrafoContextual={state.capitulo3.paragrafoContextual}
           cenarios={state.capitulo3.cenarios}
           onBack={() => avancarPara(3)}
-          onNext={(partial) => avancarPara(5, { capitulo3: partial })}
+          onNext={(cenarios) => avancarPara(5, { capitulo3: { cenarios } })}
         />
       )}
 

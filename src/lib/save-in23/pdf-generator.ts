@@ -19,12 +19,13 @@ import {
   drawCabecalhoInstitucional,
   COR_VERMELHO_ESCURO,
   COR_CINZA_INSTITUCIONAL,
+  MARGIN_TOP,
   MARGIN_LEFT,
   MARGIN_RIGHT,
   PAGE_WIDTH,
   PAGE_BREAK_Y,
 } from "../shared/pdf-branding";
-import type { ClienteSave23Snapshot, Imagem, LaudoTecnicoWizardState, SetorVistoria, VistoriaWizardState } from "./types";
+import type { Cenario, ClienteSave23Snapshot, Imagem, LaudoTecnicoWizardState, SetorVistoria, VistoriaWizardState } from "./types";
 
 applyPlugin(jsPDF);
 
@@ -33,10 +34,16 @@ type DocWithAutoTable = jsPDF & {
   lastAutoTable: { finalY: number };
 };
 
-// Margens ABNT (30mm topo/esquerda, 20mm direita/baixo) — ver lib/shared/pdf-branding.
+// Margens ABNT (ver lib/shared/pdf-branding) — topo e esquerda tem valores
+// diferentes agora, "margin" sozinho so serve pra x-esquerda/largura de conteudo.
 const margin = MARGIN_LEFT;
 const pageWidth = PAGE_WIDTH;
 const contentWidth = pageWidth - MARGIN_LEFT - MARGIN_RIGHT;
+const AUTOTABLE_MARGIN = { left: MARGIN_LEFT, right: MARGIN_RIGHT };
+
+// Texto normal do documento: fonte 11, espaçamento ~1,5 entre linhas (11pt × 1,5 ≈ 5,8mm).
+const FONTE_NORMAL = 11;
+const ALTURA_LINHA_NORMAL = 5.8;
 
 // Cores de status (Identidade Visual/mostruario.html) — vermelho/cinza institucionais
 // vêm do cabeçalho compartilhado em lib/shared/pdf-branding.
@@ -67,8 +74,22 @@ function textoPossivel(possivel: boolean | "financeiro" | undefined): string {
 }
 
 /** Cabeçalho institucional (logo + EZS Consultoria + contato) — ver lib/shared/pdf-branding. */
-async function drawHeader(doc: DocWithAutoTable, title: string, subtitle: string, codigo?: string): Promise<number> {
-  return drawCabecalhoInstitucional(doc, title, subtitle, codigo ? `RG ${codigo}` : undefined);
+async function drawHeader(doc: DocWithAutoTable, title: string, subtitle: string, codigoRef?: string): Promise<number> {
+  return drawCabecalhoInstitucional(doc, title, subtitle, codigoRef);
+}
+
+/** Estampa numeração de página no canto superior direito de todas as páginas (padrão ABNT). */
+function numerarPaginas(doc: DocWithAutoTable): void {
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
+    doc.text(String(i), PAGE_WIDTH - MARGIN_RIGHT, MARGIN_TOP - 4, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+  }
+  doc.setPage(total);
 }
 
 /** Contador de imagens do documento inteiro — mutado por referência para a numeração ("Imagem 01", "02"...) ser contínua entre setores/subseções, não reiniciar a cada chamada. */
@@ -83,7 +104,7 @@ async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: 
     const carregada = await carregarImagemComoDataUrl(img.url);
     if (y > PAGE_BREAK_Y) {
       doc.addPage();
-      y = margin + 10;
+      y = MARGIN_TOP + 10;
     }
     if (!carregada) {
       doc.setFontSize(8);
@@ -126,6 +147,7 @@ function drawIdentificacaoVistoria(doc: DocWithAutoTable, startY: number, state:
   ];
 
   doc.autoTable({
+    margin: AUTOTABLE_MARGIN,
     startY: startY + 3,
     theme: "grid",
     head: [],
@@ -154,6 +176,7 @@ function drawResumoSetores(doc: DocWithAutoTable, startY: number, setores: Setor
   });
 
   doc.autoTable({
+    margin: AUTOTABLE_MARGIN,
     startY: startY + 3,
     theme: "grid",
     head,
@@ -189,6 +212,7 @@ async function drawSetorAnexo(
   let y = margin + 18;
 
   doc.autoTable({
+    margin: AUTOTABLE_MARGIN,
     startY: y,
     theme: "grid",
     head: [],
@@ -234,6 +258,7 @@ async function drawSetorAnexo(
   ];
 
   doc.autoTable({
+    margin: AUTOTABLE_MARGIN,
     startY: y,
     theme: "grid",
     head: [["Item verificado", "Resposta"]],
@@ -246,7 +271,7 @@ async function drawSetorAnexo(
 
   if (y > PAGE_BREAK_Y) {
     doc.addPage();
-    y = margin + 10;
+    y = MARGIN_TOP + 10;
   }
 
   const cor = corResultado(av.resultado);
@@ -263,7 +288,7 @@ async function drawSetorAnexo(
   if (s.alteracoes.length || s.altObs) {
     if (y > PAGE_BREAK_Y) {
       doc.addPage();
-      y = margin + 10;
+      y = MARGIN_TOP + 10;
     }
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
@@ -274,6 +299,7 @@ async function drawSetorAnexo(
 
     if (s.alteracoes.length) {
       doc.autoTable({
+    margin: AUTOTABLE_MARGIN,
         startY: y,
         theme: "grid",
         head: [["Alteração avaliada em campo", "Viável?"]],
@@ -300,7 +326,7 @@ async function drawSetorAnexo(
   if (s.observacoes) {
     if (y > PAGE_BREAK_Y) {
       doc.addPage();
-      y = margin + 10;
+      y = MARGIN_TOP + 10;
     }
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
@@ -320,7 +346,7 @@ function drawAssinaturasVistoria(doc: DocWithAutoTable, startY: number, state: V
   let y = startY;
   if (y > PAGE_BREAK_Y) {
     doc.addPage();
-    y = margin + 10;
+    y = MARGIN_TOP + 10;
   }
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -341,18 +367,23 @@ function nomeArquivoVistoria(state: VistoriaWizardState): string {
 export async function gerarPdfVistoria(state: VistoriaWizardState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
-  let y = await drawHeader(doc, "Relatório de Vistoria — Avaliação de Dispensa do PBD (Art. 6º)", "IN 23/CBMSC — SAVE", state.codigo);
+  let y = await drawHeader(
+    doc,
+    "Relatório de Vistoria — Avaliação de Dispensa do PBD (Art. 6º)",
+    "IN 23/CBMSC — SAVE",
+    state.codigo ? `RG ${state.codigo}` : undefined
+  );
   y = drawIdentificacaoVistoria(doc, y, state);
   y = drawResumoSetores(doc, y, state.setores, state.cliente?.preexistente);
 
   if (state.observacoesGerais) {
-    doc.setFontSize(9);
+    doc.setFontSize(FONTE_NORMAL);
     doc.setFont("helvetica", "bold");
     doc.text("Observações gerais", margin, y);
     doc.setFont("helvetica", "normal");
     const linhas = doc.splitTextToSize(state.observacoesGerais, contentWidth);
-    doc.text(linhas, margin, y + 5);
-    y += linhas.length * 4 + 10;
+    doc.text(linhas, margin, y + ALTURA_LINHA_NORMAL);
+    y += linhas.length * ALTURA_LINHA_NORMAL + 8;
   }
 
   drawAssinaturasVistoria(doc, y, state);
@@ -361,6 +392,8 @@ export async function gerarPdfVistoria(state: VistoriaWizardState): Promise<stri
   for (let i = 0; i < state.setores.length; i++) {
     await drawSetorAnexo(doc, state.setores[i], i, state, contadorImg);
   }
+
+  numerarPaginas(doc);
 
   const fileName = nomeArquivoVistoria(state);
   doc.save(fileName);
@@ -375,26 +408,26 @@ function formatarCorpo(doc: DocWithAutoTable, texto: string | undefined, x: numb
   if (!texto) return y;
   let cursorY = y;
   const blocos = texto.split(/\n\s*\n/);
-  doc.setFontSize(9);
+  doc.setFontSize(FONTE_NORMAL);
   doc.setFont("helvetica", "normal");
   for (const bloco of blocos) {
     const linhas = bloco.split("\n").map((l) => l.trim()).filter(Boolean);
     if (!linhas.length) continue;
     const ehLista = linhas.every((l) => l.startsWith("- "));
-    if (cursorY > 265) {
+    if (cursorY > PAGE_BREAK_Y) {
       doc.addPage();
-      cursorY = margin + 10;
+      cursorY = MARGIN_TOP + 10;
     }
     if (ehLista) {
       for (const item of linhas) {
         const texto2 = doc.splitTextToSize(`•  ${item.slice(2)}`, contentWidth - x + margin);
         doc.text(texto2, x, cursorY);
-        cursorY += texto2.length * 4.2 + 1.5;
+        cursorY += texto2.length * ALTURA_LINHA_NORMAL;
       }
     } else {
       const texto2 = doc.splitTextToSize(linhas.join(" "), contentWidth - x + margin);
       doc.text(texto2, x, cursorY, { align: "justify", maxWidth: contentWidth - x + margin });
-      cursorY += texto2.length * 4.2 + 3;
+      cursorY += texto2.length * ALTURA_LINHA_NORMAL;
     }
   }
   return cursorY + 2;
@@ -409,6 +442,7 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
 
   const cap1 = state.capitulo1;
   doc.autoTable({
+    margin: AUTOTABLE_MARGIN,
     startY: startY + 3,
     theme: "grid",
     head: [],
@@ -423,20 +457,26 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
 
   y = formatarCorpo(doc, cap1.textoIntro, margin, y);
 
-  if (cap1.historico.length) {
+  const historicoPreenchido = cap1.historico.filter((h) => h.tituloData.trim() || h.descricao.trim());
+  if (historicoPreenchido.length) {
     if (y > PAGE_BREAK_Y) {
       doc.addPage();
-      y = margin + 10;
+      y = MARGIN_TOP + 10;
     }
-    doc.setFontSize(9);
+    doc.setFontSize(FONTE_NORMAL);
     doc.setFont("helvetica", "bold");
     doc.text("Histórico de alterações de projeto:", margin, y);
-    y += 5;
+    y += ALTURA_LINHA_NORMAL;
     doc.setFont("helvetica", "normal");
-    for (const h of cap1.historico) {
-      const linhas = doc.splitTextToSize(`•  ${h.tituloData}: ${h.descricao}`, contentWidth);
+    for (const h of historicoPreenchido) {
+      const rotulo = h.tituloData.trim() && h.descricao.trim() ? `${h.tituloData}: ${h.descricao}` : h.tituloData.trim() || h.descricao.trim();
+      const linhas = doc.splitTextToSize(`•  ${rotulo}`, contentWidth);
+      if (y > PAGE_BREAK_Y) {
+        doc.addPage();
+        y = MARGIN_TOP + 10;
+      }
       doc.text(linhas, margin, y);
-      y += linhas.length * 4.2 + 2;
+      y += linhas.length * ALTURA_LINHA_NORMAL;
     }
     y += 3;
   }
@@ -444,20 +484,23 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
   if (cap1.notaObservacao) {
     if (y > PAGE_BREAK_Y) {
       doc.addPage();
-      y = margin + 10;
+      y = MARGIN_TOP + 10;
     }
+    doc.setFontSize(FONTE_NORMAL);
+    doc.setFont("helvetica", "normal");
+    const linhas = doc.splitTextToSize(cap1.notaObservacao, contentWidth - 8);
+    const boxHeight = linhas.length * ALTURA_LINHA_NORMAL + 14;
     doc.setDrawColor(...COR_VERMELHO_ESCURO);
     doc.setFillColor(254, 242, 242);
-    const linhas = doc.splitTextToSize(cap1.notaObservacao, contentWidth - 8);
-    const boxHeight = linhas.length * 4.2 + 12;
     doc.roundedRect(margin, y, contentWidth, boxHeight, 1, 1, "FD");
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(...COR_VERMELHO_ESCURO);
-    doc.text("NOTA DE OBSERVAÇÃO", margin + 4, y + 6);
+    doc.text("NOTA DE OBSERVAÇÃO", margin + 4, y + 7);
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(FONTE_NORMAL);
     doc.setTextColor(0, 0, 0);
-    doc.text(linhas, margin + 4, y + 11);
+    doc.text(linhas, margin + 4, y + 13);
     y += boxHeight + 6;
   }
 
@@ -468,7 +511,7 @@ function drawCapitulo2(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
   let y = startY;
   if (y > PAGE_BREAK_Y) {
     doc.addPage();
-    y = margin + 10;
+    y = MARGIN_TOP + 10;
   }
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
@@ -481,72 +524,81 @@ function drawCapitulo2(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
     if (!cl.incluir) continue;
     if (y > PAGE_BREAK_Y) {
       doc.addPage();
-      y = margin + 10;
+      y = MARGIN_TOP + 10;
     }
-    doc.setFontSize(9);
+    doc.setFontSize(FONTE_NORMAL);
     doc.setFont("helvetica", "bold");
     doc.text(cl.titulo + ":", margin, y);
-    y += 5;
+    y += ALTURA_LINHA_NORMAL;
     y = formatarCorpo(doc, cl.texto, margin, y);
   }
 
   return y;
 }
 
-function drawCapitulo3(doc: DocWithAutoTable, startY: number, state: LaudoTecnicoWizardState): number {
+/**
+ * Cada cenário vira seu próprio capítulo numerado (3, 4, 5...), não uma subseção
+ * de um "Capítulo 3" fixo — segue o modelo real (Orientação Técnica Gran Reserva):
+ * "3. CENÁRIO 01: ...", "4. CENÁRIO 02: ...", com subseções reiniciando em X.1
+ * dentro de cada cenário. Imagens ficam embutidas logo após a subseção a que pertencem.
+ */
+async function drawCenario(
+  doc: DocWithAutoTable,
+  startY: number,
+  cen: Cenario,
+  capNum: number,
+  contadorImg: ContadorImagem
+): Promise<number> {
   let y = startY;
   if (y > PAGE_BREAK_Y) {
     doc.addPage();
-    y = margin + 10;
+    y = MARGIN_TOP + 10;
   }
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...COR_VERMELHO_ESCURO);
-  doc.text("3. CENÁRIOS — ENQUADRAMENTO NO ART. 6º", margin, y);
+  doc.text(`${capNum}. ${cen.titulo}`.toUpperCase() + (cen.fundamentacao ? ` (${cen.fundamentacao})` : ""), margin, y);
   doc.setTextColor(0, 0, 0);
-  y += 6;
+  y += 8;
 
-  y = formatarCorpo(doc, state.capitulo3.paragrafoContextual, margin, y);
+  y = formatarCorpo(doc, cen.introducao, margin, y);
 
   let contadorSub = 1;
-  for (const cen of state.capitulo3.cenarios) {
+  for (const sub of cen.subsecoes) {
     if (y > PAGE_BREAK_Y) {
       doc.addPage();
-      y = margin + 10;
+      y = MARGIN_TOP + 10;
     }
-    doc.setFontSize(10);
+    doc.setFontSize(FONTE_NORMAL);
     doc.setFont("helvetica", "bold");
-    doc.text(cen.titulo + (cen.fundamentacao ? ` (${cen.fundamentacao})` : ""), margin, y);
-    y += 6;
+    doc.text(`${capNum}.${contadorSub++} ${sub.titulo}`, margin, y);
+    y += ALTURA_LINHA_NORMAL;
+    y = formatarCorpo(doc, sub.corpo, margin, y);
 
-    for (const sub of cen.subsecoes) {
+    if (sub.imagens.length) {
       if (y > PAGE_BREAK_Y) {
         doc.addPage();
-        y = margin + 10;
+        y = MARGIN_TOP + 10;
       }
-      doc.setFontSize(9.5);
-      doc.setFont("helvetica", "bold");
-      doc.text(`3.${contadorSub++} ${sub.titulo}`, margin, y);
-      y += 5;
-      y = formatarCorpo(doc, sub.corpo, margin, y);
+      y = await embutirImagens(doc, sub.imagens, y + 2, contadorImg);
     }
   }
 
   return y;
 }
 
-function drawCapitulo4(doc: DocWithAutoTable, startY: number, state: LaudoTecnicoWizardState): number {
+function drawConclusao(doc: DocWithAutoTable, startY: number, state: LaudoTecnicoWizardState, capNum: number): number {
   let y = startY;
   if (y > PAGE_BREAK_Y) {
     doc.addPage();
-    y = margin + 10;
+    y = MARGIN_TOP + 10;
   }
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...COR_VERMELHO_ESCURO);
-  doc.text("4. CONCLUSÃO E PARECER TÉCNICO", margin, y);
+  doc.text(`${capNum}. CONCLUSÃO E PARECER TÉCNICO`, margin, y);
   doc.setTextColor(0, 0, 0);
-  y += 6;
+  y += 8;
   return formatarCorpo(doc, state.capitulo4.texto, margin, y);
 }
 
@@ -554,7 +606,7 @@ function drawAssinaturaLaudo(doc: DocWithAutoTable, startY: number, respTecnico:
   let y = startY + 15;
   if (y > PAGE_BREAK_Y) {
     doc.addPage();
-    y = margin + 30;
+    y = MARGIN_TOP + 30;
   }
   doc.setDrawColor(0, 0, 0);
   doc.line(pageWidth / 2 - 40, y, pageWidth / 2 + 40, y);
@@ -584,23 +636,18 @@ export async function gerarPdfLaudo(state: LaudoTecnicoWizardState): Promise<str
 
   y = drawCapitulo1(doc, y, state);
   y = drawCapitulo2(doc, y, state);
-  y = drawCapitulo3(doc, y, state);
 
-  // Imagens das subsecoes do capitulo 3 — embutidas apos o texto, na ordem dos cenarios.
+  // Cada cenário é seu próprio capítulo (3, 4, 5...); a Conclusão pega o próximo número livre.
   const contadorImg: ContadorImagem = { n: 1 };
+  let capNum = 2;
   for (const cen of state.capitulo3.cenarios) {
-    for (const sub of cen.subsecoes) {
-      if (!sub.imagens.length) continue;
-      if (y > PAGE_BREAK_Y) {
-        doc.addPage();
-        y = margin + 10;
-      }
-      y = await embutirImagens(doc, sub.imagens, y + 2, contadorImg);
-    }
+    capNum += 1;
+    y = await drawCenario(doc, y, cen, capNum, contadorImg);
   }
 
-  y = drawCapitulo4(doc, y, state);
+  y = drawConclusao(doc, y, state, capNum + 1);
   drawAssinaturaLaudo(doc, y, state.respTecnico || "");
+  numerarPaginas(doc);
 
   const fileName = nomeArquivoLaudo(state);
   doc.save(fileName);

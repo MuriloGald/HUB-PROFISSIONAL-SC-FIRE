@@ -122,6 +122,8 @@ export interface Cenario {
   id: string;
   titulo: string;
   fundamentacao?: string;
+  /** Parágrafo de abertura do cenário (ex.: "Este cenário baseia-se no Artigo 6º..."), antes das subseções numeradas. */
+  introducao?: string;
   subsecoes: Subsecao[];
 }
 
@@ -152,7 +154,6 @@ export interface LaudoTecnicoWizardState {
     clausulas: ClausulaLaudo[];
   };
   capitulo3: {
-    paragrafoContextual?: string;
     cenarios: Cenario[];
   };
   capitulo4: {

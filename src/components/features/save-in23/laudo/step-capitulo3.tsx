@@ -22,18 +22,16 @@ function novaSubsecao(): Subsecao {
 }
 
 function novoCenario(): Cenario {
-  return { id: crypto.randomUUID(), titulo: "", fundamentacao: "", subsecoes: [novaSubsecao()] };
+  return { id: crypto.randomUUID(), titulo: "", fundamentacao: "", introducao: "", subsecoes: [novaSubsecao()] };
 }
 
 interface StepCapitulo3Props {
-  paragrafoContextual?: string;
   cenarios: Cenario[];
   onBack: () => void;
-  onNext: (partial: { paragrafoContextual: string; cenarios: Cenario[] }) => void;
+  onNext: (cenarios: Cenario[]) => void;
 }
 
-export function StepCapitulo3({ paragrafoContextual: paragrafoInicial, cenarios: cenariosIniciais, onBack, onNext }: StepCapitulo3Props) {
-  const [paragrafoContextual, setParagrafoContextual] = useState(paragrafoInicial ?? "");
+export function StepCapitulo3({ cenarios: cenariosIniciais, onBack, onNext }: StepCapitulo3Props) {
   const [cenarios, setCenarios] = useState<Cenario[]>(cenariosIniciais.length ? cenariosIniciais : [novoCenario()]);
 
   function updateCenario(id: string, patch: Partial<Cenario>) {
@@ -56,25 +54,25 @@ export function StepCapitulo3({ paragrafoContextual: paragrafoInicial, cenarios:
     setCenarios((cs) => cs.map((c) => (c.id === cenarioId ? { ...c, subsecoes: c.subsecoes.filter((s) => s.id !== subId) } : c)));
   }
 
-  let contadorSub = 1;
-
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-4">
-        <h3 className="text-lg font-bold text-white">3. Cenários — Enquadramento no Art. 6º</h3>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Parágrafo contextual (introdução do capítulo)</label>
-          <textarea rows={3} className={inputClass} value={paragrafoContextual} onChange={(e) => setParagrafoContextual(e.target.value)} />
-        </div>
+      <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6">
+        <h3 className="text-lg font-bold text-white">Cenários — Enquadramento no Art. 6º</h3>
+        <p className="text-xs text-gray-400 mt-1">
+          Cada cenário vira um capítulo numerado no laudo (3, 4, 5...), na ordem abaixo — a Conclusão fica no número seguinte ao último cenário.
+        </p>
       </div>
 
-      {cenarios.map((cen) => (
+      {cenarios.map((cen, cenIndex) => {
+        const capNum = cenIndex + 3;
+        return (
         <div key={cen.id} className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-5 space-y-4">
           <div className="flex items-center justify-between gap-3">
+            <span className="text-xs font-bold text-gray-500 flex-shrink-0">{capNum}.</span>
             <input
               value={cen.titulo}
               onChange={(e) => updateCenario(cen.id, { titulo: e.target.value })}
-              placeholder={`Cenário 0${cenarios.indexOf(cen) + 1}: Instalação Interna...`}
+              placeholder={`Cenário 0${cenIndex + 1}: Instalação Interna...`}
               className="flex-1 px-3 py-2 text-sm font-semibold text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500"
             />
             <button type="button" onClick={() => removeCenario(cen.id)} className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
@@ -100,13 +98,23 @@ export function StepCapitulo3({ paragrafoContextual: paragrafoInicial, cenarios:
             </select>
           </div>
 
+          <div className="space-y-1.5">
+            <label className={labelClass}>Introdução do cenário</label>
+            <textarea
+              rows={3}
+              className={inputClass}
+              placeholder={`Ex.: Este cenário baseia-se no Artigo 6º, Inciso ${cen.fundamentacao || "..."}, da IN 23, que permite a dispensa de PBD mediante...`}
+              value={cen.introducao ?? ""}
+              onChange={(e) => updateCenario(cen.id, { introducao: e.target.value })}
+            />
+          </div>
+
           <div className="space-y-3 pl-3 border-l-2 border-white/[0.08]">
-            {cen.subsecoes.map((sub) => {
-              const numero = contadorSub++;
+            {cen.subsecoes.map((sub, subIndex) => {
               return (
                 <div key={sub.id} className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-500 flex-shrink-0">3.{numero}</span>
+                    <span className="text-xs font-bold text-gray-500 flex-shrink-0">{capNum}.{subIndex + 1}</span>
                     <input
                       value={sub.titulo}
                       onChange={(e) => updateSubsecao(cen.id, sub.id, { titulo: e.target.value })}
@@ -137,7 +145,8 @@ export function StepCapitulo3({ paragrafoContextual: paragrafoInicial, cenarios:
             </button>
           </div>
         </div>
-      ))}
+        );
+      })}
 
       <button
         type="button"
@@ -155,7 +164,7 @@ export function StepCapitulo3({ paragrafoContextual: paragrafoInicial, cenarios:
           <ArrowLeft className="w-3.5 h-3.5" /> Voltar
         </button>
         <button
-          onClick={() => onNext({ paragrafoContextual, cenarios })}
+          onClick={() => onNext(cenarios)}
           className="px-4 py-2 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white text-xs font-semibold rounded-lg shadow-lg shadow-red-500/10 hover:shadow-red-500/20 hover:scale-[1.02] transition-all flex items-center gap-2"
         >
           Avançar <ArrowRight className="w-3.5 h-3.5" />
