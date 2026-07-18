@@ -176,3 +176,40 @@ export interface DiagnosticoPrevio {
   created_at: string;
 }
 
+export type ClienteTipo = "condominio" | "restaurante" | "deposito" | "comercial" | "evento" | "outro";
+
+export interface Cliente {
+  id: string;
+  nome: string;
+  razao_social: string | null;
+  cnpj_cpf: string | null;
+  tipo: ClienteTipo;
+  responsavel_nome: string | null;
+  email: string | null;
+  telefone: string | null;
+  endereco: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  bairro: string | null;
+  complemento: string | null;
+  cidade: string | null;
+  estado: string | null;
+  cep: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type LaudoTipoDocumento = "SAVE23" | "IN24" | "Brigada" | "Habite-se" | "Outro";
+export type LaudoStatus = "rascunho" | "concluido" | "cancelado";
+
+export interface Laudo {
+  id: string;
+  cliente_id: string | null;
+  tipo_documento: LaudoTipoDocumento;
+  status: LaudoStatus;
+  dados: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+

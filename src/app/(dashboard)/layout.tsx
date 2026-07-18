@@ -58,6 +58,7 @@ const navItems: NavItem[] = [
       { label: "Dashboard", href: "/laudos" },
       { label: "Clientes", href: "/laudos/clientes" },
       { label: "Novo Evento", href: "/laudos/eventos/novo" },
+      { label: "Consultar Eventos", href: "/laudos/eventos" },
     ],
   },
   {
