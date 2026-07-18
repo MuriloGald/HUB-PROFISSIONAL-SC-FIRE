@@ -22,7 +22,9 @@ import {
   MARGIN_TOP,
   MARGIN_LEFT,
   MARGIN_RIGHT,
+  MARGIN_BOTTOM,
   PAGE_WIDTH,
+  PAGE_HEIGHT,
   PAGE_BREAK_Y,
 } from "../shared/pdf-branding";
 import type { Cenario, ClienteSave23Snapshot, Imagem, LaudoTecnicoWizardState, SetorVistoria, VistoriaWizardState } from "./types";
@@ -68,6 +70,91 @@ function corPossivel(possivel: boolean | "financeiro" | undefined): [number, num
   return COR_CINZA;
 }
 
+interface CelulaRotulo {
+  label: string;
+  valor: string;
+}
+
+/**
+ * Desenha uma tabela de 2 colunas onde cada célula é "Rótulo: valor", com o
+ * rótulo em negrito e o valor em peso normal — jspdf-autotable não suporta
+ * negrito parcial dentro de uma célula, então essa tabela é desenhada na mão
+ * (borda + texto), com o próprio wrap de texto calculado aqui.
+ */
+function desenharTabelaRotulos(doc: DocWithAutoTable, startY: number, linhas: CelulaRotulo[][]): number {
+  const numCols = linhas[0]?.length ?? 2;
+  const largura = contentWidth / numCols;
+  const padding = 2.5;
+  const lineHeight = 4.6;
+  const fontSize = 9;
+  let y = startY;
+
+  for (const linha of linhas) {
+    doc.setFontSize(fontSize);
+    const celulas = linha.map((c) => {
+      const colWidth = largura - padding * 2;
+      doc.setFont("helvetica", "bold");
+      const rotuloTexto = `${c.label}: `;
+      const rotuloWidth = doc.getTextWidth(rotuloTexto);
+      doc.setFont("helvetica", "normal");
+      const palavras = c.valor.split(" ");
+      const linhasCelula: string[] = [];
+      let atual = "";
+      palavras.forEach((palavra, idx) => {
+        const testeTexto = atual ? `${atual} ${palavra}` : palavra;
+        const larguraDisponivel = linhasCelula.length === 0 ? colWidth - rotuloWidth : colWidth;
+        if (atual && doc.getTextWidth(testeTexto) > larguraDisponivel) {
+          linhasCelula.push(atual);
+          atual = palavra;
+        } else {
+          atual = testeTexto;
+        }
+        if (idx === palavras.length - 1 && atual) linhasCelula.push(atual);
+      });
+      if (!linhasCelula.length) linhasCelula.push("");
+      return { rotulo: rotuloTexto, rotuloWidth, linhas: linhasCelula };
+    });
+
+    const maxLinhas = Math.max(...celulas.map((c) => c.linhas.length), 1);
+    const rowHeight = maxLinhas * lineHeight + padding * 2;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    let x = margin;
+    for (let i = 0; i < numCols; i++) {
+      doc.rect(x, y, largura, rowHeight);
+      x += largura;
+    }
+
+    x = margin;
+    for (let i = 0; i < numCols; i++) {
+      const cel = celulas[i];
+      let ty = y + padding + 3.2;
+      cel.linhas.forEach((texto, idx) => {
+        doc.setFontSize(fontSize);
+        if (idx === 0) {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(0, 0, 0);
+          doc.text(cel.rotulo, x + padding, ty);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...COR_TEXTO_NORMAL);
+          doc.text(texto, x + padding + cel.rotuloWidth, ty);
+        } else {
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...COR_TEXTO_NORMAL);
+          doc.text(texto, x + padding, ty);
+        }
+        ty += lineHeight;
+      });
+      x += largura;
+    }
+    doc.setTextColor(0, 0, 0);
+    y += rowHeight;
+  }
+
+  return y;
+}
+
 function textoPossivel(possivel: boolean | "financeiro" | undefined): string {
   if (possivel === true) return "SIM";
   if (possivel === false) return "NÃO";
@@ -99,12 +186,20 @@ export interface ContadorImagem {
   n: number;
 }
 
+const IMAGEM_W = 100;
+const IMAGEM_H = 65;
+const IMAGEM_BLOCO_ALTURA = IMAGEM_H + 10; // imagem + legenda + espaçamento
+
 async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: number, contador: ContadorImagem): Promise<number> {
   let y = startY;
   for (let i = 0; i < imagens.length; i++) {
     const img = imagens[i];
     const carregada = await carregarImagemComoDataUrl(img.url);
-    if (y > PAGE_BREAK_Y) {
+    // Verifica se o BLOCO INTEIRO da imagem cabe antes da margem inferior real —
+    // nao so se "y" ja passou de um limiar generico. Uma imagem de 65mm de altura
+    // comecando perto do limiar genérico (PAGE_BREAK_Y) facilmente estourava a
+    // pagina, ja que aquele limiar so foi pensado pra blocos pequenos de texto.
+    if (y + IMAGEM_BLOCO_ALTURA > PAGE_HEIGHT - MARGIN_BOTTOM) {
       doc.addPage();
       y = MARGIN_TOP + 10;
     }
@@ -117,15 +212,13 @@ async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: 
       y += 6;
       continue;
     }
-    const w = 100;
-    const h = 65;
-    doc.addImage(carregada.dataUrl, carregada.format, margin, y, w, h, undefined, "MEDIUM");
+    doc.addImage(carregada.dataUrl, carregada.format, margin, y, IMAGEM_W, IMAGEM_H, undefined, "MEDIUM");
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COR_CINZA);
-    doc.text(`Imagem ${String(contador.n++).padStart(2, "0")}${img.legenda ? ` – ${img.legenda}` : ""}`, margin, y + h + 4);
+    doc.text(`Imagem ${String(contador.n++).padStart(2, "0")}${img.legenda ? ` – ${img.legenda}` : ""}`, margin, y + IMAGEM_H + 4);
     doc.setTextColor(0, 0, 0);
-    y += h + 10;
+    y += IMAGEM_BLOCO_ALTURA;
   }
   return y;
 }
@@ -141,24 +234,24 @@ function drawIdentificacaoVistoria(doc: DocWithAutoTable, startY: number, state:
   doc.setFont("helvetica", "bold");
   doc.text("1. IDENTIFICAÇÃO DA EDIFICAÇÃO", margin, startY);
 
-  const body: RowInput[] = [
-    [`Nome da edificação: ${c.razao_social || ""}`, `RE: ${c.re || ""}`],
-    [`Endereço: ${c.logradouro || ""}, ${c.numero || ""}`, `Município: ${c.cidade || ""} / ${c.estado || "SC"}`],
-    [`Responsável pelo imóvel: ${c.nome_responsavel || ""}`, `Responsável Técnico: ${state.respTecnico || ""}`],
-    [`Vistoriador: ${state.vistoriador || ""}`, `Edificação preexistente: ${c.preexistente ? "Sim" : "Não"}`],
+  const linhas: CelulaRotulo[][] = [
+    [{ label: "Nome da edificação", valor: c.razao_social || "" }, { label: "RE", valor: c.re || "" }],
+    [
+      { label: "Endereço", valor: `${c.logradouro || ""}, ${c.numero || ""}` },
+      { label: "Município", valor: `${c.cidade || ""} / ${c.estado || "SC"}` },
+    ],
+    [
+      { label: "Responsável pelo imóvel", valor: c.nome_responsavel || "" },
+      { label: "Responsável Técnico", valor: state.respTecnico || "" },
+    ],
+    [
+      { label: "Vistoriador", valor: state.vistoriador || "" },
+      { label: "Edificação preexistente", valor: c.preexistente ? "Sim" : "Não" },
+    ],
   ];
 
-  doc.autoTable({
-    margin: AUTOTABLE_MARGIN,
-    startY: startY + 3,
-    theme: "grid",
-    head: [],
-    body,
-    styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 200, lineWidth: 0.2 },
-    columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
-  });
-
-  return doc.lastAutoTable.finalY + 10;
+  const finalY = desenharTabelaRotulos(doc, startY + 3, linhas);
+  return finalY + 10;
 }
 
 function drawResumoSetores(doc: DocWithAutoTable, startY: number, setores: SetorVistoria[], preexistente: boolean | undefined): number {
@@ -167,13 +260,16 @@ function drawResumoSetores(doc: DocWithAutoTable, startY: number, setores: Setor
   doc.text("2. QUADRO-RESUMO DOS SETORES AVALIADOS", margin, startY);
 
   const head = [["Setor", "Vagas SAVE", "Ocupação", "Resultado"]];
-  const body = setores.map((s, i) => {
+  const body: RowInput[] = setores.map((s, i) => {
     const av = avaliarSetor(s, preexistente);
     return [
       `${i + 1}. ${s.nome}`,
       s.vagas || "—",
       s.ocupacao || "—",
-      av.resultado + (av.enquadramento ? ` — Inciso ${av.enquadramento}` : ""),
+      {
+        content: av.resultado + (av.enquadramento ? ` — Inciso ${av.enquadramento}` : ""),
+        styles: { textColor: corResultado(av.resultado), fontStyle: "bold" },
+      },
     ];
   });
 
@@ -204,28 +300,23 @@ async function drawSetorAnexo(
 
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.text(`ANEXO ${index + 1} — DETALHAMENTO DO SETOR: ${s.nome.toUpperCase()}`, margin, margin + 8);
+  doc.text(`ANEXO ${index + 1} — DETALHAMENTO DO SETOR: ${s.nome.toUpperCase()}`, margin, MARGIN_TOP + 8);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA);
-  doc.text(`Edificação: ${c.razao_social || ""}${c.re ? ` · RE: ${c.re}` : ""}`, margin, margin + 13);
+  doc.text(`Edificação: ${c.razao_social || ""}${c.re ? ` · RE: ${c.re}` : ""}`, margin, MARGIN_TOP + 13);
   doc.setTextColor(0, 0, 0);
 
-  let y = margin + 18;
+  let y = MARGIN_TOP + 18;
 
-  doc.autoTable({
-    margin: AUTOTABLE_MARGIN,
-    startY: y,
-    theme: "grid",
-    head: [],
-    body: [
-      [`Nº de vagas com SAVE: ${s.vagas || ""}`, `Ocupação: ${s.ocupacao || ""}`],
-      [`Área do ambiente: ${s.areaTotal || ""} m²`, `Área por pavimento: ${s.areaPavimento || ""} m²`],
+  y = desenharTabelaRotulos(doc, y, [
+    [{ label: "Nº de vagas com SAVE", valor: s.vagas || "" }, { label: "Ocupação", valor: s.ocupacao || "" }],
+    [
+      { label: "Área do ambiente", valor: `${s.areaTotal || ""} m²` },
+      { label: "Área por pavimento", valor: `${s.areaPavimento || ""} m²` },
     ],
-    styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 200, lineWidth: 0.2 },
-    columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
-  });
-  y = doc.lastAutoTable.finalY + 4;
+  ]);
+  y += 4;
 
   const sn = (v: boolean | undefined) => (v === true ? "SIM" : v === false ? "NÃO" : "—");
   const corSn = (v: boolean | undefined): [number, number, number] => (v === true ? COR_VERDE : v === false ? COR_VERMELHO : COR_CINZA);
@@ -451,19 +542,17 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
   doc.setTextColor(0, 0, 0);
 
   const cap1 = state.capitulo1;
-  doc.autoTable({
-    margin: AUTOTABLE_MARGIN,
-    startY: startY + 3,
-    theme: "grid",
-    head: [],
-    body: [
-      [`Área construída: ${cap1.areaConstruida || ""} m²`, `Nº de pavimentos: ${cap1.pavimentos || ""}`],
-      [`Altura total: ${cap1.altura || ""} m`, `Validade do atestado: ${cap1.validadeAtestado || ""}`],
+  let y = desenharTabelaRotulos(doc, startY + 3, [
+    [
+      { label: "Área construída", valor: `${cap1.areaConstruida || ""} m²` },
+      { label: "Nº de pavimentos", valor: cap1.pavimentos || "" },
     ],
-    styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 200, lineWidth: 0.2 },
-    columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
-  });
-  let y = doc.lastAutoTable.finalY + 5;
+    [
+      { label: "Altura total", valor: `${cap1.altura || ""} m` },
+      { label: "Validade do atestado", valor: cap1.validadeAtestado || "" },
+    ],
+  ]);
+  y += 5;
 
   y = formatarCorpo(doc, cap1.textoIntro, margin, y);
 
