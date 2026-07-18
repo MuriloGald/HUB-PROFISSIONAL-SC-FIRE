@@ -21,18 +21,17 @@ export function LoginForm() {
 
       <div className="text-center z-10 mb-8">
         <div className="mb-6 flex justify-center">
-          <Image
-            src="/logo-sc-fire.png"
-            alt="SC FIRE"
-            width={240}
-            height={110}
-            className="object-contain h-[110px] w-auto"
-            priority
-          />
+          <div className="bg-white rounded-2xl px-8 py-5 shadow-xl shadow-black/30">
+            <Image
+              src="/logo-sc-fire.png"
+              alt="SC FIRE HUB"
+              width={362}
+              height={100}
+              className="object-contain h-[80px] w-auto"
+              priority
+            />
+          </div>
         </div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">
-          SC FIRE <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400">HUB</span>
-        </h1>
         <p className="text-sm text-gray-400 mt-2">Entre com seu e-mail e senha para acessar o painel.</p>
       </div>
 
