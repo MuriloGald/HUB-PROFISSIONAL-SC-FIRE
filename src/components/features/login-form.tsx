@@ -23,7 +23,7 @@ export function LoginForm() {
         <div className="mb-6 flex justify-center">
           <div className="bg-white rounded-2xl px-8 py-5 shadow-xl shadow-black/30">
             <Image
-              src="/logo-sc-fire.png"
+              src="/logo-sc-fire-hub.png"
               alt="SC FIRE HUB"
               width={362}
               height={100}
