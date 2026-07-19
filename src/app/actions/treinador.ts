@@ -23,7 +23,7 @@ export async function listarAulasDoCurso(trainingId: string) {
     supabase.from("trainings").select("id,name,description,total_hours").eq("id", trainingId).single(),
     supabase
       .from("training_subthemes")
-      .select("sort_order, subtheme:subthemes(id,name,category,hours,conteudo)")
+      .select("sort_order, subtheme:subthemes(id,name,category,hours,conteudo,canva_embed)")
       .eq("training_id", trainingId)
       .order("sort_order", { ascending: true }),
   ]);
@@ -35,7 +35,7 @@ export async function listarAulasDoCurso(trainingId: string) {
 
   const rows = (data ?? []) as unknown as {
     sort_order: number;
-    subtheme: { id: string; name: string; category: string; hours: number; conteudo: unknown } | null;
+    subtheme: { id: string; name: string; category: string; hours: number; conteudo: unknown; canva_embed: string | null } | null;
   }[];
 
   const aulas: AulaResumo[] = rows
@@ -47,6 +47,7 @@ export async function listarAulasDoCurso(trainingId: string) {
       hours: r.subtheme!.hours,
       sort_order: r.sort_order,
       temConteudo: Boolean(r.subtheme!.conteudo),
+      canvaEmbed: r.subtheme!.canva_embed,
     }));
 
   return { curso, data: aulas };

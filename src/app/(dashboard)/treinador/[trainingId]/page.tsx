@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, CircleCheck, CircleDashed } from "lucide-react";
+import { ArrowLeft, Clock, CircleCheck, CircleDashed, Presentation } from "lucide-react";
 import { listarAulasDoCurso } from "@/app/actions/treinador";
 
 export default async function CursoTreinadorPage({ params }: { params: Promise<{ trainingId: string }> }) {
@@ -13,12 +13,22 @@ export default async function CursoTreinadorPage({ params }: { params: Promise<{
 
   return (
     <div className="space-y-8">
-      <div>
-        <Link href="/treinador" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors mb-3">
-          <ArrowLeft className="w-3.5 h-3.5" /> Voltar aos cursos
-        </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-white font-display">{curso.name}</h1>
-        <p className="text-sm text-gray-400 mt-1">{curso.description}</p>
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <Link href="/treinador" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors mb-3">
+            <ArrowLeft className="w-3.5 h-3.5" /> Voltar aos cursos
+          </Link>
+          <h1 className="text-3xl font-bold tracking-tight text-white font-display">{curso.name}</h1>
+          <p className="text-sm text-gray-400 mt-1">{curso.description}</p>
+        </div>
+        {aulas.length > 0 && (
+          <Link
+            href={`/treinador/${trainingId}/cockpit`}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
+          >
+            <Presentation className="w-4 h-4" /> Iniciar Cockpit do Instrutor
+          </Link>
+        )}
       </div>
 
       <div className="space-y-8">

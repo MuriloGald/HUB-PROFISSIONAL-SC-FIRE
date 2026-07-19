@@ -64,6 +64,7 @@ export interface NovoSubtemaInput {
   level: string;
   hours: number;
   description: string;
+  canvaEmbed: string;
   trainingId: string | null;
   sortOrder: number | null;
 }
@@ -81,6 +82,7 @@ export async function criarSubtema(input: NovoSubtemaInput) {
       hours: input.hours,
       price: 0,
       description: input.description || null,
+      canva_embed: input.canvaEmbed || null,
       active: true,
     })
     .select("id")
@@ -107,7 +109,7 @@ export async function criarSubtema(input: NovoSubtemaInput) {
 /** Busca um subtema pelo id, pro formulário de edição. */
 export async function buscarSubtema(id: string) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("subthemes").select("id,name,category,level,hours,description").eq("id", id).single();
+  const { data, error } = await supabase.from("subthemes").select("id,name,category,level,hours,description,canva_embed").eq("id", id).single();
   if (error) return { error: error.message };
   return { data };
 }
@@ -118,9 +120,10 @@ export interface EditarSubtemaInput {
   level: string;
   hours: number;
   description: string;
+  canvaEmbed: string;
 }
 
-/** Atualiza os dados de um subtema já existente (nome, módulo, nível, carga horária, descrição). */
+/** Atualiza os dados de um subtema já existente (nome, módulo, nível, carga horária, descrição, link do Canva). */
 export async function atualizarSubtema(id: string, input: EditarSubtemaInput) {
   const supabase = await createClient();
   const { error } = await supabase
@@ -131,6 +134,7 @@ export async function atualizarSubtema(id: string, input: EditarSubtemaInput) {
       level: input.level,
       hours: input.hours,
       description: input.description || null,
+      canva_embed: input.canvaEmbed || null,
     })
     .eq("id", id);
 

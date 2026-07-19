@@ -12,6 +12,7 @@ interface SubtemaExistente {
   level: string;
   hours: number;
   description: string | null;
+  canva_embed: string | null;
 }
 
 interface SubtemaFormProps {
@@ -31,6 +32,7 @@ export function SubtemaForm({ cursos, subtemaExistente, cursoPreselecionado }: S
   const [level, setLevel] = useState<string>(subtemaExistente?.level ?? NIVEIS_CURSO[0]);
   const [hours, setHours] = useState(String(subtemaExistente?.hours ?? 1));
   const [description, setDescription] = useState(subtemaExistente?.description ?? "");
+  const [canvaEmbed, setCanvaEmbed] = useState(subtemaExistente?.canva_embed ?? "");
   const [trainingId, setTrainingId] = useState(cursoPreselecionado ?? "");
   const [sortOrder, setSortOrder] = useState("0");
 
@@ -50,6 +52,7 @@ export function SubtemaForm({ cursos, subtemaExistente, cursoPreselecionado }: S
         level,
         hours: parseFloat(hours.replace(",", ".")) || 0,
         description: description.trim(),
+        canvaEmbed: canvaEmbed.trim(),
       };
 
       const res = modoEdicao
@@ -108,6 +111,17 @@ export function SubtemaForm({ cursos, subtemaExistente, cursoPreselecionado }: S
       <div>
         <label className={labelClass}>Descrição (opcional)</label>
         <textarea className={inputClass} rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+      </div>
+
+      <div>
+        <label className={labelClass}>Link de embed do Canva (opcional)</label>
+        <input
+          className={inputClass}
+          value={canvaEmbed}
+          onChange={(e) => setCanvaEmbed(e.target.value)}
+          placeholder="https://www.canva.com/design/.../view?embed"
+        />
+        <p className="text-[11px] text-gray-500 mt-1">No Canva: Compartilhar → Mais → Incorporar → copiar o link (não o &lt;iframe&gt; inteiro).</p>
       </div>
 
       {!modoEdicao && (

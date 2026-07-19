@@ -51,4 +51,5 @@ export interface AulaResumo {
   hours: number;
   sort_order: number;
   temConteudo: boolean;
+  canvaEmbed: string | null;
 }
