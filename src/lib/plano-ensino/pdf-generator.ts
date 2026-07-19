@@ -53,18 +53,24 @@ function normalizarQuebras(texto: string): string {
 }
 
 /**
- * `doc.text(array, ...)` avanca cada linha pela altura REAL da fonte ativa
- * (doc.getLineHeight(), ~3.65mm pra fontSize 9 — nao um numero fixo tipo 5mm).
- * Usar uma constante fixa maior que a altura real desalinha o cursor Y do que
- * foi de fato desenhado, e o erro cresce a cada linha — num paragrafo de 20
- * linhas isso sozinho ja abre ~27mm de vao vazio antes da proxima secao.
+ * `doc.getLineHeight()` retorna `activeFontSize * lineHeightFactor` em PONTOS,
+ * nao na unidade do documento (mm) — precisa dividir por `internal.scaleFactor`
+ * pra converter (ver node_modules/jspdf: getLineHeight() nao faz essa conversao,
+ * so quem chama por fora, tipo API.getTextDimensions, e que divide). Usar o
+ * valor bruto em pontos como se fosse mm faz o cursor avancar ~2.83x mais do
+ * que o texto realmente ocupa — num paragrafo de 20 linhas isso sozinho abre
+ * mais de 130mm de vao vazio antes da proxima secao.
  */
+function alturaLinha(doc: DocWithAutoTable): number {
+  return doc.getLineHeight() / doc.internal.scaleFactor;
+}
+
 function drawTexto(doc: DocWithAutoTable, y: number, texto: string): number {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   const linhas: string[] = doc.splitTextToSize(normalizarQuebras(texto) || "—", contentWidth);
   doc.text(linhas, margin, y);
-  return y + linhas.length * doc.getLineHeight() + 6;
+  return y + linhas.length * alturaLinha(doc) + 6;
 }
 
 function drawLista(doc: DocWithAutoTable, y: number, itens: string[]): number {
@@ -76,7 +82,7 @@ function drawLista(doc: DocWithAutoTable, y: number, itens: string[]): number {
     cursorY = quebrarSeNecessario(doc, cursorY);
     const linhas: string[] = doc.splitTextToSize(`•  ${item}`, contentWidth);
     doc.text(linhas, margin, cursorY);
-    cursorY += linhas.length * doc.getLineHeight();
+    cursorY += linhas.length * alturaLinha(doc);
   }
   return cursorY + 6;
 }
