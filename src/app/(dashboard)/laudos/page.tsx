@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { UserPlus, Search, CalendarPlus, FileText, Users, FileSignature, PieChart } from "lucide-react";
-import { listarClientesEvento, listarLaudosEvento } from "@/app/actions/laudos";
+import { Users, CalendarPlus, FileText, FileSignature, PieChart } from "lucide-react";
+import { listarLaudosEvento } from "@/app/actions/laudos";
+import { listarClientes } from "@/app/actions/clientes";
 import type { EventoWizardState } from "@/lib/laudos/types";
 
 export default async function LaudosDashboardPage() {
-  const [{ data: clientes }, { data: laudos }] = await Promise.all([listarClientesEvento(), listarLaudosEvento()]);
+  const [{ data: clientes }, { data: laudos }] = await Promise.all([listarClientes(), listarLaudosEvento()]);
 
   const porPorte = laudos.reduce(
     (acc, l) => {
@@ -16,20 +17,6 @@ export default async function LaudosDashboardPage() {
   );
 
   const acoes = [
-    {
-      title: "Cadastrar Cliente",
-      desc: "Adicione uma nova empresa ou pessoa responsável à base.",
-      icon: UserPlus,
-      href: "/laudos/clientes/novo",
-      color: "from-blue-600 to-blue-400",
-    },
-    {
-      title: "Consultar Clientes",
-      desc: "Busque, edite ou inicie um evento a partir de um cliente existente.",
-      icon: Search,
-      href: "/laudos/clientes",
-      color: "from-amber-600 to-yellow-400",
-    },
     {
       title: "Cadastrar Evento",
       desc: "Inicie o fluxo de emissão de um novo laudo de evento.",
@@ -54,13 +41,13 @@ export default async function LaudosDashboardPage() {
       </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+        <Link href="/clientes" className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.15] transition-all flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Clientes Cadastrados</span>
             <div className="text-2xl font-bold text-white mt-1">{clientes.length}</div>
           </div>
           <Users className="w-8 h-8 text-blue-500/30" />
-        </div>
+        </Link>
 
         <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
           <div>

@@ -1,4 +1,5 @@
-import { listarClientesImovel, buscarTermoHabitese } from "@/app/actions/habitese";
+import { buscarTermoHabitese } from "@/app/actions/habitese";
+import { listarClientes } from "@/app/actions/clientes";
 import { TermoWizard } from "@/components/features/habitese/wizard/termo-wizard";
 import type { HabiteseWizardState } from "@/lib/habitese/types";
 
@@ -8,7 +9,7 @@ export default async function NovoTermoHabitesePage({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const { data: clientes } = await listarClientesImovel();
+  const { data: clientes } = await listarClientes();
 
   let initialState: HabiteseWizardState | undefined;
   if (editarId) {

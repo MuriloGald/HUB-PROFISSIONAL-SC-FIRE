@@ -1,4 +1,4 @@
-import { listarClientesSave23 } from "@/app/actions/save-in23";
+import { listarClientes } from "@/app/actions/clientes";
 import { VistoriaWizard } from "@/components/features/save-in23/vistoria/vistoria-wizard";
 
 export default async function NovaVistoriaPage({
@@ -7,7 +7,7 @@ export default async function NovaVistoriaPage({
   searchParams: Promise<{ clienteId?: string }>;
 }) {
   const { clienteId } = await searchParams;
-  const { data: clientes } = await listarClientesSave23();
+  const { data: clientes } = await listarClientes();
 
   return <VistoriaWizard clientes={clientes} clienteIdInicial={clienteId} />;
 }

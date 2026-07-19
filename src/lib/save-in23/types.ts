@@ -1,32 +1,5 @@
 import type { Enquadramento } from "./classificador";
-
-/**
- * Snapshot do cliente (edificacao) embutido no documento no momento da geracao —
- * preserva os dados exibidos no PDF mesmo que o cadastro do cliente mude depois.
- * Mesma ideia de ClienteEventoSnapshot em lib/laudos/types.ts.
- */
-export interface ClienteSave23Snapshot {
-  id: string;
-  razao_social: string;
-  cnpj?: string;
-  cpf?: string;
-  nome_responsavel?: string;
-  email?: string;
-  telefone?: string;
-  logradouro?: string;
-  numero?: string;
-  bairro?: string;
-  complemento?: string;
-  cidade?: string;
-  estado?: string;
-  cep?: string;
-  re?: string;
-  preexistente?: boolean;
-  area_construida?: string;
-  pavimentos?: string;
-  altura?: string;
-  validade_atestado?: string;
-}
+import type { ClienteSnapshot } from "@/lib/clientes/types";
 
 export interface Imagem {
   url: string;
@@ -87,7 +60,7 @@ export interface VistoriaWizardState {
   laudoId?: string;
   codigo?: string;
   cliente_id?: string;
-  cliente?: ClienteSave23Snapshot;
+  cliente?: ClienteSnapshot;
 
   vistoriador?: string;
   respTecnico?: string;
@@ -133,7 +106,7 @@ export interface LaudoTecnicoWizardState {
   laudoId?: string;
   codigo?: string;
   cliente_id?: string;
-  cliente?: ClienteSave23Snapshot;
+  cliente?: ClienteSnapshot;
 
   tituloDocumento?: string;
   subtitulo?: string;

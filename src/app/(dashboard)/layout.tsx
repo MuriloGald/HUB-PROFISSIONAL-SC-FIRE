@@ -48,6 +48,8 @@ const navItems: NavItem[] = [
 
   { label: "Área de Estudos", href: "/estudos", icon: LibraryBig },
 
+  { label: "Clientes", href: "/clientes", icon: Users },
+
   { type: "section", label: "Documentos Técnicos" },
 
   {
@@ -57,7 +59,6 @@ const navItems: NavItem[] = [
     basePath: "/laudos",
     items: [
       { label: "Dashboard", href: "/laudos" },
-      { label: "Clientes", href: "/laudos/clientes" },
       { label: "Novo Evento", href: "/laudos/eventos/novo" },
       { label: "Consultar Eventos", href: "/laudos/eventos" },
     ],
@@ -80,7 +81,6 @@ const navItems: NavItem[] = [
     basePath: "/habitese",
     items: [
       { label: "Dashboard", href: "/habitese" },
-      { label: "Proprietários", href: "/habitese/responsaveis" },
       { label: "Novo Termo", href: "/habitese/novo" },
       { label: "Consultar Termos", href: "/habitese/termos" },
     ],
@@ -112,7 +112,6 @@ const navItems: NavItem[] = [
     basePath: "/relatorios",
     items: [
       { label: "SAVE — IN 23 (Dashboard)", href: "/relatorios/save-in23" },
-      { label: "Edificações", href: "/relatorios/save-in23/clientes" },
       { label: "Vistorias de Campo", href: "/relatorios/save-in23/vistorias" },
       { label: "Laudos Técnicos", href: "/relatorios/save-in23/laudos" },
     ],

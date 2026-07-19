@@ -1,25 +1,4 @@
-/**
- * Snapshot do proprietario/responsavel pelo imovel embutido no termo no momento
- * da geracao — preserva os dados exibidos no PDF mesmo que o cadastro mude depois.
- * Mirror de ClienteEventoSnapshot (src/lib/laudos/types.ts).
- */
-export interface ClienteImovelSnapshot {
-  id: string;
-  razao_social: string;
-  cnpj?: string;
-  cpf?: string;
-  nome_responsavel?: string;
-  email?: string;
-  telefone?: string;
-  ramal?: string;
-  logradouro?: string;
-  numero?: string;
-  bairro?: string;
-  complemento?: string;
-  cidade?: string;
-  estado?: string;
-  cep?: string;
-}
+import type { ClienteSnapshot } from "@/lib/clientes/types";
 
 /** Mirror de Imagem (src/lib/save-in23/types.ts). */
 export interface Imagem {
@@ -59,7 +38,7 @@ export interface HabiteseWizardState {
   laudoId?: string;
   codigo?: string;
   cliente_id?: string;
-  cliente?: ClienteImovelSnapshot;
+  cliente?: ClienteSnapshot;
 
   rt?: ResponsavelTecnicoObra;
 

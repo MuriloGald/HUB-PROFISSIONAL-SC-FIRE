@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
-import { StepResponsavel } from "./step-responsavel";
+import { ClientePicker } from "@/components/features/clientes/cliente-picker";
 import { StepTecnico } from "./step-tecnico";
 import { StepImovel } from "./step-imovel";
 import { StepSolicitacao } from "./step-solicitacao";
@@ -139,10 +139,12 @@ export function TermoWizard({ clientes, clienteIdInicial, initialState }: TermoW
       </div>
 
       {step === 1 && (
-        <StepResponsavel
+        <ClientePicker
           clientes={clientes}
           clienteIdInicial={state.cliente_id}
-          onNext={(clienteId, cliente, re) => avancarPara(2, { cliente_id: clienteId, cliente, imovel_re: re })}
+          redirectToNovoCliente="/habitese/novo"
+          titulo="Selecione o Responsável pelo Imóvel"
+          onNext={(clienteId, cliente) => avancarPara(2, { cliente_id: clienteId, cliente, imovel_re: cliente.re })}
         />
       )}
 

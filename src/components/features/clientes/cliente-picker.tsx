@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { Plus, ArrowRight } from "lucide-react";
 import type { Cliente } from "@/lib/supabase/types";
-import type { ClienteImovelSnapshot } from "@/lib/habitese/types";
+import type { ClienteSnapshot } from "@/lib/clientes/types";
 
-function clienteParaSnapshot(c: Cliente): ClienteImovelSnapshot {
+export function clienteParaSnapshot(c: Cliente): ClienteSnapshot {
   const digits = c.cnpj_cpf?.replace(/\D/g, "") ?? "";
   return {
     id: c.id,
@@ -23,24 +23,34 @@ function clienteParaSnapshot(c: Cliente): ClienteImovelSnapshot {
     cidade: c.cidade ?? undefined,
     estado: c.estado ?? undefined,
     cep: c.cep ?? undefined,
+    re: c.re ?? undefined,
+    preexistente: c.preexistente ?? undefined,
+    area_construida: c.area_construida ?? undefined,
+    pavimentos: c.pavimentos ?? undefined,
+    altura: c.altura ?? undefined,
+    validade_atestado: c.validade_atestado ?? undefined,
   };
 }
 
-interface StepResponsavelProps {
+interface ClientePickerProps {
   clientes: Cliente[];
   clienteIdInicial?: string;
-  onNext: (clienteId: string, cliente: ClienteImovelSnapshot, re?: string) => void;
+  /** Para onde voltar depois de cadastrar um cliente novo a partir daqui (ex: o wizard que chamou este picker). */
+  redirectToNovoCliente: string;
+  titulo?: string;
+  onNext: (clienteId: string, cliente: ClienteSnapshot) => void;
 }
 
-export function StepResponsavel({ clientes, clienteIdInicial, onNext }: StepResponsavelProps) {
+/** Seletor de cliente compartilhado por todos os wizards de documento — consulta a base única de clientes. */
+export function ClientePicker({ clientes, clienteIdInicial, redirectToNovoCliente, titulo = "Selecione o Cliente", onNext }: ClientePickerProps) {
   const [selecionado, setSelecionado] = useState(clienteIdInicial ?? "");
 
   return (
     <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-6">
-      <h3 className="text-lg font-bold text-white">Selecione o Responsável pelo Imóvel</h3>
+      <h3 className="text-lg font-bold text-white">{titulo}</h3>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Proprietário cadastrado</label>
+        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Cliente cadastrado</label>
         <select
           value={selecionado}
           onChange={(e) => setSelecionado(e.target.value)}
@@ -61,10 +71,10 @@ export function StepResponsavel({ clientes, clienteIdInicial, onNext }: StepResp
 
       <div className="text-center">
         <Link
-          href="/habitese/responsaveis/novo?redirectTo=/habitese/novo"
+          href={`/clientes/novo?redirectTo=${encodeURIComponent(redirectToNovoCliente)}`}
           className="inline-flex items-center gap-2 px-4 py-2 border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white hover:text-red-400 text-xs font-semibold rounded-lg transition-all"
         >
-          <Plus className="w-3.5 h-3.5" /> Cadastrar Novo Proprietário
+          <Plus className="w-3.5 h-3.5" /> Cadastrar Novo Cliente
         </Link>
       </div>
 
@@ -73,7 +83,7 @@ export function StepResponsavel({ clientes, clienteIdInicial, onNext }: StepResp
           disabled={!selecionado}
           onClick={() => {
             const cliente = clientes.find((c) => c.id === selecionado);
-            if (cliente) onNext(selecionado, clienteParaSnapshot(cliente), cliente.re ?? undefined);
+            if (cliente) onNext(selecionado, clienteParaSnapshot(cliente));
           }}
           className="px-4 py-2 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white text-xs font-semibold rounded-lg shadow-lg shadow-red-500/10 hover:shadow-red-500/20 hover:scale-[1.02] transition-all disabled:opacity-40 disabled:pointer-events-none flex items-center gap-2"
         >

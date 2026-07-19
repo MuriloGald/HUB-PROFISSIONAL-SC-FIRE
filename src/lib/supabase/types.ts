@@ -176,7 +176,7 @@ export interface DiagnosticoPrevio {
   created_at: string;
 }
 
-export type ClienteTipo = "condominio" | "restaurante" | "deposito" | "comercial" | "evento" | "imovel" | "outro";
+export type ClienteTipo = "condominio" | "restaurante" | "deposito" | "comercial" | "outro";
 
 export interface Cliente {
   id: string;

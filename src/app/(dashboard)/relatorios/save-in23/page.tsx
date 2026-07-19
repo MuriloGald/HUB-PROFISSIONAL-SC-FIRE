@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Building2, ClipboardList, FileText, ShieldCheck, Search, CalendarPlus } from "lucide-react";
-import { listarClientesSave23, listarVistorias, listarLaudosTecnicos } from "@/app/actions/save-in23";
+import { Building2, ClipboardList, FileText, ShieldCheck, CalendarPlus } from "lucide-react";
+import { listarVistorias, listarLaudosTecnicos } from "@/app/actions/save-in23";
+import { listarClientes } from "@/app/actions/clientes";
 import { avaliarSetor } from "@/lib/save-in23/classificador";
 import type { VistoriaWizardState } from "@/lib/save-in23/types";
 
 export default async function Save23DashboardPage() {
   const [{ data: clientes }, { data: vistorias }, { data: laudos }] = await Promise.all([
-    listarClientesSave23(),
+    listarClientes(),
     listarVistorias(),
     listarLaudosTecnicos(),
   ]);
@@ -17,20 +18,6 @@ export default async function Save23DashboardPage() {
   }, 0);
 
   const acoes = [
-    {
-      title: "Cadastrar Edificação",
-      desc: "Adicione uma nova edificação com SAVE à base.",
-      icon: Building2,
-      href: "/relatorios/save-in23/clientes/novo",
-      color: "from-blue-600 to-blue-400",
-    },
-    {
-      title: "Consultar Edificações",
-      desc: "Busque, edite ou inicie uma vistoria/laudo a partir de uma edificação existente.",
-      icon: Search,
-      href: "/relatorios/save-in23/clientes",
-      color: "from-amber-600 to-yellow-400",
-    },
     {
       title: "Nova Vistoria de Campo",
       desc: "Checklist por setor, avaliação de dispensa do PBD (Art. 6º).",
@@ -57,13 +44,13 @@ export default async function Save23DashboardPage() {
       </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+        <Link href="/clientes" className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.15] transition-all flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Edificações</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Clientes Cadastrados</span>
             <div className="text-2xl font-bold text-white mt-1">{clientes.length}</div>
           </div>
           <Building2 className="w-8 h-8 text-blue-500/30" />
-        </div>
+        </Link>
 
         <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
           <div>

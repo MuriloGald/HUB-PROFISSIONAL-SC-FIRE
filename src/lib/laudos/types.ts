@@ -1,25 +1,5 @@
 import type { Porte } from "./classificador";
-
-/**
- * Snapshot do cliente embutido no laudo no momento da geracao — preserva os
- * dados exibidos no PDF mesmo que o cadastro do cliente mude depois.
- */
-export interface ClienteEventoSnapshot {
-  id: string;
-  razao_social: string;
-  cnpj?: string;
-  cpf?: string;
-  nome_responsavel?: string;
-  email?: string;
-  telefone?: string;
-  logradouro?: string;
-  numero?: string;
-  bairro?: string;
-  complemento?: string;
-  cidade?: string;
-  estado?: string;
-  cep?: string;
-}
+import type { ClienteSnapshot } from "@/lib/clientes/types";
 
 export type Respostas = Record<string, string> & {
   rt_selecionado?: string;
@@ -44,7 +24,7 @@ export interface EventoWizardState {
   laudoId?: string;
   codigo?: string;
   cliente_id?: string;
-  cliente?: ClienteEventoSnapshot;
+  cliente?: ClienteSnapshot;
 
   nome_evento?: string;
   descricao_evento?: string;

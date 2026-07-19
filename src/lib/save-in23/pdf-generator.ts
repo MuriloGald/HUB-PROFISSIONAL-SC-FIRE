@@ -27,7 +27,8 @@ import {
   PAGE_HEIGHT,
   PAGE_BREAK_Y,
 } from "../shared/pdf-branding";
-import type { Cenario, ClienteSave23Snapshot, Imagem, LaudoTecnicoWizardState, SetorVistoria, VistoriaWizardState } from "./types";
+import type { Cenario, Imagem, LaudoTecnicoWizardState, SetorVistoria, VistoriaWizardState } from "./types";
+import type { ClienteSnapshot } from "@/lib/clientes/types";
 
 applyPlugin(jsPDF);
 
@@ -228,7 +229,7 @@ async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: 
  * ============================================================ */
 
 function drawIdentificacaoVistoria(doc: DocWithAutoTable, startY: number, state: VistoriaWizardState): number {
-  const c = (state.cliente || {}) as ClienteSave23Snapshot;
+  const c = (state.cliente || {}) as ClienteSnapshot;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -295,7 +296,7 @@ async function drawSetorAnexo(
   contadorImg: ContadorImagem
 ): Promise<void> {
   doc.addPage();
-  const c = (state.cliente || {}) as ClienteSave23Snapshot;
+  const c = (state.cliente || {}) as ClienteSnapshot;
   const av = avaliarSetor(s, c.preexistente);
 
   doc.setFontSize(11);

@@ -12,6 +12,7 @@
 import { jsPDF } from "jspdf";
 import { applyPlugin, type RowInput } from "jspdf-autotable";
 import { drawCabecalhoInstitucional, MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH, PAGE_BREAK_Y } from "../shared/pdf-branding";
+import { agruparPorDia } from "./formatters";
 import type { PlanoEnsinoWizardState } from "./types";
 
 applyPlugin(jsPDF);
@@ -42,10 +43,20 @@ function drawSecaoTitulo(doc: DocWithAutoTable, y: number, texto: string): numbe
   return startY;
 }
 
+/**
+ * Normaliza quebras de linha do texto vindo do textarea antes de medir/desenhar —
+ * sem isso, colar conteudo com varias linhas em branco seguidas (Word, PDF, etc.)
+ * infla `linhas.length` e o cursor Y avanca bem mais do que o texto visivelmente
+ * ocupa, deixando um vao gigante ate a proxima secao.
+ */
+function normalizarQuebras(texto: string): string {
+  return texto.replace(/\r\n?/g, "\n").replace(/\n{2,}/g, "\n\n").trim();
+}
+
 function drawTexto(doc: DocWithAutoTable, y: number, texto: string): number {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  const linhas: string[] = doc.splitTextToSize(texto || "—", contentWidth);
+  const linhas: string[] = doc.splitTextToSize(normalizarQuebras(texto) || "—", contentWidth);
   doc.text(linhas, margin, y);
   return y + linhas.length * 5 + 6;
 }
@@ -113,18 +124,27 @@ function drawConteudoProgramatico(doc: DocWithAutoTable, y: number, state: Plano
   const startY = drawSecaoTitulo(doc, y, "4. CONTEÚDO PROGRAMÁTICO");
 
   const linhas = state.conteudo_programatico || [];
-  const head = [["Tópico", "Carga Horária"]];
-  const body: RowInput[] =
-    linhas.length > 0
-      ? linhas.map((l) => [l.nome, `${l.horas}h`])
-      : [["—", "—"]];
+  const grupos = agruparPorDia(linhas);
+
+  const body: RowInput[] = [];
+  if (linhas.length === 0) {
+    body.push(["—", "—"]);
+  } else {
+    for (const { dia, itens, cargaDia } of grupos) {
+      body.push([
+        { content: `Dia ${dia}`, styles: { fillColor: [240, 240, 240], fontStyle: "bold" } },
+        { content: `${cargaDia}h`, styles: { fillColor: [240, 240, 240], fontStyle: "bold", halign: "center" } },
+      ]);
+      itens.forEach((l) => body.push([l.nome, `${l.horas}h`]));
+    }
+  }
 
   doc.autoTable({
     startY: startY + 3,
     theme: "grid",
-    head,
+    head: [["Tópico", "Carga Horária"]],
     body,
-    headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: "bold", halign: "center", fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: "bold", halign: "center", fontSize: 8, cellPadding: 2 },
     styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
     columnStyles: { 0: { cellWidth: contentWidth * 0.75 }, 1: { cellWidth: contentWidth * 0.25, halign: "center" } },
     margin: { left: margin, right: MARGIN_RIGHT },

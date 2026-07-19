@@ -9,6 +9,7 @@ const PROTECTED_SEGMENTS = [
   "/instrutor",
   "/apresentacao",
   "/brigada",
+  "/clientes",
   "/comercial",
   "/configuracoes",
   "/crm",

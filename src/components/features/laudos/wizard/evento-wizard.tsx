@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
-import { StepCliente } from "./step-cliente";
+import { ClientePicker } from "@/components/features/clientes/cliente-picker";
 import { StepInfoBase } from "./step-info-base";
 import { FormsPequeno } from "./forms-pequeno";
 import { FormsMedio } from "./forms-medio";
@@ -162,9 +162,11 @@ export function EventoWizard({ clientes, clienteIdInicial, initialState }: Event
       </div>
 
       {step === 1 && (
-        <StepCliente
+        <ClientePicker
           clientes={clientes}
           clienteIdInicial={state.cliente_id}
+          redirectToNovoCliente="/laudos/eventos/novo"
+          titulo="Selecione o Cliente Responsável"
           onNext={(clienteId, cliente) => avancarPara(2, { cliente_id: clienteId, cliente })}
         />
       )}

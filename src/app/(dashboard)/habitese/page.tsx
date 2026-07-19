@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { UserPlus, Search, FileSignature, Users, ClipboardList, PieChart } from "lucide-react";
-import { listarClientesImovel, listarTermosHabitese } from "@/app/actions/habitese";
+import { FileSignature, Users, ClipboardList, PieChart } from "lucide-react";
+import { listarTermosHabitese } from "@/app/actions/habitese";
+import { listarClientes } from "@/app/actions/clientes";
 import type { HabiteseWizardState } from "@/lib/habitese/types";
 
 export default async function HabiteseDashboardPage() {
-  const [{ data: clientes }, { data: termos }] = await Promise.all([listarClientesImovel(), listarTermosHabitese()]);
+  const [{ data: clientes }, { data: termos }] = await Promise.all([listarClientes(), listarTermosHabitese()]);
 
   const porRisco = termos.reduce(
     (acc, l) => {
@@ -16,20 +17,6 @@ export default async function HabiteseDashboardPage() {
   );
 
   const acoes = [
-    {
-      title: "Cadastrar Proprietário",
-      desc: "Adicione um novo responsável pelo imóvel à base.",
-      icon: UserPlus,
-      href: "/habitese/responsaveis/novo",
-      color: "from-blue-600 to-blue-400",
-    },
-    {
-      title: "Consultar Proprietários",
-      desc: "Busque, edite ou inicie um termo a partir de um proprietário existente.",
-      icon: Search,
-      href: "/habitese/responsaveis",
-      color: "from-amber-600 to-yellow-400",
-    },
     {
       title: "Novo Termo",
       desc: "Inicie o fluxo de emissão do Termo de Entrega do Imóvel.",
@@ -54,13 +41,13 @@ export default async function HabiteseDashboardPage() {
       </div>
 
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+        <Link href="/clientes" className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.15] transition-all flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Proprietários Cadastrados</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Clientes Cadastrados</span>
             <div className="text-2xl font-bold text-white mt-1">{clientes.length}</div>
           </div>
           <Users className="w-8 h-8 text-blue-500/30" />
-        </div>
+        </Link>
 
         <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
           <div>

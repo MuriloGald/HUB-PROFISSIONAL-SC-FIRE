@@ -15,6 +15,8 @@ export interface SubtemaPlano {
   nome: string;
   horas: number;
   sort_order: number;
+  /** Dia do curso a que este topico pertence (1-based) — usado pra dividir o conteudo em dias. */
+  dia?: number;
 }
 
 /** Estado completo do wizard de Plano de Ensino — tambem e o que fica salvo em laudos.dados */

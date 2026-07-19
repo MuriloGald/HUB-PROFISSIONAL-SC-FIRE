@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Plus, X } from "lucide-react";
-import { StepCliente } from "../step-cliente";
+import { ClientePicker } from "@/components/features/clientes/cliente-picker";
 import { SetorForm } from "./setor-form";
 import { StepRevisao } from "./step-revisao";
 import type { Cliente } from "@/lib/supabase/types";
@@ -129,10 +129,11 @@ export function VistoriaWizard({ clientes, clienteIdInicial, initialState }: Vis
       </div>
 
       {step === 1 && (
-        <StepCliente
+        <ClientePicker
           clientes={clientes}
           clienteIdInicial={state.cliente_id}
           redirectToNovoCliente="/relatorios/save-in23/vistorias/nova"
+          titulo="Selecione a Edificação"
           onNext={(clienteId, cliente) => avancarPara(2, { cliente_id: clienteId, cliente })}
         />
       )}

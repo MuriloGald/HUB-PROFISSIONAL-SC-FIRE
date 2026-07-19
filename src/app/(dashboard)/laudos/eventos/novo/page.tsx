@@ -1,4 +1,5 @@
-import { listarClientesEvento, buscarLaudoEvento } from "@/app/actions/laudos";
+import { buscarLaudoEvento } from "@/app/actions/laudos";
+import { listarClientes } from "@/app/actions/clientes";
 import { EventoWizard } from "@/components/features/laudos/wizard/evento-wizard";
 import type { EventoWizardState } from "@/lib/laudos/types";
 
@@ -8,7 +9,7 @@ export default async function NovoEventoPage({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const { data: clientes } = await listarClientesEvento();
+  const { data: clientes } = await listarClientes();
 
   let initialState: EventoWizardState | undefined;
   if (editarId) {

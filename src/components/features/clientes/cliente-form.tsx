@@ -3,19 +3,27 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2, AlertTriangle } from "lucide-react";
-import { salvarClienteImovel } from "@/app/actions/habitese";
+import { salvarCliente } from "@/app/actions/clientes";
 import { formatCEP, formatCNPJ, formatCPF, formatPhone } from "@/lib/laudos/formatters";
 import { validarCNPJ, validarCPF } from "@/lib/laudos/validators";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, ClienteTipo } from "@/lib/supabase/types";
 
 const inputClass =
   "w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all";
 const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider";
 const avisoClass = "text-xs text-amber-400";
 
+const TIPOS: { value: ClienteTipo; label: string }[] = [
+  { value: "condominio", label: "Condomínio" },
+  { value: "restaurante", label: "Restaurante" },
+  { value: "deposito", label: "Depósito" },
+  { value: "comercial", label: "Comercial" },
+  { value: "outro", label: "Outro" },
+];
+
 interface ClienteFormProps {
   cliente?: Cliente;
-  /** Para onde ir apos salvar (ex: para retomar o wizard do termo). Default: lista de proprietarios. */
+  /** Para onde ir apos salvar (ex: para retomar o wizard de um documento). Default: lista central de clientes. */
   redirectTo?: string;
 }
 
@@ -27,10 +35,10 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
   const [cnpj, setCnpj] = useState(cnpjCpfDigits.length === 14 ? formatCNPJ(cnpjCpfDigits) : "");
   const [cpf, setCpf] = useState(cnpjCpfDigits.length === 11 ? formatCPF(cnpjCpfDigits) : "");
   const [razaoSocial, setRazaoSocial] = useState(cliente?.razao_social ?? "");
+  const [tipo, setTipo] = useState<ClienteTipo>(cliente?.tipo ?? "outro");
   const [nomeResponsavel, setNomeResponsavel] = useState(cliente?.responsavel_nome ?? "");
   const [telefone, setTelefone] = useState(cliente?.telefone ? formatPhone(cliente.telefone) : "");
   const [email, setEmail] = useState(cliente?.email ?? "");
-  const [re, setRe] = useState(cliente?.re ?? "");
   const [cep, setCep] = useState(cliente?.cep ? formatCEP(cliente.cep) : "");
   const [estado, setEstado] = useState(cliente?.estado ?? "SC");
   const [cidade, setCidade] = useState(cliente?.cidade ?? "");
@@ -38,6 +46,13 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
   const [logradouro, setLogradouro] = useState(cliente?.logradouro ?? "");
   const [numero, setNumero] = useState(cliente?.numero ?? "");
   const [complemento, setComplemento] = useState(cliente?.complemento ?? "");
+
+  const [re, setRe] = useState(cliente?.re ?? "");
+  const [preexistente, setPreexistente] = useState<boolean | undefined>(cliente?.preexistente ?? undefined);
+  const [areaConstruida, setAreaConstruida] = useState(cliente?.area_construida ?? "");
+  const [pavimentos, setPavimentos] = useState(cliente?.pavimentos ?? "");
+  const [altura, setAltura] = useState(cliente?.altura ?? "");
+  const [validadeAtestado, setValidadeAtestado] = useState(cliente?.validade_atestado ?? "");
 
   const [erroGeral, setErroGeral] = useState("");
   const [pendingWarnings, setPendingWarnings] = useState<Record<string, string> | null>(null);
@@ -79,7 +94,7 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
     if (!cnpj && !cpf) avisos.cnpj = avisos.cnpj ?? "CNPJ/CPF não informado";
 
     const camposObrigatorios: { key: string; label: string; valor: string }[] = [
-      { key: "razaoSocial", label: "Nome", valor: razaoSocial },
+      { key: "razaoSocial", label: "Razão Social / Nome", valor: razaoSocial },
       { key: "nomeResponsavel", label: "Nome do Responsável", valor: nomeResponsavel },
       { key: "telefone", label: "Telefone", valor: telefone },
       { key: "email", label: "E-mail", valor: email },
@@ -113,11 +128,12 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
 
     setPendingWarnings(null);
     setSalvando(true);
-    const result = await salvarClienteImovel({
+    const result = await salvarCliente({
       id: cliente?.id,
       cnpj: cnpj || undefined,
       cpf: cpf || undefined,
       razao_social: razaoSocial,
+      tipo,
       nome_responsavel: nomeResponsavel,
       telefone,
       email,
@@ -129,15 +145,20 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
       numero,
       complemento,
       re: re || undefined,
+      preexistente,
+      area_construida: areaConstruida || undefined,
+      pavimentos: pavimentos || undefined,
+      altura: altura || undefined,
+      validade_atestado: validadeAtestado || undefined,
     });
     setSalvando(false);
 
     if ("error" in result) {
-      setErroGeral(result.error ?? "Erro ao salvar proprietário");
+      setErroGeral(result.error ?? "Erro ao salvar cliente");
       return;
     }
 
-    router.push(redirectTo ? `${redirectTo}${redirectTo.includes("?") ? "&" : "?"}clienteId=${result.data.id}` : "/habitese/responsaveis");
+    router.push(redirectTo ? `${redirectTo}${redirectTo.includes("?") ? "&" : "?"}clienteId=${result.data.id}` : "/clientes");
     router.refresh();
   }
 
@@ -172,10 +193,22 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <label className={labelClass}>Nome / Razão Social do Responsável pelo Imóvel</label>
-        <input className={inputClass} value={razaoSocial} onChange={(e) => setRazaoSocial(e.target.value)} />
-        {pendingWarnings?.razaoSocial && <span className={avisoClass}>{pendingWarnings.razaoSocial}</span>}
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
+        <div className="space-y-1.5">
+          <label className={labelClass}>Razão Social / Nome</label>
+          <input className={inputClass} value={razaoSocial} onChange={(e) => setRazaoSocial(e.target.value)} />
+          {pendingWarnings?.razaoSocial && <span className={avisoClass}>{pendingWarnings.razaoSocial}</span>}
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Categoria</label>
+          <select className={inputClass} value={tipo} onChange={(e) => setTipo(e.target.value as ClienteTipo)}>
+            {TIPOS.map((t) => (
+              <option key={t.value} value={t.value} className="bg-[#111625]">
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="space-y-1.5">
@@ -195,11 +228,6 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
           <input type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} />
           {pendingWarnings?.email && <span className={avisoClass}>{pendingWarnings.email}</span>}
         </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className={labelClass}>RE do Imóvel (opcional)</label>
-        <input className={inputClass} value={re} onChange={(e) => setRe(e.target.value)} />
       </div>
 
       <h3 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Endereço</h3>
@@ -260,10 +288,62 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
         <input className={inputClass} value={complemento} onChange={(e) => setComplemento(e.target.value)} />
       </div>
 
+      <h3 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Dados do Imóvel/Edificação (opcional)</h3>
+      <p className="text-xs text-gray-500 -mt-4">Só preencha se este cliente for uma edificação usada em SAVE 23, Habite-se ou Brigada.</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className={labelClass}>RE (Registro do Estabelecimento)</label>
+          <input className={inputClass} value={re} onChange={(e) => setRe(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Edificação preexistente?</label>
+          <div className="flex gap-2 pt-1">
+            {[
+              { value: true, label: "Sim" },
+              { value: false, label: "Não" },
+            ].map((opt) => (
+              <button
+                key={String(opt.value)}
+                type="button"
+                onClick={() => setPreexistente(opt.value)}
+                className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all ${
+                  preexistente === opt.value
+                    ? "bg-red-500/10 border-red-500/50 text-red-400"
+                    : "border-white/[0.08] text-gray-400 hover:border-white/20"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-1.5">
+          <label className={labelClass}>Área construída (m²)</label>
+          <input type="number" step="0.01" className={inputClass} value={areaConstruida} onChange={(e) => setAreaConstruida(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Nº de pavimentos</label>
+          <input type="number" className={inputClass} value={pavimentos} onChange={(e) => setPavimentos(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Altura total (m)</label>
+          <input type="number" step="0.01" className={inputClass} value={altura} onChange={(e) => setAltura(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label className={labelClass}>Validade do atestado de funcionamento</label>
+        <input type="date" className={inputClass} value={validadeAtestado} onChange={(e) => setValidadeAtestado(e.target.value)} />
+      </div>
+
       <div className="flex justify-end gap-3 pt-2">
         <button
           type="button"
-          onClick={() => router.push("/habitese/responsaveis")}
+          onClick={() => router.push("/clientes")}
           className="px-4 py-2 border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white hover:text-red-500 text-xs font-semibold rounded-lg transition-all"
         >
           Cancelar
@@ -278,7 +358,7 @@ export function ClienteForm({ cliente, redirectTo }: ClienteFormProps) {
           }`}
         >
           {salvando && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          {pendingWarnings ? "Salvar Mesmo Assim" : isEdit ? "Salvar Alterações" : "Salvar Proprietário"}
+          {pendingWarnings ? "Salvar Mesmo Assim" : isEdit ? "Salvar Alterações" : "Salvar Cliente"}
         </button>
       </div>
     </form>

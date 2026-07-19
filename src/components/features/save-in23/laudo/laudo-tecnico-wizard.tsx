@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
-import { StepCliente } from "../step-cliente";
+import { ClientePicker } from "@/components/features/clientes/cliente-picker";
 import { StepIdentificacaoCap1 } from "./step-identificacao-cap1";
 import { StepCapitulo2 } from "./step-capitulo2";
 import { StepCapitulo3 } from "./step-capitulo3";
@@ -130,10 +130,11 @@ export function LaudoTecnicoWizard({ clientes, clausulasPadrao, clienteIdInicial
       <p className="text-xs text-gray-500 -mt-4">{STEPS[step - 1]?.label}</p>
 
       {step === 1 && (
-        <StepCliente
+        <ClientePicker
           clientes={clientes}
           clienteIdInicial={state.cliente_id}
           redirectToNovoCliente="/relatorios/save-in23/laudos/novo"
+          titulo="Selecione a Edificação"
           onNext={(clienteId, cliente) => avancarPara(2, { cliente_id: clienteId, cliente })}
         />
       )}
