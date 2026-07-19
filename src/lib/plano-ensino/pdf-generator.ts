@@ -46,19 +46,25 @@ function drawSecaoTitulo(doc: DocWithAutoTable, y: number, texto: string): numbe
 /**
  * Normaliza quebras de linha do texto vindo do textarea antes de medir/desenhar —
  * sem isso, colar conteudo com varias linhas em branco seguidas (Word, PDF, etc.)
- * infla `linhas.length` e o cursor Y avanca bem mais do que o texto visivelmente
- * ocupa, deixando um vao gigante ate a proxima secao.
+ * infla `linhas.length` desnecessariamente.
  */
 function normalizarQuebras(texto: string): string {
   return texto.replace(/\r\n?/g, "\n").replace(/\n{2,}/g, "\n\n").trim();
 }
 
+/**
+ * `doc.text(array, ...)` avanca cada linha pela altura REAL da fonte ativa
+ * (doc.getLineHeight(), ~3.65mm pra fontSize 9 — nao um numero fixo tipo 5mm).
+ * Usar uma constante fixa maior que a altura real desalinha o cursor Y do que
+ * foi de fato desenhado, e o erro cresce a cada linha — num paragrafo de 20
+ * linhas isso sozinho ja abre ~27mm de vao vazio antes da proxima secao.
+ */
 function drawTexto(doc: DocWithAutoTable, y: number, texto: string): number {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   const linhas: string[] = doc.splitTextToSize(normalizarQuebras(texto) || "—", contentWidth);
   doc.text(linhas, margin, y);
-  return y + linhas.length * 5 + 6;
+  return y + linhas.length * doc.getLineHeight() + 6;
 }
 
 function drawLista(doc: DocWithAutoTable, y: number, itens: string[]): number {
@@ -70,13 +76,31 @@ function drawLista(doc: DocWithAutoTable, y: number, itens: string[]): number {
     cursorY = quebrarSeNecessario(doc, cursorY);
     const linhas: string[] = doc.splitTextToSize(`•  ${item}`, contentWidth);
     doc.text(linhas, margin, cursorY);
-    cursorY += linhas.length * 5;
+    cursorY += linhas.length * doc.getLineHeight();
   }
   return cursorY + 6;
 }
 
+/**
+ * Decide onde uma tabela deve comecar: se ela nao cabe inteira daqui ate o fim
+ * da pagina mas cabe inteira numa pagina nova, pula a pagina toda — em vez de
+ * deixar so as primeiras linhas "penduradas" aqui e o resto continuando depois.
+ * Se nem numa pagina nova ela cabe inteira (tabela grande demais), so segue
+ * daqui mesmo e deixa o autoTable paginar normalmente (inevitavel).
+ */
+function posicionarParaTabela(doc: DocWithAutoTable, y: number, alturaEstimada: number): number {
+  const cabeAqui = y + alturaEstimada <= PAGE_BREAK_Y;
+  const cabeNumaPaginaNova = alturaEstimada <= PAGE_BREAK_Y - (MARGIN_TOP + 10);
+  if (!cabeAqui && cabeNumaPaginaNova) {
+    doc.addPage();
+    return MARGIN_TOP + 10;
+  }
+  return y;
+}
+
 function drawIdentificacao(doc: DocWithAutoTable, y: number, state: PlanoEnsinoWizardState): number {
-  const startY = drawSecaoTitulo(doc, y, "1. IDENTIFICAÇÃO");
+  const posicaoInicial = posicionarParaTabela(doc, y, 10 + 4 * 8);
+  const startY = drawSecaoTitulo(doc, posicaoInicial, "1. IDENTIFICAÇÃO");
 
   const body: RowInput[] = [
     [{ content: `Curso/Matéria: ${state.training?.name || ""}`, colSpan: 2 }],
@@ -121,10 +145,15 @@ function drawObjetivos(doc: DocWithAutoTable, y: number, state: PlanoEnsinoWizar
 }
 
 function drawConteudoProgramatico(doc: DocWithAutoTable, y: number, state: PlanoEnsinoWizardState): number {
-  const startY = drawSecaoTitulo(doc, y, "4. CONTEÚDO PROGRAMÁTICO");
-
   const linhas = state.conteudo_programatico || [];
   const grupos = agruparPorDia(linhas);
+
+  // +1 linha de cabecalho da tabela, +1 linha "Dia N" por grupo, +1 linha por topico
+  const numLinhas = linhas.length === 0 ? 1 : linhas.length + grupos.length;
+  const alturaEstimada = 10 /* titulo */ + (numLinhas + 1) * 8;
+  const posicaoInicial = posicionarParaTabela(doc, y, alturaEstimada);
+
+  const startY = drawSecaoTitulo(doc, posicaoInicial, "4. CONTEÚDO PROGRAMÁTICO");
 
   const body: RowInput[] = [];
   if (linhas.length === 0) {
