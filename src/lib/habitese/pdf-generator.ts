@@ -44,8 +44,9 @@ function resolverRt(state: HabiteseWizardState): ResponsavelTecnicoCustom {
   return { nome: fixo.nome, cpf: fixo.cpf, telefone: fixo.telefone, email: fixo.email, registro: fixo.nr_rt };
 }
 
-function quebrarSeNecessario(doc: DocWithAutoTable, y: number): number {
-  if (y > PAGE_BREAK_Y) {
+/** Quebra a página se o bloco a partir de `y` (com a altura `blockHeight` informada) não couber até a margem inferior. */
+function quebrarSeNecessario(doc: DocWithAutoTable, y: number, blockHeight = 0): number {
+  if (y + blockHeight > PAGE_BREAK_Y) {
     doc.addPage();
     return MARGIN_TOP + 10;
   }
@@ -177,9 +178,14 @@ async function drawDescritivoSistemas(doc: DocWithAutoTable, y: number, state: H
   cursorY += linhas.length * 5 + 6;
 
   const imagens = state.imagens || [];
+  const w = 100;
+  const h = 65;
   let n = 1;
   for (const img of imagens) {
-    cursorY = quebrarSeNecessario(doc, cursorY);
+    // Reserva o bloco inteiro (imagem + legenda) antes de decidir se quebra a
+    // pagina — checar so o Y atual (sem a altura da imagem) deixava a foto
+    // "vazar" pra baixo da margem quando ela nao cabia inteira na pagina.
+    cursorY = quebrarSeNecessario(doc, cursorY, h + 14);
     const carregada = await carregarImagemComoDataUrl(img.url);
     if (!carregada) {
       doc.setFontSize(8);
@@ -188,8 +194,6 @@ async function drawDescritivoSistemas(doc: DocWithAutoTable, y: number, state: H
       cursorY += 6;
       continue;
     }
-    const w = 100;
-    const h = 65;
     doc.addImage(carregada.dataUrl, carregada.format, margin, cursorY, w, h, undefined, "MEDIUM");
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");

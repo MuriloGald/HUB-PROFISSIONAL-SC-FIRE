@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle2, FileDown, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileDown, FileCheck2, Loader2, PartyPopper } from "lucide-react";
 import { RESPONSAVEIS_TECNICOS } from "@/lib/habitese/constants";
 import { salvarTermoHabitese } from "@/app/actions/habitese";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
@@ -21,11 +21,14 @@ interface StepRevisaoProps {
 
 export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
   const router = useRouter();
-  const [gerando, setGerando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [baixandoTermo, setBaixandoTermo] = useState(false);
+  const [baixandoAnexoH, setBaixandoAnexoH] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [salvo, setSalvo] = useState<HabiteseWizardState | null>(null);
 
-  async function handleGerar() {
-    setGerando(true);
+  async function handleSalvar() {
+    setSalvando(true);
     setErro(null);
     try {
       const result = await salvarTermoHabitese(state);
@@ -33,29 +36,64 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
         setErro(result.error ?? "Erro ao salvar o termo.");
         return;
       }
-
-      const { gerarPdf, gerarPdfAnexoH } = await import("@/lib/habitese/pdf-generator");
-      const dados = result.data.dados as HabiteseWizardState;
-      await gerarPdf(dados);
-      await gerarPdfAnexoH(dados);
-
-      onClearDraft();
-      router.push("/habitese/termos");
-      router.refresh();
+      setSalvo(result.data.dados as HabiteseWizardState);
     } catch (err) {
-      console.error("Erro ao gerar PDF:", err);
-      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o PDF. Tente novamente."));
+      console.error("Erro ao salvar o termo:", err);
+      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao salvar o termo. Tente novamente."));
     } finally {
-      setGerando(false);
+      setSalvando(false);
     }
+  }
+
+  // Baixar os dois PDFs precisa ser 2 cliques separados (2 gestos do usuário) —
+  // navegadores bloqueiam o segundo download automático quando os dois disparam
+  // dentro do mesmo clique/handler.
+  async function handleBaixarTermo() {
+    if (!salvo) return;
+    setBaixandoTermo(true);
+    setErro(null);
+    try {
+      const { gerarPdf } = await import("@/lib/habitese/pdf-generator");
+      await gerarPdf(salvo);
+    } catch (err) {
+      console.error("Erro ao gerar o Termo:", err);
+      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o PDF do Termo. Tente novamente."));
+    } finally {
+      setBaixandoTermo(false);
+    }
+  }
+
+  async function handleBaixarAnexoH() {
+    if (!salvo) return;
+    setBaixandoAnexoH(true);
+    setErro(null);
+    try {
+      const { gerarPdfAnexoH } = await import("@/lib/habitese/pdf-generator");
+      await gerarPdfAnexoH(salvo);
+    } catch (err) {
+      console.error("Erro ao gerar o Anexo H:", err);
+      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o PDF do Anexo H. Tente novamente."));
+    } finally {
+      setBaixandoAnexoH(false);
+    }
+  }
+
+  function handleConcluir() {
+    onClearDraft();
+    router.push("/habitese/termos");
+    router.refresh();
   }
 
   return (
     <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-6">
       <div className="text-center space-y-2">
         <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-        <h3 className="text-lg font-bold text-white">Pronto para Gerar o Termo!</h3>
-        <p className="text-sm text-gray-400">Revise os dados abaixo antes de gerar o documento PDF.</p>
+        <h3 className="text-lg font-bold text-white">{salvo ? "Termo Salvo!" : "Pronto para Salvar o Termo!"}</h3>
+        <p className="text-sm text-gray-400">
+          {salvo
+            ? "Baixe os dois documentos abaixo (são 2 arquivos separados — o navegador pode pedir confirmação para o segundo download)."
+            : "Revise os dados abaixo antes de salvar e gerar os documentos PDF."}
+        </p>
       </div>
 
       {erro && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{erro}</div>}
@@ -81,24 +119,58 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
         </div>
       </div>
 
-      <div className="flex justify-center gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="px-4 py-2 border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white hover:text-red-500 text-xs font-semibold rounded-lg transition-all flex items-center gap-2"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Voltar e Editar
-        </button>
-        <button
-          type="button"
-          onClick={handleGerar}
-          disabled={gerando}
-          className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-semibold rounded-lg shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
-        >
-          {gerando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
-          Gerar Termo + Anexo H (PDF)
-        </button>
-      </div>
+      {!salvo ? (
+        <div className="flex justify-center gap-3 pt-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="px-4 py-2 border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white hover:text-red-500 text-xs font-semibold rounded-lg transition-all flex items-center gap-2"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Voltar e Editar
+          </button>
+          <button
+            type="button"
+            onClick={handleSalvar}
+            disabled={salvando}
+            className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-semibold rounded-lg shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+          >
+            {salvando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+            Salvar Termo
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4 pt-2">
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <button
+              type="button"
+              onClick={handleBaixarTermo}
+              disabled={baixandoTermo}
+              className="px-4 py-2 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white text-xs font-semibold rounded-lg shadow-lg shadow-red-500/10 hover:shadow-red-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+            >
+              {baixandoTermo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+              1. Baixar Termo de Entrega (PDF)
+            </button>
+            <button
+              type="button"
+              onClick={handleBaixarAnexoH}
+              disabled={baixandoAnexoH}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-xs font-semibold rounded-lg shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+            >
+              {baixandoAnexoH ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileCheck2 className="w-3.5 h-3.5" />}
+              2. Baixar Anexo H (PDF)
+            </button>
+          </div>
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={handleConcluir}
+              className="px-4 py-2 border border-white/[0.08] hover:border-emerald-500/50 hover:bg-white/[0.04] text-white hover:text-emerald-400 text-xs font-semibold rounded-lg transition-all flex items-center gap-2"
+            >
+              <PartyPopper className="w-3.5 h-3.5" /> Concluir e Voltar para Consultar Termos
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

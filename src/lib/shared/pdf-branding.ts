@@ -36,19 +36,31 @@ export const PAGE_BREAK_Y = PAGE_HEIGHT - MARGIN_BOTTOM - 10;
 export const COR_VERMELHO_ESCURO: [number, number, number] = [168, 29, 7];
 export const COR_CINZA_INSTITUCIONAL: [number, number, number] = [100, 116, 139];
 
+/**
+ * Busca a imagem e a redesenha via <canvas> antes de virar data URL — o jsPDF
+ * embute os bytes originais sem transcodificar, então se o arquivo for WEBP,
+ * HEIC (foto de iPhone) ou qualquer coisa diferente do rótulo "PNG"/"JPEG" que
+ * a gente adivinhava do blob.type, o addImage() não dá erro mas o PDF fica com
+ * um espaço em branco onde a foto deveria estar (o visualizador de PDF não
+ * decodifica os bytes crus errados). Passando pelo canvas, o próprio navegador
+ * decodifica a imagem (em qualquer formato que ele suporte) e a gente sempre
+ * re-exporta como PNG — daí o jsPDF recebe bytes que batem com o rótulo.
+ */
 export async function carregarImagemComoDataUrl(url: string): Promise<{ dataUrl: string; format: string } | null> {
   try {
     const res = await fetch(url);
     const blob = await res.blob();
-    const format = blob.type.includes("png") ? "PNG" : "JPEG";
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-    return { dataUrl, format };
-  } catch {
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas 2D context indisponível");
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    return { dataUrl: canvas.toDataURL("image/png"), format: "PNG" };
+  } catch (err) {
+    console.error(`Não consegui carregar a imagem para o PDF: ${url}`, err);
     return null;
   }
 }
