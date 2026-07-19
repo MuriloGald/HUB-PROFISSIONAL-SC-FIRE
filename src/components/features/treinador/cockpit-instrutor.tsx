@@ -1,9 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, X, Timer, Radio, GraduationCap, Check, MonitorPlay, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import QRCode from "qrcode";
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Timer,
+  Radio,
+  GraduationCap,
+  Check,
+  MonitorPlay,
+  PanelLeftClose,
+  PanelLeftOpen,
+  QrCode,
+  Users,
+  Copy,
+} from "lucide-react";
 import { limparUrlCanvaParaEmbed } from "@/lib/treinador/canva";
+import { finalizarTurma, listarPresencas } from "@/app/actions/turmas";
 import type { AulaResumo, CursoTreinador } from "@/lib/treinador/types";
 
 function formatarTempo(segundos: number): string {
@@ -14,10 +31,30 @@ function formatarTempo(segundos: number): string {
   return h > 0 ? `${h}:${par(m)}:${par(s)}` : `${par(m)}:${par(s)}`;
 }
 
-export function CockpitInstrutor({ curso, aulas }: { curso: CursoTreinador; aulas: AulaResumo[] }) {
+interface TurmaInfo {
+  id: string;
+  qrCodeToken: string;
+  clienteNome: string | null;
+}
+
+interface CockpitInstrutorProps {
+  curso: CursoTreinador;
+  aulas: AulaResumo[];
+  turma?: TurmaInfo;
+}
+
+export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps) {
+  const router = useRouter();
   const [index, setIndex] = useState(0);
   const [segundos, setSegundos] = useState(0);
   const [sidebarAberta, setSidebarAberta] = useState(true);
+  const [qrModalAberto, setQrModalAberto] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [totalPresentes, setTotalPresentes] = useState(0);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
+
+  const checkInUrl = turma && typeof window !== "undefined" ? `${window.location.origin}/aluno/check-in?token=${turma.qrCodeToken}` : "";
 
   useEffect(() => {
     const id = setInterval(() => setSegundos((s) => s + 1), 1000);
@@ -34,6 +71,44 @@ export function CockpitInstrutor({ curso, aulas }: { curso: CursoTreinador; aula
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [aulas.length]);
 
+  // Contador de presença ao vivo — poll simples, sem realtime (nenhum outro modulo do
+  // hub usa Supabase Realtime, mesma escolha do cockpit legado que so usava polling).
+  useEffect(() => {
+    if (!turma) return;
+    let ativo = true;
+    async function poll() {
+      const res = await listarPresencas(turma!.id);
+      if (ativo) setTotalPresentes(res.data.length);
+    }
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => {
+      ativo = false;
+      clearInterval(id);
+    };
+  }, [turma]);
+
+  useEffect(() => {
+    if (!qrModalAberto || !checkInUrl) return;
+    QRCode.toDataURL(checkInUrl, { width: 250, margin: 1 }).then(setQrDataUrl);
+  }, [qrModalAberto, checkInUrl]);
+
+  function copiarLink() {
+    navigator.clipboard.writeText(checkInUrl);
+    setLinkCopiado(true);
+    setTimeout(() => setLinkCopiado(false), 2000);
+  }
+
+  async function encerrar() {
+    if (!turma) {
+      router.push("/apresentacao");
+      return;
+    }
+    setFinalizando(true);
+    await finalizarTurma(turma.id);
+    router.push("/apresentacao");
+  }
+
   const aula = aulas[index];
   const embedUrl = aula?.canvaEmbed ? limparUrlCanvaParaEmbed(aula.canvaEmbed) : null;
   const progressoPercent = aulas.length > 1 ? Math.round((index / (aulas.length - 1)) * 100) : 100;
@@ -45,16 +120,36 @@ export function CockpitInstrutor({ curso, aulas }: { curso: CursoTreinador; aula
         <div className="flex items-center gap-4 min-w-0">
           <div className="flex items-center gap-2 text-primary flex-shrink-0">
             <Radio className="w-4 h-4 text-primary animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider">Apresentação Avulsa</span>
+            <span className="text-xs font-bold uppercase tracking-wider">{turma ? "Aula Ativa" : "Apresentação Avulsa"}</span>
           </div>
 
           <div className="hidden md:flex items-center gap-2.5 px-3 py-1 rounded-lg bg-surface border border-border text-left min-w-0">
             <GraduationCap className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-            <span className="text-xs font-semibold text-muted-foreground truncate max-w-[280px]">{curso.name}</span>
+            <span className="text-xs font-semibold text-muted-foreground truncate max-w-[220px]">{curso.name}</span>
+            {turma?.clienteNome && (
+              <>
+                <span className="text-border flex-shrink-0">|</span>
+                <span className="text-xs font-bold text-foreground truncate max-w-[160px]">{turma.clienteNome}</span>
+              </>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
+          {turma && (
+            <>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-success/10 border border-success/25 text-success">
+                <Users className="w-4 h-4" />
+                <span className="text-xs font-bold">{totalPresentes} alunos</span>
+              </div>
+              <button
+                onClick={() => setQrModalAberto(true)}
+                className="h-9 px-3 rounded-lg bg-surface border border-border text-xs font-semibold text-foreground hover:bg-muted transition-colors flex items-center gap-1.5"
+              >
+                <QrCode className="w-3.5 h-3.5 text-primary" /> Presença
+              </button>
+            </>
+          )}
           <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-surface border border-border">
             <Timer className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs font-bold font-mono tracking-wider">{formatarTempo(segundos)}</span>
@@ -62,13 +157,23 @@ export function CockpitInstrutor({ curso, aulas }: { curso: CursoTreinador; aula
           <span className="text-xs text-muted-foreground">
             {index + 1} / {aulas.length}
           </span>
-          <Link
-            href="/apresentacao"
-            className="p-2 rounded-lg bg-surface border border-border text-muted-foreground hover:text-foreground transition-all"
-            title="Voltar para seleção"
-          >
-            <X className="w-4 h-4" />
-          </Link>
+          {turma ? (
+            <button
+              onClick={encerrar}
+              disabled={finalizando}
+              className="h-9 px-4 rounded-lg bg-destructive text-white hover:bg-destructive/90 transition-colors text-xs font-bold shadow-md shadow-destructive/10 disabled:opacity-50"
+            >
+              {finalizando ? "Finalizando..." : "Finalizar Aula"}
+            </button>
+          ) : (
+            <Link
+              href="/apresentacao"
+              className="p-2 rounded-lg bg-surface border border-border text-muted-foreground hover:text-foreground transition-all"
+              title="Voltar para seleção"
+            >
+              <X className="w-4 h-4" />
+            </Link>
+          )}
         </div>
       </header>
 
@@ -179,12 +284,13 @@ export function CockpitInstrutor({ curso, aulas }: { curso: CursoTreinador; aula
               </button>
 
               {index === aulas.length - 1 ? (
-                <Link
-                  href="/apresentacao"
-                  className="h-10 px-4 rounded-lg bg-destructive text-white text-xs font-bold shadow-md shadow-destructive/20 hover:shadow-lg hover:bg-destructive/90 transition-all flex items-center gap-1.5"
+                <button
+                  onClick={encerrar}
+                  disabled={finalizando}
+                  className="h-10 px-4 rounded-lg bg-destructive text-white text-xs font-bold shadow-md shadow-destructive/20 hover:shadow-lg hover:bg-destructive/90 transition-all flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  <Check className="w-4 h-4" /> Encerrar Apresentação
-                </Link>
+                  <Check className="w-4 h-4" /> {turma ? "Finalizar Aula" : "Encerrar Apresentação"}
+                </button>
               ) : (
                 <button
                   onClick={() => setIndex((i) => Math.min(i + 1, aulas.length - 1))}
@@ -199,6 +305,44 @@ export function CockpitInstrutor({ curso, aulas }: { curso: CursoTreinador; aula
           </div>
         </main>
       </div>
+
+      {/* QR de presença */}
+      {qrModalAberto && turma && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden p-6 text-center">
+            <button
+              onClick={() => setQrModalAberto(false)}
+              className="absolute top-4 right-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-surface transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="space-y-6 pt-4">
+              <div className="space-y-1.5">
+                <h3 className="text-base font-bold text-foreground">Registro de Presença</h3>
+                <p className="text-xs text-muted-foreground">Peça para os alunos escanearem o QR Code abaixo com a câmera do celular pra confirmar presença.</p>
+              </div>
+
+              <div className="w-56 h-56 bg-white p-3 rounded-2xl mx-auto shadow-inner flex items-center justify-center relative border border-border">
+                {qrDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={qrDataUrl} alt="QR Code de presença" className="w-full h-full object-contain" />
+                ) : (
+                  <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                )}
+              </div>
+
+              <button
+                onClick={copiarLink}
+                className="h-10 w-full max-w-sm mx-auto rounded-xl bg-surface border border-border hover:bg-muted text-xs font-semibold text-foreground transition-colors flex items-center justify-center gap-2"
+              >
+                {linkCopiado ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+                {linkCopiado ? "Link copiado!" : "Copiar link de check-in"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
