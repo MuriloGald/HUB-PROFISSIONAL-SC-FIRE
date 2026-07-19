@@ -35,6 +35,8 @@ export interface PlanoEnsinoWizardState {
   objetivos_especificos?: string[];
 
   conteudo_programatico?: SubtemaPlano[];
+  /** Data prevista de cada dia do curso (chave = numero do dia, valor = data ISO "AAAA-MM-DD") — mostrada como "Dia N - DD/MM/AAAA" no conteudo programatico. */
+  datas_dias?: Record<number, string>;
   metodologia?: string;
   recursos_didaticos?: string;
 

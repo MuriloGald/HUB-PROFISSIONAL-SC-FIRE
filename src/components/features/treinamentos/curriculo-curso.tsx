@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Check, PlusCircle } from "lucide-react";
-import { adicionarSubtemaAoCurso, atualizarDuracaoSubtema, removerSubtemaDoCurso } from "@/app/actions/subtemas";
+import { Trash2, Check, PlusCircle, ChevronUp, ChevronDown } from "lucide-react";
+import { adicionarSubtemaAoCurso, atualizarDuracaoSubtema, moverSubtemaNoCurso, removerSubtemaDoCurso } from "@/app/actions/subtemas";
 import type { SubtemaDoCurso } from "@/app/actions/subtemas";
 
 interface CurriculoCursoProps {
@@ -53,6 +53,17 @@ export function CurriculoCurso({ trainingId, subtemasDoCurso, disponiveisParaAdi
     });
   }
 
+  function mover(subthemeId: string, direcao: "up" | "down") {
+    startTransition(async () => {
+      const res = await moverSubtemaNoCurso(trainingId, subthemeId, direcao);
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   function adicionar() {
     if (!subtemaParaAdicionar) return;
     startTransition(async () => {
@@ -83,11 +94,31 @@ export function CurriculoCurso({ trainingId, subtemasDoCurso, disponiveisParaAdi
             </tr>
           </thead>
           <tbody>
-            {subtemasDoCurso.map((s) => {
+            {subtemasDoCurso.map((s, idx) => {
               const editando = horasEditando[s.id] !== undefined;
               return (
                 <tr key={s.id} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
-                  <td className="px-4 py-2.5 text-gray-500">{s.sortOrder}</td>
+                  <td className="px-4 py-2.5 text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <div className="flex flex-col -my-1">
+                        <button
+                          onClick={() => mover(s.id, "up")}
+                          disabled={pending || idx === 0}
+                          className="text-gray-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => mover(s.id, "down")}
+                          disabled={pending || idx === subtemasDoCurso.length - 1}
+                          className="text-gray-500 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <span>{s.sortOrder}</span>
+                    </div>
+                  </td>
                   <td className="px-4 py-2.5 text-white font-medium">{s.name}</td>
                   <td className="px-4 py-2.5 text-gray-400">{s.category}</td>
                   <td className="px-4 py-2.5">

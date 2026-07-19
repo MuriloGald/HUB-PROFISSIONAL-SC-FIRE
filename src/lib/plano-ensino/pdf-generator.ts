@@ -20,7 +20,7 @@ import {
   PAGE_WIDTH,
   PAGE_BREAK_Y,
 } from "../shared/pdf-branding";
-import { agruparPorDia } from "./formatters";
+import { agruparPorDia, rotuloDia } from "./formatters";
 import type { PlanoEnsinoWizardState } from "./types";
 
 applyPlugin(jsPDF);
@@ -153,7 +153,7 @@ function drawObjetivos(doc: DocWithAutoTable, y: number, state: PlanoEnsinoWizar
 
 function drawConteudoProgramatico(doc: DocWithAutoTable, y: number, state: PlanoEnsinoWizardState): number {
   const linhas = state.conteudo_programatico || [];
-  const grupos = agruparPorDia(linhas);
+  const grupos = agruparPorDia(linhas, state.datas_dias);
 
   // +1 linha de cabecalho da tabela, +1 linha "Dia N" por grupo, +1 linha por topico
   const numLinhas = linhas.length === 0 ? 1 : linhas.length + grupos.length;
@@ -166,9 +166,9 @@ function drawConteudoProgramatico(doc: DocWithAutoTable, y: number, state: Plano
   if (linhas.length === 0) {
     body.push(["—", "—"]);
   } else {
-    for (const { dia, itens, cargaDia } of grupos) {
+    for (const { dia, itens, cargaDia, data } of grupos) {
       body.push([
-        { content: `Dia ${dia}`, styles: { fillColor: [240, 240, 240], fontStyle: "bold" } },
+        { content: rotuloDia(dia, data), styles: { fillColor: [240, 240, 240], fontStyle: "bold" } },
         { content: `${cargaDia}h`, styles: { fillColor: [240, 240, 240], fontStyle: "bold", halign: "center" } },
       ]);
       itens.forEach((l) => body.push([l.nome, `${l.horas}h`]));
@@ -224,16 +224,22 @@ function drawBibliografia(doc: DocWithAutoTable, y: number, state: PlanoEnsinoWi
 
 function drawAssinatura(doc: DocWithAutoTable, y: number, state: PlanoEnsinoWizardState): void {
   let cursorY = y;
-  if (cursorY > PAGE_BREAK_Y - 25) {
+  if (cursorY > PAGE_BREAK_Y - 32) {
     doc.addPage();
     cursorY = MARGIN_TOP + 10;
   }
-  cursorY += 20;
+  cursorY += 14;
+
+  const dataEmissao = new Date(state.data_emissao || Date.now());
+  const dataFormatada = dataEmissao.toLocaleDateString("pt-BR");
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  doc.text(`São José/SC, ${dataFormatada}`, margin, cursorY);
+  cursorY += 12;
 
   doc.setDrawColor(0, 0, 0);
   doc.line(margin, cursorY, margin + 80, cursorY);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
   doc.text("Assinatura do Instrutor / Responsável Pedagógico", margin, cursorY + 5);
   doc.text(state.instrutor_responsavel || "", margin, cursorY + 10);
 }

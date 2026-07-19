@@ -63,9 +63,17 @@ export interface NovoCursoInput {
   description: string;
   totalHours: number;
   comboType: string;
+  ementa?: string;
+  objetivoGeral?: string;
+  objetivosEspecificos?: string[];
+  metodologia?: string;
+  recursosDidaticos?: string;
+  criteriosAvaliacao?: string;
+  bibliografiaBasica?: string[];
+  bibliografiaComplementar?: string[];
 }
 
-/** Cria um novo curso (public.trainings) vazio — os subtemas são adicionados depois na tela do curso. */
+/** Cria um novo curso (public.trainings), já com o template de ementa/objetivos/etc se informado — os subtemas são adicionados depois na tela do curso. */
 export async function criarCurso(input: NovoCursoInput) {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -77,6 +85,14 @@ export async function criarCurso(input: NovoCursoInput) {
       combo_type: input.comboType || null,
       base_price: 0,
       active: true,
+      ementa: input.ementa || null,
+      objetivo_geral: input.objetivoGeral || null,
+      objetivos_especificos: input.objetivosEspecificos ?? [],
+      metodologia: input.metodologia || null,
+      recursos_didaticos: input.recursosDidaticos || null,
+      criterios_avaliacao: input.criteriosAvaliacao || null,
+      bibliografia_basica: input.bibliografiaBasica ?? [],
+      bibliografia_complementar: input.bibliografiaComplementar ?? [],
     })
     .select("id")
     .single();
@@ -86,6 +102,80 @@ export async function criarCurso(input: NovoCursoInput) {
   revalidatePath("/treinamentos/cursos");
   revalidatePath("/treinador");
   return { data };
+}
+
+export interface CursoTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  total_hours: number;
+  combo_type: string | null;
+  ementa: string | null;
+  objetivo_geral: string | null;
+  objetivos_especificos: string[];
+  metodologia: string | null;
+  recursos_didaticos: string | null;
+  criterios_avaliacao: string | null;
+  bibliografia_basica: string[];
+  bibliografia_complementar: string[];
+}
+
+/** Busca o curso com todos os campos, incluindo o template de ementa/objetivos/etc, pro formulário de edição. */
+export async function buscarCurso(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trainings")
+    .select(
+      "id,name,description,total_hours,combo_type,ementa,objetivo_geral,objetivos_especificos,metodologia,recursos_didaticos,criterios_avaliacao,bibliografia_basica,bibliografia_complementar"
+    )
+    .eq("id", id)
+    .single();
+
+  if (error) return { error: error.message };
+  return { data: data as CursoTemplate };
+}
+
+export interface EditarCursoInput {
+  name: string;
+  description: string;
+  totalHours: number;
+  comboType: string;
+  ementa: string;
+  objetivoGeral: string;
+  objetivosEspecificos: string[];
+  metodologia: string;
+  recursosDidaticos: string;
+  criteriosAvaliacao: string;
+  bibliografiaBasica: string[];
+  bibliografiaComplementar: string[];
+}
+
+/** Atualiza o curso, incluindo o template de ementa/objetivos/metodologia/bibliografia que o Plano de Ensino reaproveita. */
+export async function atualizarCurso(id: string, input: EditarCursoInput) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("trainings")
+    .update({
+      name: input.name,
+      description: input.description || null,
+      total_hours: input.totalHours,
+      combo_type: input.comboType || null,
+      ementa: input.ementa || null,
+      objetivo_geral: input.objetivoGeral || null,
+      objetivos_especificos: input.objetivosEspecificos,
+      metodologia: input.metodologia || null,
+      recursos_didaticos: input.recursosDidaticos || null,
+      criterios_avaliacao: input.criteriosAvaliacao || null,
+      bibliografia_basica: input.bibliografiaBasica,
+      bibliografia_complementar: input.bibliografiaComplementar,
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/treinamentos/cursos");
+  revalidatePath("/treinador");
+  return { success: true };
 }
 
 export interface NovoSubtemaInput {
@@ -261,6 +351,40 @@ export async function removerSubtemaDoCurso(trainingId: string, subthemeId: stri
   const supabase = await createClient();
   const { error } = await supabase.from("training_subthemes").delete().eq("training_id", trainingId).eq("subtheme_id", subthemeId);
   if (error) return { error: error.message };
+
+  revalidatePath("/treinamentos/cursos");
+  revalidatePath("/treinador");
+  return { success: true };
+}
+
+/** Troca a posição de um subtema no currículo com o vizinho anterior/seguinte (troca o sort_order dos dois). */
+export async function moverSubtemaNoCurso(trainingId: string, subthemeId: string, direcao: "up" | "down") {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("training_subthemes")
+    .select("subtheme_id, sort_order")
+    .eq("training_id", trainingId)
+    .order("sort_order", { ascending: true });
+
+  if (error) return { error: error.message };
+
+  const linhas = data ?? [];
+  const idx = linhas.findIndex((r) => r.subtheme_id === subthemeId);
+  if (idx === -1) return { error: "Subtema não encontrado neste curso." };
+
+  const idxVizinho = direcao === "up" ? idx - 1 : idx + 1;
+  if (idxVizinho < 0 || idxVizinho >= linhas.length) return { success: true };
+
+  const atual = linhas[idx];
+  const vizinho = linhas[idxVizinho];
+
+  const [r1, r2] = await Promise.all([
+    supabase.from("training_subthemes").update({ sort_order: vizinho.sort_order }).eq("training_id", trainingId).eq("subtheme_id", atual.subtheme_id),
+    supabase.from("training_subthemes").update({ sort_order: atual.sort_order }).eq("training_id", trainingId).eq("subtheme_id", vizinho.subtheme_id),
+  ]);
+
+  if (r1.error) return { error: r1.error.message };
+  if (r2.error) return { error: r2.error.message };
 
   revalidatePath("/treinamentos/cursos");
   revalidatePath("/treinador");

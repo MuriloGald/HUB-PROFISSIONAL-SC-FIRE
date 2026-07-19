@@ -18,8 +18,13 @@ interface StepConteudoProps {
 
 export function StepConteudo({ state, onBack, onNext }: StepConteudoProps) {
   const [conteudo, setConteudo] = useState<SubtemaPlano[]>((state.conteudo_programatico ?? []).map((l) => ({ dia: 1, ...l })));
+  const [datasDias, setDatasDias] = useState<Record<number, string>>(state.datas_dias ?? {});
   const [metodologia, setMetodologia] = useState(state.metodologia ?? "");
   const [recursos, setRecursos] = useState(state.recursos_didaticos ?? "");
+
+  function atualizarDataDia(dia: number, data: string) {
+    setDatasDias((d) => ({ ...d, [dia]: data }));
+  }
 
   const dias = useMemo(() => {
     const set = new Set(conteudo.map((c) => c.dia ?? 1));
@@ -48,6 +53,11 @@ export function StepConteudo({ state, onBack, onNext }: StepConteudoProps) {
   function removerDia(dia: number) {
     if (!confirm(`Remover o Dia ${dia} e todos os tópicos associados?`)) return;
     setConteudo((c) => c.filter((l) => (l.dia ?? 1) !== dia));
+    setDatasDias((d) => {
+      const next = { ...d };
+      delete next[dia];
+      return next;
+    });
   }
 
   const cargaTotal = conteudo.reduce((sum, l) => sum + (l.horas || 0), 0);
@@ -73,8 +83,17 @@ export function StepConteudo({ state, onBack, onNext }: StepConteudoProps) {
 
           return (
             <div key={dia} className="rounded-xl bg-black/20 border border-white/[0.08] p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-bold text-red-400">Dia {dia}</h4>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-red-400">Dia {dia}</h4>
+                  <input
+                    type="date"
+                    value={datasDias[dia] ?? ""}
+                    onChange={(e) => atualizarDataDia(dia, e.target.value)}
+                    title="Data prevista deste dia"
+                    className={`${inputClass} py-1.5`}
+                  />
+                </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{cargaDia}h</span>
                   <button
@@ -156,7 +175,7 @@ export function StepConteudo({ state, onBack, onNext }: StepConteudoProps) {
         </button>
         <button
           type="button"
-          onClick={() => onNext({ conteudo_programatico: conteudo, metodologia, recursos_didaticos: recursos })}
+          onClick={() => onNext({ conteudo_programatico: conteudo, datas_dias: datasDias, metodologia, recursos_didaticos: recursos })}
           className="px-4 py-2 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white text-xs font-semibold rounded-lg shadow-lg shadow-red-500/10 hover:shadow-red-500/20 hover:scale-[1.02] transition-all flex items-center gap-2"
         >
           Avançar <ArrowRight className="w-3.5 h-3.5" />

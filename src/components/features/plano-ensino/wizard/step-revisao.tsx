@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileDown, Loader2 } from "lucide-react";
 import { salvarPlanoEnsino } from "@/app/actions/plano-ensino";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
-import { agruparPorDia } from "@/lib/plano-ensino/formatters";
+import { agruparPorDia, rotuloDia } from "@/lib/plano-ensino/formatters";
 import type { PlanoEnsinoWizardState } from "@/lib/plano-ensino/types";
 
 interface StepRevisaoProps {
@@ -70,10 +70,10 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
         <h4 className="text-sm font-bold text-red-400 border-b border-white/[0.08] pb-2 pt-2">Conteúdo Programático</h4>
         <div className="max-h-60 overflow-y-auto rounded-lg border border-white/[0.06] divide-y divide-white/[0.04]">
           {(state.conteudo_programatico ?? []).length === 0 && <p className="text-xs text-gray-500 px-3 py-2">Nenhum tópico definido.</p>}
-          {agruparPorDia(state.conteudo_programatico ?? []).map(({ dia, itens, cargaDia }) => (
+          {agruparPorDia(state.conteudo_programatico ?? [], state.datas_dias).map(({ dia, itens, cargaDia, data }) => (
             <div key={dia}>
               <div className="flex items-center justify-between gap-4 px-3 py-1.5 bg-white/[0.03]">
-                <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">Dia {dia}</span>
+                <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">{rotuloDia(dia, data)}</span>
                 <span className="text-[10px] font-bold text-gray-400">{cargaDia}h</span>
               </div>
               {itens.map((item, i) => (

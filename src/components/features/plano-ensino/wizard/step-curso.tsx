@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { listarSubtemasDoCurso } from "@/app/actions/plano-ensino";
+import { buscarCurso } from "@/app/actions/subtemas";
 import type { Training } from "@/lib/supabase/types";
 import type { PlanoEnsinoWizardState, SubtemaPlano, TrainingSnapshot } from "@/lib/plano-ensino/types";
 
@@ -53,14 +54,32 @@ export function StepCurso({ trainings, state, onNext }: StepCursoProps) {
     startTransition(async () => {
       const trainingSnapshot: TrainingSnapshot = { id: training.id, name: training.name, total_hours: training.total_hours };
       let conteudo: SubtemaPlano[] = state.training_id === trainingId ? state.conteudo_programatico ?? [] : [];
+      let template: Partial<PlanoEnsinoWizardState> = {};
 
       if (state.training_id !== trainingId) {
-        const result = await listarSubtemasDoCurso(trainingId);
-        if ("error" in result && result.error) {
-          setErro(result.error);
+        const [resultSubtemas, resultCurso] = await Promise.all([listarSubtemasDoCurso(trainingId), buscarCurso(trainingId)]);
+        if ("error" in resultSubtemas && resultSubtemas.error) {
+          setErro(resultSubtemas.error);
           return;
         }
-        conteudo = result.data;
+        conteudo = resultSubtemas.data;
+
+        // Pré-preenche ementa/objetivos/metodologia/bibliografia com o template cadastrado
+        // no curso — só na primeira vez que esse curso é selecionado neste plano, pra não
+        // sobrescrever o que o usuário já editou manualmente ao ir e voltar no wizard.
+        if (resultCurso.data) {
+          const c = resultCurso.data;
+          template = {
+            ementa: c.ementa ?? "",
+            objetivo_geral: c.objetivo_geral ?? "",
+            objetivos_especificos: c.objetivos_especificos ?? [],
+            metodologia: c.metodologia ?? "",
+            recursos_didaticos: c.recursos_didaticos ?? "",
+            criterios_avaliacao: c.criterios_avaliacao ?? "",
+            bibliografia_basica: c.bibliografia_basica ?? [],
+            bibliografia_complementar: c.bibliografia_complementar ?? [],
+          };
+        }
       }
 
       onNext({
@@ -69,6 +88,7 @@ export function StepCurso({ trainings, state, onNext }: StepCursoProps) {
         turma_periodo: turmaPeriodo,
         instrutor_responsavel: instrutor,
         conteudo_programatico: conteudo,
+        ...template,
       });
     });
   }
