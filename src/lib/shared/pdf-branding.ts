@@ -18,6 +18,10 @@ import type { jsPDF } from "jspdf";
 export const MARGIN_TOP = 15;
 export const MARGIN_LEFT = 30;
 export const MARGIN_RIGHT = 20;
+// O cabecalho (logo + divisor + borda) usa uma margem esquerda propria, mais estreita
+// que a margem ABNT do corpo do documento — pedido explicito pra dar mais espaco a
+// logo/dados institucionais sem alterar o recuo do texto/tabelas abaixo da borda.
+export const MARGIN_LEFT_CABECALHO = 20;
 export const MARGIN_BOTTOM = 20; // 2,0cm
 export const PAGE_WIDTH = 210;
 export const PAGE_HEIGHT = 297;
@@ -68,13 +72,13 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   if (logo) {
     const props = doc.getImageProperties(logo.dataUrl);
     logoW = (props.width / props.height) * logoH;
-    doc.addImage(logo.dataUrl, logo.format, MARGIN_LEFT, top, logoW, logoH);
+    doc.addImage(logo.dataUrl, logo.format, MARGIN_LEFT_CABECALHO, top, logoW, logoH);
   }
 
-  // Texto ancorado perto do topo (nao mais centralizado em cima da altura da logo) —
-  // assim ele fica alinhado com o topo da logo em vez de "puxado pra baixo" quando a
-  // logo e mais alta que as duas linhas de texto.
-  const textX = MARGIN_LEFT + logoW + (logo ? 3 : 0);
+  // Texto do lado da logo comeca 10mm mais abaixo do topo da logo — a logo fica
+  // visivelmente "acima" do texto em vez dos dois comecarem alinhados no mesmo topo.
+  const textX = MARGIN_LEFT_CABECALHO + logoW + (logo ? 3 : 0);
+  const textTop = top + 10;
   const rightX = PAGE_WIDTH - MARGIN_RIGHT;
   const dividerX = (textX + rightX) / 2;
   const larguraDisponivelTexto = dividerX - textX - 2;
@@ -87,11 +91,11 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
     doc.setFontSize(fonteEmpresa);
   }
   doc.setTextColor(0, 0, 0);
-  doc.text("EZS Consultoria e Treinamentos LTDA", textX, top + 4);
+  doc.text("EZS Consultoria e Treinamentos LTDA", textX, textTop);
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-  doc.text("CNPJ 20.544.712/0001-89", textX, top + 8);
+  doc.text("CNPJ 20.544.712/0001-89", textX, textTop + 4);
 
   // Divisor fica no meio do espaco disponivel depois da logo, nao no centro da pagina —
   // assim os dados administrativos (esquerda) e os dados de endereco (direita) ficam com
@@ -115,7 +119,7 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   const borderY = top + Math.max(logoH, 12) + 4;
   doc.setDrawColor(...COR_VERMELHO_ESCURO);
   doc.setLineWidth(0.8);
-  doc.line(MARGIN_LEFT, borderY, PAGE_WIDTH - MARGIN_RIGHT, borderY);
+  doc.line(MARGIN_LEFT_CABECALHO, borderY, PAGE_WIDTH - MARGIN_RIGHT, borderY);
 
   // Titulos longos nao cabem numa linha centralizada na largura da pagina inteira —
   // "centralizar" um texto mais largo que o conteudo estoura a margem esquerda e
