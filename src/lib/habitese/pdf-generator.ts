@@ -165,8 +165,11 @@ function drawDadosSolicitacao(doc: DocWithAutoTable, y: number, state: HabiteseW
   return doc.lastAutoTable.finalY + 8;
 }
 
-async function drawDescritivoSistemas(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): Promise<number> {
-  let cursorY = drawSecaoTitulo(doc, y, "5. DESCRITIVO DOS SISTEMAS E MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO INSTALADOS");
+async function drawDescritivoSistemas(doc: DocWithAutoTable, state: HabiteseWizardState): Promise<number> {
+  // Sempre comeca em pagina nova — fica mais apresentavel separar o bloco de
+  // fotos do restante dos dados em vez de emendar no fim da pagina anterior.
+  doc.addPage();
+  let cursorY = drawSecaoTitulo(doc, MARGIN_TOP + 10, "5. DESCRITIVO DOS SISTEMAS E MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO INSTALADOS");
   cursorY += 5;
 
   doc.setFontSize(9);
@@ -207,38 +210,45 @@ async function drawDescritivoSistemas(doc: DocWithAutoTable, y: number, state: H
 }
 
 function drawDeclaracao(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): void {
-  let cursorY = y;
-  if (cursorY > PAGE_BREAK_Y - 70) {
-    doc.addPage();
-    cursorY = MARGIN_TOP + 10;
-  }
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.text("6. DECLARAÇÃO DE ENTREGA E RECEBIMENTO", margin, cursorY);
-  cursorY += 6;
-
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   const textoRecebimento =
     "Declaro que recebi o imóvel conforme o descritivo apresentado, em conformidade com as NSCI, estando ciente de que após o recebimento é minha responsabilidade manter as características do imóvel inalteradas, bem como a operacionalidade e manutenção dos SMSCI previstos.";
+  const textoEntrega = "Declaro que realizei a entrega do imóvel em conformidade com o descritivo apresentado.";
   const linhasRecebimento = doc.splitTextToSize(textoRecebimento, contentWidth);
-  doc.text(linhasRecebimento, margin, cursorY);
-  cursorY += linhasRecebimento.length * 5 + 25;
+  const linhasEntrega = doc.splitTextToSize(textoEntrega, contentWidth);
 
-  cursorY = quebrarSeNecessario(doc, cursorY);
+  // Altura do capitulo inteiro (titulo + 2 textos + 2 blocos de assinatura) calculada
+  // antes de desenhar, pra decidir a quebra de pagina uma unica vez no topo — assim o
+  // capitulo 6 sempre vai inteiro pra pagina seguinte quando nao cabe todo na atual,
+  // em vez de quebrar no meio e deixar uma assinatura sozinha.
+  const alturaTitulo = 6;
+  const alturaTexto1 = linhasRecebimento.length * 5 + 25;
+  const alturaAssinatura1 = 30;
+  const alturaTexto2 = linhasEntrega.length * 5 + 25;
+  const alturaAssinatura2 = 15;
+  const alturaTotal = alturaTitulo + alturaTexto1 + alturaAssinatura1 + alturaTexto2 + alturaAssinatura2;
+
+  let cursorY = quebrarSeNecessario(doc, y, alturaTotal);
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("6. DECLARAÇÃO DE ENTREGA E RECEBIMENTO", margin, cursorY);
+  cursorY += alturaTitulo;
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(linhasRecebimento, margin, cursorY);
+  cursorY += alturaTexto1;
+
   doc.line(margin, cursorY, margin + 80, cursorY);
   doc.text("Assinatura do responsável pelo imóvel", margin, cursorY + 5);
   doc.text(state.cliente?.razao_social || "", margin, cursorY + 10);
-  cursorY += 30;
+  cursorY += alturaAssinatura1;
 
-  cursorY = quebrarSeNecessario(doc, cursorY);
-  const textoEntrega = "Declaro que realizei a entrega do imóvel em conformidade com o descritivo apresentado.";
-  const linhasEntrega = doc.splitTextToSize(textoEntrega, contentWidth);
   doc.text(linhasEntrega, margin, cursorY);
-  cursorY += linhasEntrega.length * 5 + 25;
+  cursorY += alturaTexto2;
 
-  cursorY = quebrarSeNecessario(doc, cursorY);
   const rt = resolverRt(state);
   doc.line(margin, cursorY, margin + 80, cursorY);
   doc.text("Assinatura do responsável técnico", margin, cursorY + 5);
@@ -259,7 +269,7 @@ export async function gerarPdf(state: HabiteseWizardState): Promise<string> {
   y = drawResponsavelTecnico(doc, y, state);
   y = drawDescricaoImovel(doc, y, state);
   y = drawDadosSolicitacao(doc, y, state);
-  y = await drawDescritivoSistemas(doc, y, state);
+  y = await drawDescritivoSistemas(doc, state);
   drawDeclaracao(doc, y, state);
 
   const fileName = nomeArquivo(state);
@@ -327,8 +337,11 @@ function statusSimNao(v: SistemaConformidade["conformePpci"]): string {
   return v === "sim" ? "SIM" : v === "nao" ? "NÃO" : "";
 }
 
-function drawRelatorioSistemas(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
-  const startY = drawSecaoTitulo(doc, y, "3. RELATÓRIO DOS SISTEMAS E MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO");
+function drawRelatorioSistemas(doc: DocWithAutoTable, state: HabiteseWizardState): number {
+  // Sempre comeca em pagina nova — a tabela de conformidade fica mais
+  // apresentavel separada dos dados de identificacao das secoes 1 e 2.
+  doc.addPage();
+  const startY = drawSecaoTitulo(doc, MARGIN_TOP + 10, "3. RELATÓRIO DOS SISTEMAS E MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO");
 
   const porChave = new Map((state.sistemas || []).map((s) => [s.chave, s]));
 
@@ -394,7 +407,7 @@ export async function gerarPdfAnexoH(state: HabiteseWizardState): Promise<string
   let y = await drawCabecalhoInstitucional(doc, "Relatório de Conformidade", "ATESTADO PARA HABITE-SE", state.codigo);
   y = drawResponsavelTecnicoAnexoH(doc, y, state);
   y = drawDescricaoImovelAnexoH(doc, y, state);
-  y = drawRelatorioSistemas(doc, y, state);
+  y = drawRelatorioSistemas(doc, state);
   drawDeclaracaoAnexoH(doc, y, state);
 
   const fileName = nomeArquivoAnexoH(state);
