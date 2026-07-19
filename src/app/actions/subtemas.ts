@@ -58,6 +58,36 @@ export async function listarCursosParaVinculo() {
   return { data: data ?? [] };
 }
 
+export interface NovoCursoInput {
+  name: string;
+  description: string;
+  totalHours: number;
+  comboType: string;
+}
+
+/** Cria um novo curso (public.trainings) vazio — os subtemas são adicionados depois na tela do curso. */
+export async function criarCurso(input: NovoCursoInput) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("trainings")
+    .insert({
+      name: input.name,
+      description: input.description || null,
+      total_hours: input.totalHours,
+      combo_type: input.comboType || null,
+      base_price: 0,
+      active: true,
+    })
+    .select("id")
+    .single();
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/treinamentos/cursos");
+  revalidatePath("/treinador");
+  return { data };
+}
+
 export interface NovoSubtemaInput {
   name: string;
   category: string;

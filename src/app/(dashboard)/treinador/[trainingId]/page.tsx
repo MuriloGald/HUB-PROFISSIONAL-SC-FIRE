@@ -23,7 +23,7 @@ export default async function CursoTreinadorPage({ params }: { params: Promise<{
         </div>
         {aulas.length > 0 && (
           <Link
-            href={`/treinador/${trainingId}/cockpit`}
+            href={`/apresentacao/${trainingId}`}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg transition-colors flex-shrink-0"
           >
             <Presentation className="w-4 h-4" /> Iniciar Cockpit do Instrutor

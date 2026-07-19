@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap, Clock } from "lucide-react";
+import { GraduationCap, Clock, PlusCircle } from "lucide-react";
 import { listarCursosTreinador } from "@/app/actions/treinador";
 
 export default async function CursosPage() {
@@ -7,9 +7,17 @@ export default async function CursosPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white font-display">Cursos</h1>
-        <p className="text-sm text-gray-400 mt-1">Gerencie o currículo de cada curso — adicione, remova ou ajuste a duração dos subtemas.</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white font-display">Cursos</h1>
+          <p className="text-sm text-gray-400 mt-1">Gerencie o currículo de cada curso — adicione, remova ou ajuste a duração dos subtemas.</p>
+        </div>
+        <Link
+          href="/treinamentos/cursos/novo"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg transition-colors"
+        >
+          <PlusCircle className="w-4 h-4" /> Novo Curso
+        </Link>
       </div>
 
       {cursos.length === 0 && (

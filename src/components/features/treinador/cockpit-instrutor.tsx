@@ -60,7 +60,7 @@ export function CockpitInstrutor({ curso, aulas }: { curso: CursoTreinador; aula
           <span className="text-xs text-gray-500">
             {index + 1} / {aulas.length}
           </span>
-          <Link href={`/treinador/${curso.id}`} className="p-1.5 rounded-md hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors">
+          <Link href="/apresentacao" className="p-1.5 rounded-md hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-colors">
             <X className="w-4 h-4" />
           </Link>
         </div>
