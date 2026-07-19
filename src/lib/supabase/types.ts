@@ -22,6 +22,8 @@ export interface Subtheme {
   description: string | null;
   syllabus: string | null;
   in28_code: string | null;
+  /** Roteiro completo da aula (Etapas + quiz) pro leitor do módulo do treinador — ver src/lib/treinador/types.ts. Nulo até a aula ser migrada. */
+  conteudo: Record<string, unknown> | null;
   active: boolean;
   created_at: string;
   updated_at: string;

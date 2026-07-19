@@ -27,6 +27,7 @@ import {
   BarChart2,
   Palette,
   NotebookPen,
+  BookMarked,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { BniModal } from "@/components/features/bni-modal";
@@ -47,6 +48,7 @@ const navItems: NavItem[] = [
   { label: "CRM (Vendas)", href: "/crm", icon: TrendingUp },
 
   { label: "Área de Estudos", href: "/estudos", icon: LibraryBig },
+  { label: "Treinador", href: "/treinador", icon: BookMarked },
 
   { label: "Clientes", href: "/clientes", icon: Users },
 
