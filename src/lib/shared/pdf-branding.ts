@@ -119,14 +119,14 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-  doc.text("R. Hermes Zapelini, 513 - sala 02", rightX, top + 2, { align: "right" });
-  doc.text("Barreiros, São José - SC, 88.110-050", rightX, top + 5.5, { align: "right" });
+  doc.text("R. Hermes Zapelini, 513 - sala 02", rightX, top + 5.5, { align: "right" });
+  doc.text("Barreiros, São José - SC, 88.110-050", rightX, top + 9, { align: "right" });
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text("(48) 99141-2186  |  (48) 3093 6140", rightX, top + 9, { align: "right" });
+  doc.text("(48) 99141-2186  |  (48) 3093 6140", rightX, top + 12.5, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-  doc.text("contato@scfire.com.br", rightX, top + 12.5, { align: "right" });
+  doc.text("contato@scfire.com.br", rightX, top + 16, { align: "right" });
 
   const borderY = top + Math.max(logoH, 12) + 4;
   doc.setDrawColor(...COR_VERMELHO_ESCURO);
