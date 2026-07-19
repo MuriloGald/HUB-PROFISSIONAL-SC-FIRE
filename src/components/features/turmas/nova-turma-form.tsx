@@ -41,6 +41,10 @@ export function NovaTurmaForm({ cursos, clientes }: NovaTurmaFormProps) {
         return;
       }
 
+      if (res.planoEnsinoError) {
+        window.alert(res.planoEnsinoError);
+      }
+
       router.push("/treinamentos/turmas");
       router.refresh();
     });

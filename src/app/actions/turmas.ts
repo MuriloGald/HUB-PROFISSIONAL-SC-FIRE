@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { buscarCurso } from "./subtemas";
+import { listarSubtemasDoCurso, salvarPlanoEnsino } from "./plano-ensino";
+import { buscarCliente } from "./clientes";
+import { formatarDataDia } from "@/lib/plano-ensino/formatters";
+import type { PlanoEnsinoWizardState } from "@/lib/plano-ensino/types";
 import type { PresencaRegistrada, Student, Turma, TurmaComDetalhes } from "@/lib/turmas/types";
 
 /** Lista turmas agendadas ou em andamento, com nome do curso e do cliente — pro seletor de "Turma Cadastrada". */
@@ -51,7 +56,52 @@ export async function criarTurma(input: NovaTurmaInput) {
 
   revalidatePath("/apresentacao");
   revalidatePath("/treinamentos/turmas");
-  return { data };
+
+  const planoEnsinoError = await gerarPlanoEnsinoDaTurma(input);
+  if (!planoEnsinoError) revalidatePath("/plano-ensino");
+
+  return { data, planoEnsinoError };
+}
+
+/**
+ * Gera o Plano de Ensino desta turma a partir do template de ementa/objetivos/
+ * metodologia/bibliografia já cadastrado no curso (ver migration
+ * 012_trainings_template_ensino.sql) — não bloqueia a criação da turma se
+ * falhar, só devolve o aviso separado pra UI mostrar.
+ */
+async function gerarPlanoEnsinoDaTurma(input: NovaTurmaInput): Promise<string | undefined> {
+  const [cursoRes, conteudoRes] = await Promise.all([buscarCurso(input.trainingId), listarSubtemasDoCurso(input.trainingId)]);
+
+  if ("error" in cursoRes) return `Turma criada, mas não consegui gerar o Plano de Ensino: ${cursoRes.error}`;
+  const curso = cursoRes.data;
+
+  let clienteNome: string | undefined;
+  if (input.clienteId) {
+    const clienteRes = await buscarCliente(input.clienteId);
+    if (!("error" in clienteRes)) clienteNome = clienteRes.data.razao_social ?? clienteRes.data.nome;
+  }
+  const turmaPeriodo = [clienteNome, input.scheduledAt ? formatarDataDia(input.scheduledAt) : null].filter(Boolean).join(" - ");
+
+  const state: PlanoEnsinoWizardState = {
+    training_id: curso.id,
+    training: { id: curso.id, name: curso.name, total_hours: curso.total_hours },
+    turma_periodo: turmaPeriodo || undefined,
+    instrutor_responsavel: input.instrutorNome || undefined,
+    ementa: curso.ementa ?? undefined,
+    objetivo_geral: curso.objetivo_geral ?? undefined,
+    objetivos_especificos: curso.objetivos_especificos,
+    metodologia: curso.metodologia ?? undefined,
+    recursos_didaticos: curso.recursos_didaticos ?? undefined,
+    criterios_avaliacao: curso.criterios_avaliacao ?? undefined,
+    bibliografia_basica: curso.bibliografia_basica,
+    bibliografia_complementar: curso.bibliografia_complementar,
+    conteudo_programatico: conteudoRes.data,
+    datas_dias: input.scheduledAt ? { 1: input.scheduledAt } : undefined,
+  };
+
+  const result = await salvarPlanoEnsino(state);
+  if ("error" in result) return `Turma criada, mas não consegui gerar o Plano de Ensino: ${result.error}`;
+  return undefined;
 }
 
 /** Busca a turma + curso + aulas do curso, pro cockpit vinculado a turma. */
