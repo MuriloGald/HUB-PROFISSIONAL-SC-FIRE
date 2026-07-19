@@ -9,7 +9,7 @@
 import { jsPDF } from "jspdf";
 import { applyPlugin, type RowInput } from "jspdf-autotable";
 import { RESPONSAVEIS_TECNICOS, EMPRESA, PERGUNTAS_MAP } from "./constants";
-import { drawCabecalhoInstitucional } from "../shared/pdf-branding";
+import { drawCabecalhoInstitucional, desenharTabelaRotulos, type CelulaRotulo } from "../shared/pdf-branding";
 import type { EventoWizardState, Respostas } from "./types";
 
 applyPlugin(jsPDF);
@@ -37,7 +37,14 @@ function drawHeader(doc: DocWithAutoTable, title: string, subtitle: string): num
   return margin + 25;
 }
 
-function drawIdentificacao(doc: DocWithAutoTable, startY: number, state: EventoWizardState): number {
+/**
+ * Tabela de identificação do evento, com duas aparências possíveis:
+ * - `comEstiloRotulo = false` (padrão): formato exato esperado pelo CBMSC nos
+ *   Anexos B/C/D/E — não alterar, é o mesmo autoTable usado desde sempre.
+ * - `comEstiloRotulo = true`: usada só na segunda via com identidade visual
+ *   (gerarPdfIdentidadeVisual), com rótulos em negrito — não é enviada ao CBMSC.
+ */
+function drawIdentificacao(doc: DocWithAutoTable, startY: number, state: EventoWizardState, comEstiloRotulo = false): number {
   const c = state.cliente || ({} as NonNullable<EventoWizardState["cliente"]>);
   const rtKey =
     state.respostas_pequeno?.rt_selecionado ||
@@ -49,6 +56,53 @@ function drawIdentificacao(doc: DocWithAutoTable, startY: number, state: EventoW
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text("1. IDENTIFICAÇÃO DO EVENTO", margin, startY);
+
+  if (comEstiloRotulo) {
+    const linhas: CelulaRotulo[][] = [
+      [{ label: "Nome do evento", valor: state.nome_evento || "" }],
+      [{ label: "Descrição do evento", valor: state.descricao_evento || "" }],
+      [
+        { label: "Início", valor: `${state.data_inicio || ""} às ${state.hora_inicio || ""}h` },
+        { label: "Encerramento", valor: `${state.data_termino || ""} às ${state.hora_termino || ""}h` },
+      ],
+      [{ label: "Público total previsto", valor: `${state.publico || ""} pessoas` }],
+      [
+        { label: "Endereço", valor: `${state.logradouro_evento || ""}, Nº ${state.numero_evento || ""}` },
+        { label: "CEP", valor: state.cep_evento || "" },
+      ],
+      [
+        { label: "Bairro", valor: state.bairro_evento || "" },
+        { label: "Cidade", valor: state.cidade_evento || "" },
+      ],
+      [{ label: "Complemento/Ponto de referência", valor: state.complemento_evento || "" }],
+      [
+        { label: "Responsável pelo Evento", valor: `${c.razao_social || ""} (CPF/CNPJ: ${c.cnpj || c.cpf || ""})` },
+        { label: "Fone", valor: c.telefone || "" },
+      ],
+    ];
+
+    if (state.porteFinal !== "pequeno") {
+      linhas.push([
+        { label: "Responsável Técnico", valor: rt.nome },
+        { label: "CPF / Fone", valor: `${rt.cpf} / ${rt.telefone}` },
+      ]);
+    }
+
+    let finalY = desenharTabelaRotulos(doc, startY + 3, linhas, contentWidth, margin);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("Quadro de áreas", pageWidth / 2, finalY + 5, { align: "center" });
+    finalY += 8;
+
+    finalY = desenharTabelaRotulos(doc, finalY, [
+      [{ label: "Área total utilizada no evento", valor: `${state.area_total || ""} m²` }],
+      [{ label: "Área das instalações permanentes", valor: `${state.area_permanente || ""} m²` }],
+      [{ label: "Área das estruturas provisórias", valor: `${state.area_provisoria || ""} m²` }],
+    ], contentWidth, margin);
+
+    return finalY + 10;
+  }
 
   const bodyData: RowInput[] = [
     [{ content: `Nome do evento: ${state.nome_evento || ""}`, colSpan: 2 }],
@@ -262,7 +316,43 @@ function drawTabelaSaidas(doc: DocWithAutoTable, startY: number, state: EventoWi
   return doc.lastAutoTable.finalY + 10;
 }
 
-function drawAssinaturas(doc: DocWithAutoTable, startYInput: number, state: EventoWizardState, tipo: "pequeno" | "medio" | "grande"): void {
+/** Faixa cinza de título de seção (ex.: "RESPONSÁVEL TÉCNICO..."), usada só na via com identidade visual. */
+function desenharFaixaTitulo(doc: DocWithAutoTable, y: number, esquerda: string, direita: string): number {
+  const altura = 9.6;
+  doc.setFillColor(240, 240, 240);
+  doc.rect(margin, y, contentWidth, altura, "F");
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  doc.rect(margin, y, contentWidth, altura);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text(esquerda, margin + 2.5, y + 6);
+  if (direita) doc.text(direita, margin + contentWidth * 0.6 + 2.5, y + 6);
+  return y + altura;
+}
+
+/** Bloco de linha de assinatura com legenda, usado só na via com identidade visual. */
+function desenharBlocoAssinatura(doc: DocWithAutoTable, y: number, label: string): number {
+  const altura = 20;
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.2);
+  doc.rect(margin, y, contentWidth, altura);
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  doc.text("_____________________________________", pageWidth / 2, y + altura - 8, { align: "center" });
+  doc.text(label, pageWidth / 2, y + altura - 3, { align: "center" });
+  return y + altura;
+}
+
+function drawAssinaturas(
+  doc: DocWithAutoTable,
+  startYInput: number,
+  state: EventoWizardState,
+  tipo: "pequeno" | "medio" | "grande",
+  comEstiloRotulo = false
+): void {
   const c = state.cliente || ({} as NonNullable<EventoWizardState["cliente"]>);
   const rtKey =
     state.respostas_pequeno?.rt_selecionado ||
@@ -311,36 +401,86 @@ function drawAssinaturas(doc: DocWithAutoTable, startYInput: number, state: Even
   } else {
     doc.text("3. RESPONSÁVEIS PELO EVENTO", margin, startY);
 
-    const rtData: RowInput[] = [
-      [
-        { content: "RESPONSÁVEL TÉCNICO PELO LAUDO TÉCNICO", styles: { fillColor: [240, 240, 240], fontStyle: "bold" } },
-        { content: `Nº documento de RT: ${rt.nr_rt}`, styles: { fillColor: [240, 240, 240] } },
-      ],
-      [`Nome: ${rt.nome}`, `Nº C. Classe: ${rt.classe}`],
-      [`End.: ${EMPRESA.endereco}, ${EMPRESA.numero}`, `CEP: ${EMPRESA.cep}`],
-      [`Bairro: ${EMPRESA.bairro}`, `Cidade: ${EMPRESA.cidade}`],
-      [{ content: `Complemento: ${EMPRESA.complemento}`, colSpan: 2 }],
-      [`E-mail: ${EMPRESA.email}`, `Telefone: ${EMPRESA.telefone}`],
-      [{ content: "\n\n_____________________________________\nAssinatura do RT", colSpan: 2, styles: { halign: "center", minCellHeight: 25 } }],
-      [{ content: "RESPONSÁVEL PELO EVENTO", colSpan: 2, styles: { fillColor: [240, 240, 240], fontStyle: "bold" } }],
-      [`Nome: ${c.razao_social || ""}`, `CPF/CNPJ: ${c.cnpj || c.cpf || ""}`],
-      [`End.: ${c.logradouro || ""}, Nº ${c.numero || ""}`, `CEP: ${c.cep || ""}`],
-      [`Bairro: ${c.bairro || ""}`, `Cidade: ${c.cidade || ""}`],
-      [{ content: `Complemento: ${c.complemento || ""}`, colSpan: 2 }],
-      [`E-mail: ${c.email || ""}`, `Telefone: ${c.telefone || ""}`],
-      [{ content: "\n\n_____________________________________\nAssinatura do Responsável", colSpan: 2, styles: { halign: "center", minCellHeight: 25 } }],
-    ];
+    let finalY: number;
 
-    doc.autoTable({
-      startY: startY + 3,
-      theme: "grid",
-      head: [],
-      body: rtData,
-      styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
-      columnStyles: { 0: { cellWidth: contentWidth * 0.6 }, 1: { cellWidth: contentWidth * 0.4 } },
-    });
+    if (comEstiloRotulo) {
+      finalY = desenharFaixaTitulo(doc, startY + 3, "RESPONSÁVEL TÉCNICO PELO LAUDO TÉCNICO", `Nº documento de RT: ${rt.nr_rt}`);
+      finalY = desenharTabelaRotulos(doc, finalY, [
+        [
+          { label: "Nome", valor: rt.nome },
+          { label: "Nº C. Classe", valor: rt.classe },
+        ],
+        [
+          { label: "End.", valor: `${EMPRESA.endereco}, ${EMPRESA.numero}` },
+          { label: "CEP", valor: EMPRESA.cep },
+        ],
+        [
+          { label: "Bairro", valor: EMPRESA.bairro },
+          { label: "Cidade", valor: EMPRESA.cidade },
+        ],
+        [{ label: "Complemento", valor: EMPRESA.complemento }],
+        [
+          { label: "E-mail", valor: EMPRESA.email },
+          { label: "Telefone", valor: EMPRESA.telefone },
+        ],
+      ], contentWidth, margin);
+      finalY = desenharBlocoAssinatura(doc, finalY, "Assinatura do RT");
 
-    let finalY = doc.lastAutoTable.finalY + 10;
+      finalY = desenharFaixaTitulo(doc, finalY, "RESPONSÁVEL PELO EVENTO", "");
+      finalY = desenharTabelaRotulos(doc, finalY, [
+        [
+          { label: "Nome", valor: c.razao_social || "" },
+          { label: "CPF/CNPJ", valor: c.cnpj || c.cpf || "" },
+        ],
+        [
+          { label: "End.", valor: `${c.logradouro || ""}, Nº ${c.numero || ""}` },
+          { label: "CEP", valor: c.cep || "" },
+        ],
+        [
+          { label: "Bairro", valor: c.bairro || "" },
+          { label: "Cidade", valor: c.cidade || "" },
+        ],
+        [{ label: "Complemento", valor: c.complemento || "" }],
+        [
+          { label: "E-mail", valor: c.email || "" },
+          { label: "Telefone", valor: c.telefone || "" },
+        ],
+      ], contentWidth, margin);
+      finalY = desenharBlocoAssinatura(doc, finalY, "Assinatura do Responsável");
+      finalY += 10;
+    } else {
+      const rtData: RowInput[] = [
+        [
+          { content: "RESPONSÁVEL TÉCNICO PELO LAUDO TÉCNICO", styles: { fillColor: [240, 240, 240], fontStyle: "bold" } },
+          { content: `Nº documento de RT: ${rt.nr_rt}`, styles: { fillColor: [240, 240, 240] } },
+        ],
+        [`Nome: ${rt.nome}`, `Nº C. Classe: ${rt.classe}`],
+        [`End.: ${EMPRESA.endereco}, ${EMPRESA.numero}`, `CEP: ${EMPRESA.cep}`],
+        [`Bairro: ${EMPRESA.bairro}`, `Cidade: ${EMPRESA.cidade}`],
+        [{ content: `Complemento: ${EMPRESA.complemento}`, colSpan: 2 }],
+        [`E-mail: ${EMPRESA.email}`, `Telefone: ${EMPRESA.telefone}`],
+        [{ content: "\n\n_____________________________________\nAssinatura do RT", colSpan: 2, styles: { halign: "center", minCellHeight: 25 } }],
+        [{ content: "RESPONSÁVEL PELO EVENTO", colSpan: 2, styles: { fillColor: [240, 240, 240], fontStyle: "bold" } }],
+        [`Nome: ${c.razao_social || ""}`, `CPF/CNPJ: ${c.cnpj || c.cpf || ""}`],
+        [`End.: ${c.logradouro || ""}, Nº ${c.numero || ""}`, `CEP: ${c.cep || ""}`],
+        [`Bairro: ${c.bairro || ""}`, `Cidade: ${c.cidade || ""}`],
+        [{ content: `Complemento: ${c.complemento || ""}`, colSpan: 2 }],
+        [`E-mail: ${c.email || ""}`, `Telefone: ${c.telefone || ""}`],
+        [{ content: "\n\n_____________________________________\nAssinatura do Responsável", colSpan: 2, styles: { halign: "center", minCellHeight: 25 } }],
+      ];
+
+      doc.autoTable({
+        startY: startY + 3,
+        theme: "grid",
+        head: [],
+        body: rtData,
+        styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
+        columnStyles: { 0: { cellWidth: contentWidth * 0.6 }, 1: { cellWidth: contentWidth * 0.4 } },
+      });
+
+      finalY = doc.lastAutoTable.finalY + 10;
+    }
+
     if (finalY > 230) {
       doc.addPage();
       finalY = margin + 10;
@@ -551,9 +691,9 @@ export async function gerarPdfIdentidadeVisual(state: EventoWizardState, tipoPdf
 
   if (porte === "pequeno") {
     currentY = await drawCabecalhoInstitucional(doc, "Anexo B - Termo de Responsabilidade", "EVENTO DE PEQUENO PORTE", state.codigo);
-    currentY = drawIdentificacao(doc, currentY, state);
+    currentY = drawIdentificacao(doc, currentY, state, true);
     currentY = drawCaracteristicas(doc, currentY, state, state.respostas_pequeno || {});
-    drawAssinaturas(doc, currentY, state, "pequeno");
+    drawAssinaturas(doc, currentY, state, "pequeno", true);
 
     const fileName = nomeArquivoIdentidadeVisual(state);
     doc.save(fileName);
@@ -562,9 +702,9 @@ export async function gerarPdfIdentidadeVisual(state: EventoWizardState, tipoPdf
 
   if (porte === "medio") {
     currentY = await drawCabecalhoInstitucional(doc, "Anexo C - Laudo técnico", "EVENTO DE MÉDIO PORTE", state.codigo);
-    currentY = drawIdentificacao(doc, currentY, state);
+    currentY = drawIdentificacao(doc, currentY, state, true);
     currentY = drawCaracteristicas(doc, currentY, state, state.respostas_medio || {});
-    drawAssinaturas(doc, currentY, state, "medio");
+    drawAssinaturas(doc, currentY, state, "medio", true);
 
     const fileName = nomeArquivoIdentidadeVisual(state);
     doc.save(fileName);
@@ -575,10 +715,10 @@ export async function gerarPdfIdentidadeVisual(state: EventoWizardState, tipoPdf
   let fileNameD: string | null = null;
   if (tipoPdf === "ambos" || tipoPdf === "anexod") {
     currentY = await drawCabecalhoInstitucional(doc, "Anexo D - Memorial Técnico de Segurança Contra Incêndio", "EVENTO DE GRANDE PORTE", state.codigo);
-    currentY = drawIdentificacao(doc, currentY, state);
+    currentY = drawIdentificacao(doc, currentY, state, true);
     currentY = drawCaracteristicas(doc, currentY, state, state.respostas_grande || {}, 2);
     currentY = drawTabelaSaidas(doc, currentY, state, 3);
-    drawAssinaturas(doc, currentY, state, "grande");
+    drawAssinaturas(doc, currentY, state, "grande", true);
 
     fileNameD = nomeArquivoIdentidadeVisual(state, "_AnexoD");
     doc.save(fileNameD);
@@ -589,9 +729,9 @@ export async function gerarPdfIdentidadeVisual(state: EventoWizardState, tipoPdf
   if (tipoPdf === "ambos" || tipoPdf === "anexoe") {
     const docE = (tipoPdf === "ambos" ? new jsPDF() : doc) as DocWithAutoTable;
     let currentYE = await drawCabecalhoInstitucional(docE, "Anexo E - Laudo de Comissionamento", "EVENTO DE GRANDE PORTE", state.codigo);
-    currentYE = drawIdentificacao(docE, currentYE, state);
+    currentYE = drawIdentificacao(docE, currentYE, state, true);
     currentYE = drawAnexoEConteudo(docE, currentYE, state);
-    drawAssinaturas(docE, currentYE, state, "grande");
+    drawAssinaturas(docE, currentYE, state, "grande", true);
 
     const fileNameE = nomeArquivoIdentidadeVisual(state, "_AnexoE");
     docE.save(fileNameE);

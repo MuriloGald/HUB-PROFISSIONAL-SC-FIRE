@@ -156,3 +156,100 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
 
   return tituloY + 8;
 }
+
+export interface CelulaRotulo {
+  label: string;
+  valor: string;
+}
+
+/**
+ * Desenha uma tabela de N colunas onde cada célula é "Rótulo: valor", com o
+ * rótulo em negrito e o valor em peso normal — jspdf-autotable não suporta
+ * negrito parcial dentro de uma célula, então essa tabela é desenhada na mão
+ * (borda + texto), com o próprio wrap de texto calculado aqui. Compartilhada
+ * por todos os geradores de PDF do hub (SAVE 23, Eventos, Plano de Ensino,
+ * Habite-se) pra manter o mesmo padrão visual de tabela de identificação.
+ */
+export function desenharTabelaRotulos(
+  doc: jsPDF,
+  startY: number,
+  linhas: CelulaRotulo[][],
+  contentWidth: number = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT,
+  margin: number = MARGIN_LEFT
+): number {
+  const padding = 2.5;
+  const lineHeight = 4.6;
+  const fontSize = 9;
+  const corTextoNormal: [number, number, number] = [55, 65, 81];
+  let y = startY;
+
+  for (const linha of linhas) {
+    // Cada linha pode ter seu proprio numero de colunas (ex: uma linha de largura
+    // total seguida de uma linha com 2 colunas) — a largura da coluna e recalculada
+    // por linha em vez de fixada pela primeira.
+    const numCols = linha.length || 1;
+    const largura = contentWidth / numCols;
+    doc.setFontSize(fontSize);
+    const celulas = linha.map((c) => {
+      const colWidth = largura - padding * 2;
+      doc.setFont("helvetica", "bold");
+      const rotuloTexto = `${c.label}: `;
+      const rotuloWidth = doc.getTextWidth(rotuloTexto);
+      doc.setFont("helvetica", "normal");
+      const palavras = c.valor.split(" ");
+      const linhasCelula: string[] = [];
+      let atual = "";
+      palavras.forEach((palavra, idx) => {
+        const testeTexto = atual ? `${atual} ${palavra}` : palavra;
+        const larguraDisponivel = linhasCelula.length === 0 ? colWidth - rotuloWidth : colWidth;
+        if (atual && doc.getTextWidth(testeTexto) > larguraDisponivel) {
+          linhasCelula.push(atual);
+          atual = palavra;
+        } else {
+          atual = testeTexto;
+        }
+        if (idx === palavras.length - 1 && atual) linhasCelula.push(atual);
+      });
+      if (!linhasCelula.length) linhasCelula.push("");
+      return { rotulo: rotuloTexto, rotuloWidth, linhas: linhasCelula };
+    });
+
+    const maxLinhas = Math.max(...celulas.map((c) => c.linhas.length), 1);
+    const rowHeight = maxLinhas * lineHeight + padding * 2;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.2);
+    let x = margin;
+    for (let i = 0; i < numCols; i++) {
+      doc.rect(x, y, largura, rowHeight);
+      x += largura;
+    }
+
+    x = margin;
+    for (let i = 0; i < numCols; i++) {
+      const cel = celulas[i];
+      let ty = y + padding + 3.2;
+      cel.linhas.forEach((texto, idx) => {
+        doc.setFontSize(fontSize);
+        if (idx === 0) {
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(0, 0, 0);
+          doc.text(cel.rotulo, x + padding, ty);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...corTextoNormal);
+          doc.text(texto, x + padding + cel.rotuloWidth, ty);
+        } else {
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...corTextoNormal);
+          doc.text(texto, x + padding, ty);
+        }
+        ty += lineHeight;
+      });
+      x += largura;
+    }
+    doc.setTextColor(0, 0, 0);
+    y += rowHeight;
+  }
+
+  return y;
+}

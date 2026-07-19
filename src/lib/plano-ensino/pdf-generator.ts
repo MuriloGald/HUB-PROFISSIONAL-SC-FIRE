@@ -11,7 +11,15 @@
 
 import { jsPDF } from "jspdf";
 import { applyPlugin, type RowInput } from "jspdf-autotable";
-import { drawCabecalhoInstitucional, MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH, PAGE_BREAK_Y } from "../shared/pdf-branding";
+import {
+  drawCabecalhoInstitucional,
+  desenharTabelaRotulos,
+  MARGIN_TOP,
+  MARGIN_LEFT,
+  MARGIN_RIGHT,
+  PAGE_WIDTH,
+  PAGE_BREAK_Y,
+} from "../shared/pdf-branding";
 import { agruparPorDia } from "./formatters";
 import type { PlanoEnsinoWizardState } from "./types";
 
@@ -108,23 +116,16 @@ function drawIdentificacao(doc: DocWithAutoTable, y: number, state: PlanoEnsinoW
   const posicaoInicial = posicionarParaTabela(doc, y, 10 + 4 * 8);
   const startY = drawSecaoTitulo(doc, posicaoInicial, "1. IDENTIFICAÇÃO");
 
-  const body: RowInput[] = [
-    [{ content: `Curso/Matéria: ${state.training?.name || ""}`, colSpan: 2 }],
-    [`Carga Horária: ${state.training?.total_hours ?? ""}h`, `Turma/Período: ${state.turma_periodo || ""}`],
-    [{ content: `Instrutor Responsável: ${state.instrutor_responsavel || ""}`, colSpan: 2 }],
-  ];
+  const finalY = desenharTabelaRotulos(doc, startY + 3, [
+    [{ label: "Curso/Matéria", valor: state.training?.name || "" }],
+    [
+      { label: "Carga Horária", valor: state.training?.total_hours != null ? `${state.training.total_hours}h` : "" },
+      { label: "Turma/Período", valor: state.turma_periodo || "" },
+    ],
+    [{ label: "Instrutor Responsável", valor: state.instrutor_responsavel || "" }],
+  ]);
 
-  doc.autoTable({
-    startY: startY + 3,
-    theme: "grid",
-    head: [],
-    body,
-    styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
-    columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
-    margin: { left: margin, right: MARGIN_RIGHT },
-  });
-
-  return doc.lastAutoTable.finalY + 8;
+  return finalY + 8;
 }
 
 function drawEmenta(doc: DocWithAutoTable, y: number, state: PlanoEnsinoWizardState): number {

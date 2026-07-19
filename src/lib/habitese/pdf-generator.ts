@@ -16,6 +16,7 @@ import { RESPONSAVEIS_TECNICOS, EMPRESA, SISTEMAS_CONFORMIDADE } from "./constan
 import {
   carregarImagemComoDataUrl,
   drawCabecalhoInstitucional,
+  desenharTabelaRotulos,
   COR_CINZA_INSTITUCIONAL,
   MARGIN_TOP,
   MARGIN_LEFT,
@@ -66,78 +67,61 @@ function drawResponsavelImovel(doc: DocWithAutoTable, y: number, state: Habitese
   const startY = drawSecaoTitulo(doc, y, "1. RESPONSÁVEL PELO IMÓVEL");
   const c = state.cliente || ({} as NonNullable<HabiteseWizardState["cliente"]>);
 
-  const body: RowInput[] = [
-    [`Nome: ${c.razao_social || ""}`, `Telefone(s): ${c.telefone || ""}${c.ramal ? ` ramal ${c.ramal}` : ""}`],
-    [`CPF/CNPJ: ${c.cnpj || c.cpf || ""}`, `E-mail: ${c.email || ""}`],
-    [{ content: `Logradouro: ${c.logradouro || ""}  Nº: ${c.numero || ""}  Complemento: ${c.complemento || ""}  Bairro: ${c.bairro || ""}`, colSpan: 2 }],
-    [{ content: `Cidade: ${c.cidade || ""} – ${c.estado || "Santa Catarina"}   CEP: ${c.cep || ""}`, colSpan: 2 }],
-  ];
+  const finalY = desenharTabelaRotulos(doc, startY + 3, [
+    [
+      { label: "Nome", valor: c.razao_social || "" },
+      { label: "Telefone(s)", valor: `${c.telefone || ""}${c.ramal ? ` ramal ${c.ramal}` : ""}` },
+    ],
+    [
+      { label: "CPF/CNPJ", valor: c.cnpj || c.cpf || "" },
+      { label: "E-mail", valor: c.email || "" },
+    ],
+    [{ label: "Logradouro", valor: `${c.logradouro || ""}  Nº: ${c.numero || ""}  Complemento: ${c.complemento || ""}  Bairro: ${c.bairro || ""}` }],
+    [{ label: "Cidade", valor: `${c.cidade || ""} – ${c.estado || "Santa Catarina"}   CEP: ${c.cep || ""}` }],
+  ]);
 
-  doc.autoTable({
-    startY: startY + 3,
-    theme: "grid",
-    head: [],
-    body,
-    styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
-    columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
-    margin: { left: margin, right: MARGIN_RIGHT },
-  });
-
-  return doc.lastAutoTable.finalY + 8;
+  return finalY + 8;
 }
 
 function drawResponsavelTecnico(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
   const startY = drawSecaoTitulo(doc, y, "2. RESPONSÁVEL TÉCNICO PELA EXECUÇÃO DA OBRA");
   const rt = resolverRt(state);
 
-  const body: RowInput[] = [
-    [`Nome: ${rt.nome}`, `Telefone(s): ${rt.telefone}`],
-    [`CPF: ${rt.cpf}`, `E-mail: ${rt.email}`],
-    [{ content: `Nº de registro no conselho de classe: ${rt.registro}`, colSpan: 2 }],
-  ];
+  const finalY = desenharTabelaRotulos(doc, startY + 3, [
+    [
+      { label: "Nome", valor: rt.nome },
+      { label: "Telefone(s)", valor: rt.telefone },
+    ],
+    [
+      { label: "CPF", valor: rt.cpf },
+      { label: "E-mail", valor: rt.email },
+    ],
+    [{ label: "Nº de registro no conselho de classe", valor: rt.registro }],
+  ]);
 
-  doc.autoTable({
-    startY: startY + 3,
-    theme: "grid",
-    head: [],
-    body,
-    styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
-    columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
-    margin: { left: margin, right: MARGIN_RIGHT },
-  });
-
-  return doc.lastAutoTable.finalY + 8;
+  return finalY + 8;
 }
 
 function drawDescricaoImovel(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
   const startY = drawSecaoTitulo(doc, y, "3. DESCRIÇÃO DO IMÓVEL");
   const c = state.cliente || ({} as NonNullable<HabiteseWizardState["cliente"]>);
 
-  const body: RowInput[] = [
-    [`RE: ${state.imovel_re || ""}`, `CNPJ/CPF: ${state.imovel_cnpj_cpf || c.cnpj || c.cpf || ""}`],
+  const finalY = desenharTabelaRotulos(doc, startY + 3, [
     [
-      { content: `Logradouro: ${state.imovel_logradouro || ""}  Nº: ${state.imovel_numero || ""}  Complemento: ${state.imovel_complemento || ""}  Bairro: ${state.imovel_bairro || ""}`, colSpan: 2 },
+      { label: "RE", valor: state.imovel_re || "" },
+      { label: "CNPJ/CPF", valor: state.imovel_cnpj_cpf || c.cnpj || c.cpf || "" },
     ],
-    [{ content: `Cidade: ${state.imovel_cidade || ""}   CEP: ${state.imovel_cep || ""}`, colSpan: 2 }],
-    [{ content: `Detalhes (se houver): ${state.imovel_detalhes || ""}`, colSpan: 2 }],
+    [{ label: "Logradouro", valor: `${state.imovel_logradouro || ""}  Nº: ${state.imovel_numero || ""}  Complemento: ${state.imovel_complemento || ""}  Bairro: ${state.imovel_bairro || ""}` }],
+    [{ label: "Cidade", valor: `${state.imovel_cidade || ""}   CEP: ${state.imovel_cep || ""}` }],
+    [{ label: "Detalhes (se houver)", valor: state.imovel_detalhes || "" }],
     [
-      `Extintor PQS 4KG – ${state.extintores_qtd || "0"}`,
-      `Iluminação de emergência: ${state.iluminacao_qtd || "0"}`,
+      { label: "Extintor PQS 4KG", valor: state.extintores_qtd || "0" },
+      { label: "Iluminação de emergência", valor: state.iluminacao_qtd || "0" },
     ],
-    [{ content: `Placa saída fotoluminescente – ${state.placa_qtd || "0"}`, colSpan: 2 }],
-  ];
+    [{ label: "Placa saída fotoluminescente", valor: state.placa_qtd || "0" }],
+  ]);
 
-  doc.autoTable({
-    startY: startY + 3,
-    theme: "grid",
-    head: [],
-    body,
-    styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
-    columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
-    margin: { left: margin, right: MARGIN_RIGHT },
-  });
-
-  return doc.lastAutoTable.finalY + 8;
+  return finalY + 8;
 }
 
 function drawDadosSolicitacao(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
@@ -145,24 +129,23 @@ function drawDadosSolicitacao(doc: DocWithAutoTable, y: number, state: HabiteseW
 
   const riscoTexto = (["II", "III", "IV", "V"] as const).map((r) => (state.risco === r ? `(X) ${r}` : `( ) ${r}`)).join("  ");
 
-  const body: RowInput[] = [
-    [`Área total da solicitação (m²): ${state.area_total || ""}`, `Protocolo: ${state.protocolo || ""}`],
-    [`Área da alteração/ampliação/reforma: ${state.area_alteracao || ""}`, `Ocupação(ões): ${state.ocupacao || ""}`],
-    [`Risco: ${riscoTexto}`, `Nº de pavimentos/blocos: ${state.pavimentos_blocos || ""}`],
-    [{ content: `Observações: ${state.observacoes || ""}`, colSpan: 2 }],
-  ];
+  const finalY = desenharTabelaRotulos(doc, startY + 3, [
+    [
+      { label: "Área total da solicitação (m²)", valor: state.area_total || "" },
+      { label: "Protocolo", valor: state.protocolo || "" },
+    ],
+    [
+      { label: "Área da alteração/ampliação/reforma", valor: state.area_alteracao || "" },
+      { label: "Ocupação(ões)", valor: state.ocupacao || "" },
+    ],
+    [
+      { label: "Risco", valor: riscoTexto },
+      { label: "Nº de pavimentos/blocos", valor: state.pavimentos_blocos || "" },
+    ],
+    [{ label: "Observações", valor: state.observacoes || "" }],
+  ]);
 
-  doc.autoTable({
-    startY: startY + 3,
-    theme: "grid",
-    head: [],
-    body,
-    styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
-    columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
-    margin: { left: margin, right: MARGIN_RIGHT },
-  });
-
-  return doc.lastAutoTable.finalY + 8;
+  return finalY + 8;
 }
 
 async function drawDescritivoSistemas(doc: DocWithAutoTable, state: HabiteseWizardState): Promise<number> {
