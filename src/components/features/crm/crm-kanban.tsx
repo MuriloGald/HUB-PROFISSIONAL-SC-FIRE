@@ -2,12 +2,14 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Search, Plus, X, Phone, Mail, DollarSign, Trash2, Pencil, Save, Building2, Send } from "lucide-react";
+import { Search, Plus, X, Phone, Mail, DollarSign, Trash2, Pencil, Save, Building2, Send, Archive, ArchiveRestore } from "lucide-react";
 import {
+  arquivarLead,
   atualizarContatoLead,
   atualizarEstagioLead,
   criarInteracao,
   criarLead,
+  desarquivarLead,
   excluirLead,
   listarInteracoes,
 } from "@/app/actions/crm";
@@ -32,8 +34,16 @@ const INTERACAO_LABEL: Record<InteractionType, string> = {
   proposta: "Proposta",
 };
 
-export function CrmKanban({ leadsIniciais, clientes }: { leadsIniciais: Lead[]; clientes: Cliente[] }) {
+interface CrmKanbanProps {
+  leadsIniciais: Lead[];
+  leadsArquivadosIniciais: Lead[];
+  clientes: Cliente[];
+}
+
+export function CrmKanban({ leadsIniciais, leadsArquivadosIniciais, clientes }: CrmKanbanProps) {
   const [leads, setLeads] = useState<Lead[]>(leadsIniciais);
+  const [leadsArquivados, setLeadsArquivados] = useState<Lead[]>(leadsArquivadosIniciais);
+  const [aba, setAba] = useState<"ativo" | "arquivados">("ativo");
   const [search, setSearch] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -152,6 +162,31 @@ export function CrmKanban({ leadsIniciais, clientes }: { leadsIniciais: Lead[]; 
     });
   }
 
+  function arquivar(lead: Lead) {
+    startTransition(async () => {
+      const res = await arquivarLead(lead.id);
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      setLeads((prev) => prev.filter((l) => l.id !== lead.id));
+      setLeadsArquivados((prev) => [{ ...lead, archived: true }, ...prev]);
+      if (selectedLead?.id === lead.id) setSelectedLead(null);
+    });
+  }
+
+  function desarquivar(lead: Lead) {
+    startTransition(async () => {
+      const res = await desarquivarLead(lead.id);
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      setLeadsArquivados((prev) => prev.filter((l) => l.id !== lead.id));
+      setLeads((prev) => [{ ...lead, archived: false }, ...prev]);
+    });
+  }
+
   function adicionarInteracao() {
     if (!selectedLead || !novaInteracaoTexto.trim()) return;
     startTransition(async () => {
@@ -223,18 +258,61 @@ export function CrmKanban({ leadsIniciais, clientes }: { leadsIniciais: Lead[]; 
   return (
     <div className="flex-1 flex flex-col min-h-0 space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="relative flex-1 min-w-[240px] max-w-sm">
-          <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar empresa, contato..." className={`${inputClass} pl-9`} />
+        <div className="flex items-center gap-3 flex-1 min-w-[240px]">
+          <div className="flex gap-1 p-1 rounded-lg bg-white/[0.03] border border-white/[0.08] flex-shrink-0">
+            <button
+              onClick={() => setAba("ativo")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${aba === "ativo" ? "bg-red-500/15 text-red-300" : "text-gray-500 hover:text-gray-300"}`}
+            >
+              Ativo
+            </button>
+            <button
+              onClick={() => setAba("arquivados")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${aba === "arquivados" ? "bg-red-500/15 text-red-300" : "text-gray-500 hover:text-gray-300"}`}
+            >
+              Arquivados ({leadsArquivados.length})
+            </button>
+          </div>
+          {aba === "ativo" && (
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar empresa, contato..." className={`${inputClass} pl-9`} />
+            </div>
+          )}
         </div>
-        <button
-          onClick={abrirModalNovaOportunidade}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-red-500/10 transition-all"
-        >
-          <Plus className="w-4 h-4" /> Nova Oportunidade
-        </button>
+        {aba === "ativo" && (
+          <button
+            onClick={abrirModalNovaOportunidade}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-500 hover:to-orange-400 text-white text-sm font-semibold rounded-lg shadow-lg shadow-red-500/10 transition-all"
+          >
+            <Plus className="w-4 h-4" /> Nova Oportunidade
+          </button>
+        )}
       </div>
 
+      {aba === "arquivados" ? (
+        <div className="flex-1 overflow-y-auto space-y-2">
+          {leadsArquivados.length === 0 && <p className="text-sm text-gray-500">Nenhum negócio arquivado ainda.</p>}
+          {leadsArquivados.map((lead) => (
+            <div key={lead.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] flex items-center justify-between gap-4">
+              <div>
+                <h4 className="text-sm font-bold text-white">{lead.company_name}</h4>
+                <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                  {lead.contact_name && <span>{lead.contact_name}</span>}
+                  {lead.expected_value != null && <span className="text-emerald-400 font-semibold">{formatarMoeda(lead.expected_value)}</span>}
+                </div>
+              </div>
+              <button
+                onClick={() => desarquivar(lead)}
+                disabled={pending}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-white/[0.1] hover:bg-white/[0.04] text-gray-300 text-xs font-semibold rounded-md transition-colors flex-shrink-0"
+              >
+                <ArchiveRestore className="w-3.5 h-3.5" /> Desarquivar
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="flex-1 flex gap-3 overflow-x-auto pb-4">
           {ESTAGIOS.map((estagio) => {
@@ -264,7 +342,21 @@ export function CrmKanban({ leadsIniciais, clientes }: { leadsIniciais: Lead[]; 
                                 snapshotDrag.isDragging ? "shadow-2xl ring-1 ring-red-500/40" : ""
                               }`}
                             >
-                              <h4 className="text-xs font-bold text-white leading-snug mb-1.5">{lead.company_name}</h4>
+                              <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <h4 className="text-xs font-bold text-white leading-snug">{lead.company_name}</h4>
+                                {lead.stage === "ganho" && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      arquivar(lead);
+                                    }}
+                                    title="Arquivar (faturado)"
+                                    className="text-gray-500 hover:text-emerald-400 flex-shrink-0 transition-colors"
+                                  >
+                                    <Archive className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                               {lead.contact_name && <p className="text-[11px] text-gray-400 mb-1">{lead.contact_name}</p>}
                               {lead.expected_value != null && (
                                 <p className="text-[11px] font-semibold text-emerald-400 inline-flex items-center gap-1">
@@ -284,6 +376,7 @@ export function CrmKanban({ leadsIniciais, clientes }: { leadsIniciais: Lead[]; 
           })}
         </div>
       </DragDropContext>
+      )}
 
       {/* Drawer de detalhe do lead */}
       {selectedLead && (
@@ -407,12 +500,23 @@ export function CrmKanban({ leadsIniciais, clientes }: { leadsIniciais: Lead[]; 
               )}
             </div>
 
-            <button
-              onClick={() => excluir(selectedLead)}
-              className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Excluir oportunidade
-            </button>
+            <div className="flex items-center justify-between">
+              {selectedLead.stage === "ganho" && (
+                <button
+                  onClick={() => arquivar(selectedLead)}
+                  disabled={pending}
+                  className="inline-flex items-center gap-2 text-xs text-gray-400 hover:text-emerald-400 transition-colors"
+                >
+                  <Archive className="w-3.5 h-3.5" /> Arquivar (faturado)
+                </button>
+              )}
+              <button
+                onClick={() => excluir(selectedLead)}
+                className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-red-400 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Excluir oportunidade
+              </button>
+            </div>
           </div>
         </div>
       )}

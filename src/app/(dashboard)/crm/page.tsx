@@ -1,9 +1,13 @@
-import { listarLeads } from "@/app/actions/crm";
+import { listarLeads, listarLeadsArquivados } from "@/app/actions/crm";
 import { listarClientes } from "@/app/actions/clientes";
 import { CrmKanban } from "@/components/features/crm/crm-kanban";
 
 export default async function CrmPage() {
-  const [{ data: leads }, { data: clientes }] = await Promise.all([listarLeads(), listarClientes()]);
+  const [{ data: leads }, { data: leadsArquivados }, { data: clientes }] = await Promise.all([
+    listarLeads(),
+    listarLeadsArquivados(),
+    listarClientes(),
+  ]);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -12,7 +16,7 @@ export default async function CrmPage() {
         <p className="text-sm text-gray-400 mt-1">Arraste os cards entre os estágios pra acompanhar cada oportunidade.</p>
       </div>
 
-      <CrmKanban leadsIniciais={leads} clientes={clientes} />
+      <CrmKanban leadsIniciais={leads} leadsArquivadosIniciais={leadsArquivados} clientes={clientes} />
     </div>
   );
 }

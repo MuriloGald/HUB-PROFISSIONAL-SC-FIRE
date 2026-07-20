@@ -4,13 +4,42 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { Interaction, InteractionType, Lead, LeadStage } from "@/lib/crm/types";
 
-/** Lista todos os leads do funil, mais recentes primeiro. */
+/** Lista os leads ativos do funil (sem os arquivados), mais recentes primeiro. */
 export async function listarLeads() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("crm_leads").select("*").order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("crm_leads").select("*").eq("archived", false).order("created_at", { ascending: false });
 
   if (error) return { error: error.message, data: [] as Lead[] };
   return { data: (data ?? []) as Lead[] };
+}
+
+/** Lista os leads arquivados (negócios "Ganho" já faturados) — histórico separado do quadro ativo. */
+export async function listarLeadsArquivados() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("crm_leads").select("*").eq("archived", true).order("created_at", { ascending: false });
+
+  if (error) return { error: error.message, data: [] as Lead[] };
+  return { data: (data ?? []) as Lead[] };
+}
+
+/** Arquiva o lead (ex: negócio "Ganho" já faturado) — some do quadro ativo sem excluir o histórico. */
+export async function arquivarLead(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("crm_leads").update({ archived: true }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/crm");
+  return { success: true };
+}
+
+/** Desarquiva o lead, devolvendo pro quadro ativo. */
+export async function desarquivarLead(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("crm_leads").update({ archived: false }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/crm");
+  return { success: true };
 }
 
 export interface NovoLeadInput {

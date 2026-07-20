@@ -19,6 +19,7 @@ export interface Lead {
   stage: LeadStage;
   expected_value: number | null;
   notes: string | null;
+  archived: boolean;
   created_at: string;
 }
 
