@@ -464,7 +464,11 @@ export function CrmKanban({ leadsIniciais, leadsArquivadosIniciais, clientes }: 
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico</h4>
               <div className="flex gap-2">
-                <select value={novaInteracaoTipo} onChange={(e) => setNovaInteracaoTipo(e.target.value as InteractionType)} className={`${inputClass} w-32`}>
+                <select
+                  value={novaInteracaoTipo}
+                  onChange={(e) => setNovaInteracaoTipo(e.target.value as InteractionType)}
+                  className={`${inputClass} w-32! flex-shrink-0`}
+                >
                   {(Object.keys(INTERACAO_LABEL) as InteractionType[]).map((t) => (
                     <option key={t} value={t} className="bg-[#111625]">
                       {INTERACAO_LABEL[t]}
@@ -472,7 +476,7 @@ export function CrmKanban({ leadsIniciais, leadsArquivadosIniciais, clientes }: 
                   ))}
                 </select>
                 <input
-                  className={`${inputClass} flex-1`}
+                  className={`${inputClass} flex-1 min-w-0`}
                   value={novaInteracaoTexto}
                   onChange={(e) => setNovaInteracaoTexto(e.target.value)}
                   placeholder="Registrar..."
