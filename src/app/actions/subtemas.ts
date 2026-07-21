@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { ConteudoAula } from "@/lib/treinador/types";
 
 export interface SubtemaListado {
   id: string;
@@ -262,6 +263,25 @@ export async function atualizarSubtema(id: string, input: EditarSubtemaInput) {
 
   revalidatePath("/treinamentos/subtemas");
   revalidatePath("/treinamentos/cursos");
+  revalidatePath("/treinador");
+  return { success: true };
+}
+
+/** Busca o nome + roteiro (conteudo) de um subtema, pro editor de roteiro de aula. */
+export async function buscarRoteiro(id: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("subthemes").select("id,name,conteudo").eq("id", id).single();
+  if (error) return { error: error.message };
+  return { data: { id: data.id as string, name: data.name as string, conteudo: data.conteudo as ConteudoAula | null } };
+}
+
+/** Salva o roteiro de aula (Etapas + quiz) de um subtema — é isso que faz o leitor do Treinador funcionar pra ele. */
+export async function salvarRoteiro(id: string, conteudo: ConteudoAula) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("subthemes").update({ conteudo }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/treinamentos/subtemas");
   revalidatePath("/treinador");
   return { success: true };
 }

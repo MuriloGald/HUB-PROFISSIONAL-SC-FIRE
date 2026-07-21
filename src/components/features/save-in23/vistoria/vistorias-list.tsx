@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Download, Trash2, ClipboardList } from "lucide-react";
+import { Search, Plus, Download, Trash2, ClipboardList, Pencil } from "lucide-react";
 import { excluirVistoria } from "@/app/actions/save-in23";
 import { avaliarSetor } from "@/lib/save-in23/classificador";
 import type { Laudo } from "@/lib/supabase/types";
@@ -82,6 +82,13 @@ export function VistoriasList({ laudos }: { laudos: Laudo[] }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => router.push(`/relatorios/save-in23/vistorias/nova?editarId=${l.id}`)}
+                  title="Editar vistoria"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-amber-500/50 hover:bg-white/[0.04] text-gray-300 hover:text-amber-400 transition-all"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => handleBaixar(dados)}
                   title="Baixar relatório"

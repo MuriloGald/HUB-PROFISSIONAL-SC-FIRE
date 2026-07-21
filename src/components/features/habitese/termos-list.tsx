@@ -31,9 +31,9 @@ export function TermosList({ laudos }: { laudos: Laudo[] }) {
     await gerarPdf(dados);
   }
 
-  async function handleBaixarAnexoH(dados: HabiteseWizardState) {
-    const { gerarPdfAnexoH } = await import("@/lib/habitese/pdf-generator");
-    await gerarPdfAnexoH(dados);
+  async function handleBaixarAnexoI(dados: HabiteseWizardState) {
+    const { gerarPdfAnexoI } = await import("@/lib/habitese/pdf-generator");
+    await gerarPdfAnexoI(dados);
   }
 
   return (
@@ -108,8 +108,8 @@ export function TermosList({ laudos }: { laudos: Laudo[] }) {
                   <Download className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleBaixarAnexoH(dados)}
-                  title="Baixar Anexo H — Relatório de Conformidade (PDF)"
+                  onClick={() => handleBaixarAnexoI(dados)}
+                  title="Baixar Anexo I — Relatório de Conformidade (PDF)"
                   className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-blue-500/50 hover:bg-white/[0.04] text-gray-300 hover:text-blue-400 transition-all"
                 >
                   <FileCheck2 className="w-4 h-4" />

@@ -24,7 +24,7 @@ export type Risco = "II" | "III" | "IV" | "V";
 
 export type ConformeStatus = "sim" | "nao" | "";
 
-/** Uma linha da tabela de conformidade do Anexo H — um sistema/medida de segurança contra incêndio. */
+/** Uma linha da tabela de conformidade do Anexo I — um sistema/medida de segurança contra incêndio. */
 export interface SistemaConformidade {
   chave: string;
   conformePpci: ConformeStatus;

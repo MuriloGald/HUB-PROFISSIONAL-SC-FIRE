@@ -23,7 +23,7 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
   const router = useRouter();
   const [salvando, setSalvando] = useState(false);
   const [baixandoTermo, setBaixandoTermo] = useState(false);
-  const [baixandoAnexoH, setBaixandoAnexoH] = useState(false);
+  const [baixandoAnexoI, setBaixandoAnexoI] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [salvo, setSalvo] = useState<HabiteseWizardState | null>(null);
 
@@ -63,18 +63,18 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
     }
   }
 
-  async function handleBaixarAnexoH() {
+  async function handleBaixarAnexoI() {
     if (!salvo) return;
-    setBaixandoAnexoH(true);
+    setBaixandoAnexoI(true);
     setErro(null);
     try {
-      const { gerarPdfAnexoH } = await import("@/lib/habitese/pdf-generator");
-      await gerarPdfAnexoH(salvo);
+      const { gerarPdfAnexoI } = await import("@/lib/habitese/pdf-generator");
+      await gerarPdfAnexoI(salvo);
     } catch (err) {
-      console.error("Erro ao gerar o Anexo H:", err);
-      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o PDF do Anexo H. Tente novamente."));
+      console.error("Erro ao gerar o Anexo I:", err);
+      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o PDF do Anexo I. Tente novamente."));
     } finally {
-      setBaixandoAnexoH(false);
+      setBaixandoAnexoI(false);
     }
   }
 
@@ -152,12 +152,12 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
             </button>
             <button
               type="button"
-              onClick={handleBaixarAnexoH}
-              disabled={baixandoAnexoH}
+              onClick={handleBaixarAnexoI}
+              disabled={baixandoAnexoI}
               className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-xs font-semibold rounded-lg shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
             >
-              {baixandoAnexoH ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileCheck2 className="w-3.5 h-3.5" />}
-              2. Baixar Anexo H (PDF)
+              {baixandoAnexoI ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileCheck2 className="w-3.5 h-3.5" />}
+              2. Baixar Anexo I (PDF)
             </button>
           </div>
           <div className="flex justify-center">

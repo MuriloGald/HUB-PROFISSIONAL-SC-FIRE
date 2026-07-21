@@ -32,7 +32,7 @@ export function StepConformidade({ sistemas, onBack, onNext }: StepConformidadeP
 
   return (
     <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-6">
-      <h3 className="text-lg font-bold text-white">Relatório de Conformidade dos Sistemas (Anexo H)</h3>
+      <h3 className="text-lg font-bold text-white">Relatório de Conformidade dos Sistemas (Anexo I)</h3>
       <p className="text-sm text-gray-400 -mt-4">
         Para cada sistema/medida de segurança, informe se está em conformidade com o PPCI e com as NSCI, e a justificativa em caso de desconformidade ou não aplicabilidade.
       </p>

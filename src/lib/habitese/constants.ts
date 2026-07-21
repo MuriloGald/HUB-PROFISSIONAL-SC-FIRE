@@ -10,7 +10,7 @@ export const RISCOS = ["II", "III", "IV", "V"] as const;
 
 /**
  * Lista fixa de sistemas/medidas de segurança contra incêndio e pânico do
- * Anexo H (Relatório de Conformidade referente a atestado para Habite-se).
+ * Anexo I (Relatório de Conformidade referente a atestado para Habite-se).
  */
 export const SISTEMAS_CONFORMIDADE: { chave: string; label: string }[] = [
   { chave: "acesso_viaturas", label: "Acesso de Viaturas" },
@@ -21,7 +21,7 @@ export const SISTEMAS_CONFORMIDADE: { chave: string; label: string }[] = [
   { chave: "plano_emergencia", label: "Plano de emergência" },
   { chave: "protecao_estrutural", label: "Proteção estrutural contra incêndio" },
   { chave: "brigada_incendio", label: "Brigada de incêndio" },
-  { chave: "alarme_deteccao", label: "Alarme e detecção de incêndio" },
+  { chave: "alarme_deteccao", label: "Alarme de incêndio" },
   { chave: "extintores", label: "Extintores" },
   { chave: "hidraulico_preventivo", label: "Hidráulico preventivo" },
   { chave: "instalacoes_eletricas", label: "Instalações elétricas" },

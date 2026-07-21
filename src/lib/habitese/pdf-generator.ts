@@ -15,7 +15,7 @@ import { applyPlugin, type RowInput } from "jspdf-autotable";
 import { RESPONSAVEIS_TECNICOS, EMPRESA, SISTEMAS_CONFORMIDADE } from "./constants";
 import {
   carregarImagemComoDataUrl,
-  drawCabecalhoInstitucional,
+  drawCabecalhoOficialCBMSC,
   desenharTabelaRotulos,
   COR_CINZA_INSTITUCIONAL,
   MARGIN_TOP,
@@ -80,7 +80,7 @@ function drawResponsavelImovel(doc: DocWithAutoTable, y: number, state: Habitese
     [{ label: "Cidade", valor: `${c.cidade || ""} – ${c.estado || "Santa Catarina"}   CEP: ${c.cep || ""}` }],
   ]);
 
-  return finalY + 8;
+  return finalY + 5;
 }
 
 function drawResponsavelTecnico(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
@@ -99,7 +99,7 @@ function drawResponsavelTecnico(doc: DocWithAutoTable, y: number, state: Habites
     [{ label: "Nº de registro no conselho de classe", valor: rt.registro }],
   ]);
 
-  return finalY + 8;
+  return finalY + 5;
 }
 
 function drawDescricaoImovel(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
@@ -117,11 +117,11 @@ function drawDescricaoImovel(doc: DocWithAutoTable, y: number, state: HabiteseWi
     [
       { label: "Extintor PQS 4KG", valor: state.extintores_qtd || "0" },
       { label: "Iluminação de emergência", valor: state.iluminacao_qtd || "0" },
+      { label: "Placa fotoluminescente", valor: state.placa_qtd || "0" },
     ],
-    [{ label: "Placa saída fotoluminescente", valor: state.placa_qtd || "0" }],
   ]);
 
-  return finalY + 8;
+  return finalY + 5;
 }
 
 function drawDadosSolicitacao(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
@@ -145,14 +145,18 @@ function drawDadosSolicitacao(doc: DocWithAutoTable, y: number, state: HabiteseW
     [{ label: "Observações", valor: state.observacoes || "" }],
   ]);
 
-  return finalY + 8;
+  return finalY + 5;
 }
 
-async function drawDescritivoSistemas(doc: DocWithAutoTable, state: HabiteseWizardState): Promise<number> {
-  // Sempre comeca em pagina nova — fica mais apresentavel separar o bloco de
-  // fotos do restante dos dados em vez de emendar no fim da pagina anterior.
-  doc.addPage();
-  let cursorY = drawSecaoTitulo(doc, MARGIN_TOP + 10, "5. DESCRITIVO DOS SISTEMAS E MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO INSTALADOS");
+/**
+ * Só o título + texto de instrução da seção 5 — sem as fotos, sem quebra de
+ * página forçada. As fotos em si (`drawFotosAnexadas`) vêm depois da seção 6,
+ * como anexo, pra manter o formulário (seções 1–6) inteiro na primeira página,
+ * igual ao modelo original do CBMSC (Anexo J da IN 01).
+ */
+function drawDescritivoSistemasIntro(doc: DocWithAutoTable, y: number, alturaReservada: number): number {
+  const startY = quebrarSeNecessario(doc, y, alturaReservada);
+  let cursorY = drawSecaoTitulo(doc, startY, "5. DESCRITIVO DOS SISTEMAS E MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO INSTALADOS");
   cursorY += 5;
 
   doc.setFontSize(9);
@@ -161,9 +165,28 @@ async function drawDescritivoSistemas(doc: DocWithAutoTable, state: HabiteseWiza
     "Apresentar o descritivo quali-quantitativo dos sistemas e medidas de segurança contra incêndio executados no imóvel, anexando no mínimo uma foto ilustrativa de cada sistema previsto.";
   const linhas = doc.splitTextToSize(texto, contentWidth);
   doc.text(linhas, margin, cursorY);
-  cursorY += linhas.length * 5 + 6;
+  cursorY += linhas.length * 5;
 
-  const imagens = state.imagens || [];
+  return cursorY + 6;
+}
+
+function alturaDescritivoSistemasIntro(doc: DocWithAutoTable): number {
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  const texto =
+    "Apresentar o descritivo quali-quantitativo dos sistemas e medidas de segurança contra incêndio executados no imóvel, anexando no mínimo uma foto ilustrativa de cada sistema previsto.";
+  const linhas = doc.splitTextToSize(texto, contentWidth);
+  return 6 /* titulo */ + 5 + linhas.length * 5 + 6;
+}
+
+/** Fotos dos sistemas instalados, sempre a partir de uma página nova — anexo do formulário, não parte dele. */
+async function drawFotosAnexadas(doc: DocWithAutoTable, imagens: { url: string; legenda?: string }[]): Promise<void> {
+  if (imagens.length === 0) return;
+
+  doc.addPage();
+  let cursorY = drawSecaoTitulo(doc, MARGIN_TOP + 10, "FOTOS DOS SISTEMAS INSTALADOS (ANEXO AO TERMO DE ENTREGA)");
+  cursorY += 8;
+
   const w = 100;
   const h = 65;
   let n = 1;
@@ -188,8 +211,6 @@ async function drawDescritivoSistemas(doc: DocWithAutoTable, state: HabiteseWiza
     doc.setTextColor(0, 0, 0);
     cursorY += h + 10;
   }
-
-  return cursorY + 4;
 }
 
 function drawDeclaracao(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): void {
@@ -206,10 +227,10 @@ function drawDeclaracao(doc: DocWithAutoTable, y: number, state: HabiteseWizardS
   // capitulo 6 sempre vai inteiro pra pagina seguinte quando nao cabe todo na atual,
   // em vez de quebrar no meio e deixar uma assinatura sozinha.
   const alturaTitulo = 6;
-  const alturaTexto1 = linhasRecebimento.length * 5 + 25;
-  const alturaAssinatura1 = 30;
-  const alturaTexto2 = linhasEntrega.length * 5 + 25;
-  const alturaAssinatura2 = 15;
+  const alturaTexto1 = linhasRecebimento.length * 5 + 16;
+  const alturaAssinatura1 = 18;
+  const alturaTexto2 = linhasEntrega.length * 5 + 16;
+  const alturaAssinatura2 = 10;
   const alturaTotal = alturaTitulo + alturaTexto1 + alturaAssinatura1 + alturaTexto2 + alturaAssinatura2;
 
   let cursorY = quebrarSeNecessario(doc, y, alturaTotal);
@@ -243,17 +264,24 @@ function nomeArquivo(state: HabiteseWizardState): string {
   return `Termo_Entrega_Imovel_${state.codigo || "rascunho"}_${nome}.pdf`;
 }
 
-/** Gera o PDF do Termo de Entrega do Imóvel e dispara o download no navegador. Retorna o nome do arquivo gerado. */
+/**
+ * Gera o PDF do Termo de Entrega do Imóvel (Anexo J da IN 01/CBMSC) e dispara o
+ * download no navegador. Segue o modelo oficial à risca — cabeçalho do CBMSC,
+ * sem identidade visual SC Fire, sem subtítulo (o modelo não tem um). Seções
+ * 1–6 ficam juntas (o formulário cabe numa página no modelo); as fotos exigidas
+ * pela seção 5 vêm depois, como anexo. Retorna o nome do arquivo gerado.
+ */
 export async function gerarPdf(state: HabiteseWizardState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
-  let y = await drawCabecalhoInstitucional(doc, "Termo de Entrega do Imóvel", "HABITE-SE", state.codigo);
+  let y = drawCabecalhoOficialCBMSC(doc, "Termo de entrega do imóvel");
   y = drawResponsavelImovel(doc, y, state);
   y = drawResponsavelTecnico(doc, y, state);
   y = drawDescricaoImovel(doc, y, state);
   y = drawDadosSolicitacao(doc, y, state);
-  y = await drawDescritivoSistemas(doc, state);
+  y = drawDescritivoSistemasIntro(doc, y, alturaDescritivoSistemasIntro(doc));
   drawDeclaracao(doc, y, state);
+  await drawFotosAnexadas(doc, state.imagens || []);
 
   const fileName = nomeArquivo(state);
   doc.save(fileName);
@@ -264,7 +292,7 @@ export async function gerarPdf(state: HabiteseWizardState): Promise<string> {
  * ANEXO H — Relatorio de Conformidade referente a atestado para Habite-se
  * ============================================================ */
 
-function drawResponsavelTecnicoAnexoH(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
+function drawResponsavelTecnicoAnexoI(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
   const startY = drawSecaoTitulo(doc, y, "1. RESPONSÁVEL TÉCNICO PELA EXECUÇÃO DA OBRA");
   const rt = resolverRt(state);
 
@@ -288,7 +316,7 @@ function drawResponsavelTecnicoAnexoH(doc: DocWithAutoTable, y: number, state: H
   return doc.lastAutoTable.finalY + 8;
 }
 
-function drawDescricaoImovelAnexoH(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
+function drawDescricaoImovelAnexoI(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
   const startY = drawSecaoTitulo(doc, y, "2. DESCRIÇÃO DO IMÓVEL");
   const c = state.cliente || ({} as NonNullable<HabiteseWizardState["cliente"]>);
 
@@ -358,42 +386,49 @@ function drawRelatorioSistemas(doc: DocWithAutoTable, state: HabiteseWizardState
   return doc.lastAutoTable.finalY + 8;
 }
 
-function drawDeclaracaoAnexoH(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): void {
+function drawDeclaracaoAnexoI(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): void {
   let cursorY = quebrarSeNecessario(doc, y);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   const texto =
-    "Na qualidade de responsável técnico pela execução dos SMSCI, declaro que as informações prestadas neste documento são verdadeiras e estou ciente de minha responsabilidade acerca dos SMSCI do imóvel, conforme definido pela Lei Estadual nº 16.157 de 2013. O descumprimento ocasiona aplicação das sanções legais cabíveis, além de possível responsabilidade civil e criminal.";
+    "Na qualidade de responsável técnico pela execução dos SMSCI, declaro que as informações prestadas neste documento são verdadeiras e estou ciente de minha responsabilidade acerca dos SMSCI instalados no imóvel, conforme definido pela Lei Estadual nº 16.157 de 2013. Estou ciente que a concessão do atestado para habite-se está condicionada à existência e a operacionalidade dos SMSCI. O descumprimento ocasiona aplicação das sanções legais cabíveis, além de possível responsabilidade civil e criminal.";
   const linhas = doc.splitTextToSize(texto, contentWidth);
   doc.text(linhas, margin, cursorY);
-  cursorY += linhas.length * 5 + 25;
+  cursorY += linhas.length * 5 + 20;
 
   cursorY = quebrarSeNecessario(doc, cursorY);
   const rt = resolverRt(state);
-  const dataEmissao = new Date(state.data_emissao || Date.now()).toLocaleDateString("pt-BR");
+  const agora = new Date(state.data_emissao || Date.now());
+  const dataEmissao = agora.toLocaleDateString("pt-BR");
+  const horaEmissao = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   doc.line(margin, cursorY, margin + 80, cursorY);
   doc.text("Assinatura do Responsável Técnico", margin, cursorY + 5);
   doc.text(rt.nome, margin, cursorY + 10);
-  doc.text(`Data: ${dataEmissao}`, margin, cursorY + 15);
+  doc.text(`Data: ${dataEmissao}   Hora: ${horaEmissao}`, margin, cursorY + 15);
 }
 
-function nomeArquivoAnexoH(state: HabiteseWizardState): string {
+function nomeArquivoAnexoI(state: HabiteseWizardState): string {
   const nome = (state.cliente?.razao_social || "imovel").replace(/\s+/g, "_");
-  return `Anexo_H_Relatorio_Conformidade_${state.codigo || "rascunho"}_${nome}.pdf`;
+  return `Anexo_I_Relatorio_Conformidade_${state.codigo || "rascunho"}_${nome}.pdf`;
 }
 
-/** Gera o PDF do Anexo H (Relatório de Conformidade para Habite-se) a partir dos mesmos dados do Termo de Entrega. Retorna o nome do arquivo gerado. */
-export async function gerarPdfAnexoH(state: HabiteseWizardState): Promise<string> {
+/**
+ * Gera o PDF do Anexo I (Relatório de conformidade e termo de responsabilidade
+ * — ATESTADO PARA HABITE-SE, da IN 01/CBMSC) a partir dos mesmos dados do
+ * Termo de Entrega. Cabeçalho oficial do CBMSC, sem identidade visual SC Fire.
+ * Retorna o nome do arquivo gerado.
+ */
+export async function gerarPdfAnexoI(state: HabiteseWizardState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
-  let y = await drawCabecalhoInstitucional(doc, "Relatório de Conformidade", "ATESTADO PARA HABITE-SE", state.codigo);
-  y = drawResponsavelTecnicoAnexoH(doc, y, state);
-  y = drawDescricaoImovelAnexoH(doc, y, state);
+  let y = drawCabecalhoOficialCBMSC(doc, "Relatório de conformidade e termo de responsabilidade - ATESTADO PARA HABITE-SE");
+  y = drawResponsavelTecnicoAnexoI(doc, y, state);
+  y = drawDescricaoImovelAnexoI(doc, y, state);
   y = drawRelatorioSistemas(doc, state);
-  drawDeclaracaoAnexoH(doc, y, state);
+  drawDeclaracaoAnexoI(doc, y, state);
 
-  const fileName = nomeArquivoAnexoH(state);
+  const fileName = nomeArquivoAnexoI(state);
   doc.save(fileName);
   return fileName;
 }

@@ -157,6 +157,44 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
   return tituloY + 8;
 }
 
+/**
+ * Cabeçalho OFICIAL do CBMSC — usado nos "preenchíveis" (formulários/anexos das
+ * Instruções Normativas) que vão para o órgão. Nada de identidade visual SC
+ * Fire aqui: é o mastro institucional que aparece em todo anexo do CBMSC
+ * ("ESTADO DE SANTA CATARINA / SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA /
+ * CORPO DE BOMBEIROS MILITAR DE SANTA CATARINA"), confirmado lendo os .docx
+ * originais (IN 01 Anexo I/J). Documentos SC-Fire-branded (Plano de Ensino,
+ * segunda via de Eventos, etc.) continuam usando drawCabecalhoInstitucional.
+ */
+export function drawCabecalhoOficialCBMSC(doc: jsPDF, titulo: string): number {
+  const top = MARGIN_TOP;
+  const contentWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text("ESTADO DE SANTA CATARINA", PAGE_WIDTH / 2, top, { align: "center" });
+  doc.text("SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA", PAGE_WIDTH / 2, top + 5, { align: "center" });
+  doc.text("CORPO DE BOMBEIROS MILITAR DE SANTA CATARINA", PAGE_WIDTH / 2, top + 10, { align: "center" });
+
+  const borderY = top + 14;
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.4);
+  doc.line(MARGIN_LEFT, borderY, PAGE_WIDTH - MARGIN_RIGHT, borderY);
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  const linhas: string[] = doc.splitTextToSize(titulo, contentWidth);
+  let y = borderY + 7;
+  for (const linha of linhas) {
+    doc.text(linha, PAGE_WIDTH / 2, y, { align: "center" });
+    y += 5.5;
+  }
+
+  doc.setFont("helvetica", "normal");
+  return y + 3;
+}
+
 export interface CelulaRotulo {
   label: string;
   valor: string;

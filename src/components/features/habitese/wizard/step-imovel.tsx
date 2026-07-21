@@ -157,7 +157,7 @@ export function StepImovel({ state, onBack, onNext }: StepImovelProps) {
       </div>
 
       <div className="space-y-1.5">
-        <label className={labelClass}>Nome da Edificação (opcional — usado no Anexo H)</label>
+        <label className={labelClass}>Nome da Edificação (opcional — usado no Anexo I)</label>
         <input className={inputClass} value={form.nome_edificacao} onChange={(e) => update("nome_edificacao", e.target.value)} />
       </div>
 

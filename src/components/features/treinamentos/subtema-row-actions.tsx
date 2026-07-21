@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, ScrollText, Trash2 } from "lucide-react";
 import { excluirSubtema } from "@/app/actions/subtemas";
 
 export function SubtemaRowActions({ id, name }: { id: string; name: string }) {
@@ -24,7 +24,14 @@ export function SubtemaRowActions({ id, name }: { id: string; name: string }) {
 
   return (
     <div className="flex items-center justify-center gap-2">
-      <Link href={`/treinamentos/subtemas/${id}/editar`} className="p-1.5 rounded-md hover:bg-white/[0.06] text-gray-400 hover:text-white transition-colors">
+      <Link
+        href={`/treinamentos/subtemas/${id}/roteiro`}
+        title="Roteiro de aula"
+        className="p-1.5 rounded-md hover:bg-white/[0.06] text-gray-400 hover:text-white transition-colors"
+      >
+        <ScrollText className="w-3.5 h-3.5" />
+      </Link>
+      <Link href={`/treinamentos/subtemas/${id}/editar`} title="Editar dados" className="p-1.5 rounded-md hover:bg-white/[0.06] text-gray-400 hover:text-white transition-colors">
         <Pencil className="w-3.5 h-3.5" />
       </Link>
       <button
