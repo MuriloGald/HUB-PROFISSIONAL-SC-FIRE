@@ -1,21 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { 
-  Flame, 
-  TrendingUp, 
-  GraduationCap, 
-  Presentation, 
-  FileText, 
-  Users, 
-  Building2, 
-  Palette, 
+import {
+  Flame,
+  TrendingUp,
+  GraduationCap,
+  FileText,
+  Users,
+  Building2,
   LogOut,
-  ShieldAlert,
   Server
 } from "lucide-react";
-import { useState } from "react";
-import { BniModal } from "@/components/features/bni-modal";
 import { logout } from "@/app/actions/auth";
 
 interface HubLandingProps {
@@ -28,8 +23,6 @@ interface HubLandingProps {
 }
 
 export function HubLanding({ stats, userEmail }: HubLandingProps) {
-  const [isBniOpen, setIsBniOpen] = useState(false);
-
   const modules = [
     {
       title: "CRM & Vendas",
@@ -49,27 +42,11 @@ export function HubLanding({ stats, userEmail }: HubLandingProps) {
     },
     {
       title: "Gerador de Documentos",
-      description: "Eventos (IN 24), Brigada (PIBI/PAE) e Habite-se — cálculo e emissão de laudos.",
+      description: "Eventos (IN 24), Brigada (PIBI/PAE), Habite-se e Vistoria SAVE (IN 23) — cálculo e emissão de laudos.",
       icon: FileText,
       href: "/laudos",
       color: "from-purple-600 to-indigo-400",
       status: "Operacional"
-    },
-    {
-      title: "Vistoria SAVE (IN 23)",
-      description: "Relatórios de vistoria e enquadramento de dispensa para recarga veicular.",
-      icon: ShieldAlert,
-      href: "/relatorios/save-in23",
-      color: "from-red-600 to-orange-400",
-      status: "Vistoria Ativa"
-    },
-    {
-      title: "Identidade Visual",
-      description: "Diretrizes de design, paleta de cores, tipografia e logotipos oficiais.",
-      icon: Palette,
-      href: "/identidade-visual",
-      color: "from-amber-600 to-yellow-400",
-      status: "Guia Oficial"
     }
   ];
 
@@ -190,32 +167,6 @@ export function HubLanding({ stats, userEmail }: HubLandingProps) {
               </div>
             </Link>
           ))}
-
-          {/* BNI Modal Card */}
-          <button
-            onClick={() => setIsBniOpen(true)}
-            className="group relative flex flex-col p-6 rounded-2xl bg-white/[0.02] border border-white/[0.08] hover:bg-white/[0.05] hover:border-white/[0.15] text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl overflow-hidden"
-          >
-            <div className="flex items-start justify-between mb-6">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center shadow-lg shadow-black/30 transform group-hover:scale-110 transition-transform duration-300">
-                <Presentation className="w-6 h-6 text-white" />
-              </div>
-              <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider text-gray-500 uppercase bg-white/[0.03] border border-white/[0.05] rounded-full">
-                Apresentação
-              </span>
-            </div>
-
-            <h3 className="text-lg font-bold text-white mb-2 group-hover:text-amber-400 transition-colors font-display">
-              Módulo BNI
-            </h3>
-            <p className="text-xs text-gray-400 leading-relaxed mb-4 flex-1">
-              Apresentação cinematográfica interativa e portfólio comercial para projeção em reuniões e eventos.
-            </p>
-
-            <div className="text-xs text-amber-500 font-semibold flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity mt-auto">
-              Iniciar Apresentação ↗
-            </div>
-          </button>
         </section>
       </main>
 
@@ -224,8 +175,6 @@ export function HubLanding({ stats, userEmail }: HubLandingProps) {
         <span>© 2026 SC FIRE. Todos os direitos reservados.</span>
         <span>RT: Eng.ª Dione Borges</span>
       </footer>
-
-      <BniModal isOpen={isBniOpen} onClose={() => setIsBniOpen(false)} />
     </div>
   );
 }

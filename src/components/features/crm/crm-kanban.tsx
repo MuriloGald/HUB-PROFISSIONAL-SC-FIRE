@@ -463,11 +463,11 @@ export function CrmKanban({ leadsIniciais, leadsArquivadosIniciais, clientes }: 
 
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico</h4>
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 <select
                   value={novaInteracaoTipo}
                   onChange={(e) => setNovaInteracaoTipo(e.target.value as InteractionType)}
-                  className={`${inputClass} w-32! flex-shrink-0`}
+                  className={`${inputClass} w-full`}
                 >
                   {(Object.keys(INTERACAO_LABEL) as InteractionType[]).map((t) => (
                     <option key={t} value={t} className="bg-[#111625]">
@@ -475,16 +475,19 @@ export function CrmKanban({ leadsIniciais, leadsArquivadosIniciais, clientes }: 
                     </option>
                   ))}
                 </select>
-                <input
-                  className={`${inputClass} flex-1 min-w-0`}
+                <textarea
+                  className={inputClass}
+                  rows={3}
                   value={novaInteracaoTexto}
                   onChange={(e) => setNovaInteracaoTexto(e.target.value)}
                   placeholder="Registrar..."
-                  onKeyDown={(e) => e.key === "Enter" && adicionarInteracao()}
+                  onKeyDown={(e) => e.key === "Enter" && (e.metaKey || e.ctrlKey) && adicionarInteracao()}
                 />
-                <button onClick={adicionarInteracao} className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-600 hover:bg-red-500 text-white">
-                  <Send className="w-3.5 h-3.5" />
-                </button>
+                <div className="flex justify-end">
+                  <button onClick={adicionarInteracao} className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-600 hover:bg-red-500 text-white">
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               {loadingInteractions ? (
