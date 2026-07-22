@@ -74,6 +74,16 @@ export async function carregarLogoScFire(): Promise<{ dataUrl: string; format: s
   return logoCache;
 }
 
+let brasaoCache: { dataUrl: string; format: string } | null | undefined;
+
+/** Brasão do Estado de Santa Catarina — extraído ipsis literis dos .docx oficiais do CBMSC (IN 01 Anexo I). */
+export async function carregarBrasaoSC(): Promise<{ dataUrl: string; format: string } | null> {
+  if (brasaoCache === undefined) {
+    brasaoCache = await carregarImagemComoDataUrl("/brasao-sc.png");
+  }
+  return brasaoCache;
+}
+
 /** Desenha o cabeçalho institucional completo e devolve o Y onde o conteúdo do documento deve começar. */
 export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subtitle: string, codigoRef?: string): Promise<number> {
   const top = MARGIN_TOP;
@@ -166,16 +176,29 @@ export async function drawCabecalhoInstitucional(doc: jsPDF, title: string, subt
  * originais (IN 01 Anexo I/J). Documentos SC-Fire-branded (Plano de Ensino,
  * segunda via de Eventos, etc.) continuam usando drawCabecalhoInstitucional.
  */
-export function drawCabecalhoOficialCBMSC(doc: jsPDF, titulo: string): number {
+export async function drawCabecalhoOficialCBMSC(doc: jsPDF, titulo: string): Promise<number> {
   const top = MARGIN_TOP;
   const contentWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 
+  // Brasão de Santa Catarina + as 3 linhas institucionais formam um bloco único
+  // alinhado à ESQUERDA (confirmado com print do modelo original) — não é um
+  // brasão solto com texto centralizado na página inteira.
+  const brasao = await carregarBrasaoSC();
+  let brasaoW = 0;
+  const brasaoH = 13;
+  if (brasao) {
+    const props = doc.getImageProperties(brasao.dataUrl);
+    brasaoW = (props.width / props.height) * brasaoH;
+    doc.addImage(brasao.dataUrl, brasao.format, MARGIN_LEFT, top - 2, brasaoW, brasaoH);
+  }
+
+  const textX = MARGIN_LEFT + brasaoW + (brasao ? 4 : 0);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text("ESTADO DE SANTA CATARINA", PAGE_WIDTH / 2, top, { align: "center" });
-  doc.text("SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA", PAGE_WIDTH / 2, top + 5, { align: "center" });
-  doc.text("CORPO DE BOMBEIROS MILITAR DE SANTA CATARINA", PAGE_WIDTH / 2, top + 10, { align: "center" });
+  doc.text("ESTADO DE SANTA CATARINA", textX, top);
+  doc.text("SECRETARIA DE ESTADO DA SEGURANÇA PÚBLICA", textX, top + 5);
+  doc.text("CORPO DE BOMBEIROS MILITAR DE SANTA CATARINA", textX, top + 10);
 
   const borderY = top + 14;
   doc.setDrawColor(0, 0, 0);

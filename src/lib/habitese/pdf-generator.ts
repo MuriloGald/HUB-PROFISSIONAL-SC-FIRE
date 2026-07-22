@@ -274,7 +274,7 @@ function nomeArquivo(state: HabiteseWizardState): string {
 export async function gerarPdf(state: HabiteseWizardState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
-  let y = drawCabecalhoOficialCBMSC(doc, "Termo de entrega do imóvel");
+  let y = await drawCabecalhoOficialCBMSC(doc, "Termo de entrega do imóvel");
   y = drawResponsavelImovel(doc, y, state);
   y = drawResponsavelTecnico(doc, y, state);
   y = drawDescricaoImovel(doc, y, state);
@@ -422,7 +422,7 @@ function nomeArquivoAnexoI(state: HabiteseWizardState): string {
 export async function gerarPdfAnexoI(state: HabiteseWizardState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
-  let y = drawCabecalhoOficialCBMSC(doc, "Relatório de conformidade e termo de responsabilidade - ATESTADO PARA HABITE-SE");
+  let y = await drawCabecalhoOficialCBMSC(doc, "Relatório de conformidade e termo de responsabilidade - ATESTADO PARA HABITE-SE");
   y = drawResponsavelTecnicoAnexoI(doc, y, state);
   y = drawDescricaoImovelAnexoI(doc, y, state);
   y = drawRelatorioSistemas(doc, state);
