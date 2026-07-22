@@ -28,6 +28,7 @@ import {
   Palette,
   NotebookPen,
   BookMarked,
+  ScrollText,
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { BniModal } from "@/components/features/bni-modal";
@@ -96,6 +97,16 @@ const navItems: NavItem[] = [
       { label: "Dashboard", href: "/plano-ensino" },
       { label: "Novo Plano", href: "/plano-ensino/novo" },
       { label: "Consultar Planos", href: "/plano-ensino/lista" },
+    ],
+  },
+  {
+    type: "group",
+    label: "Preenchíveis CBMSC",
+    icon: ScrollText,
+    basePath: "/documentos",
+    items: [
+      { label: "IN 02 — Recursos e Multas", href: "/documentos/in02" },
+      { label: "IN 07 — Hidrantes (SHP)", href: "/documentos/in07" },
     ],
   },
   {
