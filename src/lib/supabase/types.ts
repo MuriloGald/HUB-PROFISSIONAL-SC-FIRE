@@ -210,7 +210,20 @@ export interface Cliente {
   updated_at: string;
 }
 
-export type LaudoTipoDocumento = "SAVE23" | "IN24" | "Brigada" | "Habite-se" | "PlanoEnsino" | "IN02" | "IN07" | "Outro";
+export type LaudoTipoDocumento =
+  | "SAVE23"
+  | "IN24"
+  | "Brigada"
+  | "Habite-se"
+  | "PlanoEnsino"
+  | "IN02"
+  | "IN07"
+  | "IN09"
+  | "IN10"
+  | "IN15"
+  | "IN27"
+  | "IN28"
+  | "Outro";
 export type LaudoStatus = "rascunho" | "concluido" | "cancelado";
 
 export interface Laudo {

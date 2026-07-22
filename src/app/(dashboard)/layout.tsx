@@ -68,13 +68,15 @@ const navItems: NavItem[] = [
   },
   {
     type: "group",
-    label: "Brigada (PIBI/PAE)",
+    label: "Brigada (IN 28)",
     icon: ShieldCheck,
-    basePath: "/brigada",
+    basePath: "/documentos/in28",
     items: [
-      { label: "Dashboard", href: "/brigada" },
-      { label: "Responsáveis", href: "/brigada/responsaveis" },
-      { label: "Novo Documento", href: "/brigada/novo" },
+      { label: "Dashboard", href: "/documentos/in28" },
+      { label: "Novo PIBI", href: "/documentos/in28/pibi/novo" },
+      { label: "Consultar PIBIs", href: "/documentos/in28/pibi" },
+      { label: "Relatório Formação (Anexo E)", href: "/documentos/in28/formacao" },
+      { label: "Relatório Prestação (Anexo F)", href: "/documentos/in28/prestacao" },
     ],
   },
   {
@@ -107,6 +109,10 @@ const navItems: NavItem[] = [
     items: [
       { label: "IN 02 — Recursos e Multas", href: "/documentos/in02" },
       { label: "IN 07 — Hidrantes (SHP)", href: "/documentos/in07" },
+      { label: "IN 09 — Elevador de Emergência", href: "/documentos/in09" },
+      { label: "IN 10 — Controle de Fumaça", href: "/documentos/in10" },
+      { label: "IN 15 — Chuveiros Automáticos", href: "/documentos/in15" },
+      { label: "IN 27 — Eventos Pirotécnicos", href: "/documentos/in27" },
     ],
   },
   {
