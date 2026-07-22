@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Download, Trash2, FileText } from "lucide-react";
+import { Search, Plus, Download, Trash2, FileText, Pencil } from "lucide-react";
 import { excluirLaudoTecnico } from "@/app/actions/save-in23";
 import type { Laudo } from "@/lib/supabase/types";
 import type { LaudoTecnicoWizardState } from "@/lib/save-in23/types";
@@ -26,8 +26,13 @@ export function LaudosList({ laudos }: { laudos: Laudo[] }) {
   }
 
   async function handleBaixar(dados: LaudoTecnicoWizardState) {
-    const { gerarPdfLaudo } = await import("@/lib/save-in23/pdf-generator");
-    await gerarPdfLaudo(dados);
+    try {
+      const { gerarPdfLaudo } = await import("@/lib/save-in23/pdf-generator");
+      await gerarPdfLaudo(dados);
+    } catch (err) {
+      console.error("Falha ao gerar PDF do laudo:", err);
+      alert("Não foi possível gerar o PDF deste laudo. Verifique se todos os capítulos foram preenchidos ou tente editá-lo e salvar novamente.");
+    }
   }
 
   return (
@@ -79,6 +84,13 @@ export function LaudosList({ laudos }: { laudos: Laudo[] }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => router.push(`/relatorios/save-in23/laudos/novo?editarId=${l.id}`)}
+                  title="Editar laudo"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-amber-500/50 hover:bg-white/[0.04] text-gray-300 hover:text-amber-400 transition-all"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => handleBaixar(dados)}
                   title="Baixar laudo"
