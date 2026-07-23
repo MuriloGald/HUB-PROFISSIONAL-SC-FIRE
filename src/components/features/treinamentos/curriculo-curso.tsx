@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2, Check, PlusCircle, ChevronUp, ChevronDown } from "lucide-react";
-import { adicionarSubtemaAoCurso, atualizarDuracaoSubtema, moverSubtemaNoCurso, removerSubtemaDoCurso } from "@/app/actions/subtemas";
+import { adicionarSubtemaAoCurso, atualizarDuracaoSubtema, definirPosicaoSubtema, moverSubtemaNoCurso, removerSubtemaDoCurso } from "@/app/actions/subtemas";
 import type { SubtemaDoCurso } from "@/app/actions/subtemas";
 
 interface CurriculoCursoProps {
@@ -17,6 +17,7 @@ export function CurriculoCurso({ trainingId, subtemasDoCurso, disponiveisParaAdi
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [horasEditando, setHorasEditando] = useState<Record<string, string>>({});
+  const [posicaoEditando, setPosicaoEditando] = useState<Record<string, string>>({});
   const [subtemaParaAdicionar, setSubtemaParaAdicionar] = useState("");
   const [sortOrderNovo, setSortOrderNovo] = useState(String(subtemasDoCurso.length));
 
@@ -33,6 +34,29 @@ export function CurriculoCurso({ trainingId, subtemasDoCurso, disponiveisParaAdi
         return;
       }
       setHorasEditando((prev) => {
+        const next = { ...prev };
+        delete next[subthemeId];
+        return next;
+      });
+      router.refresh();
+    });
+  }
+
+  function salvarPosicao(subthemeId: string) {
+    const valor = posicaoEditando[subthemeId];
+    if (valor === undefined) return;
+    const posicao = parseInt(valor, 10);
+    if (!posicao || posicao < 1) {
+      alert("Informe uma posição válida (1 ou maior).");
+      return;
+    }
+    startTransition(async () => {
+      const res = await definirPosicaoSubtema(trainingId, subthemeId, posicao);
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      setPosicaoEditando((prev) => {
         const next = { ...prev };
         delete next[subthemeId];
         return next;
@@ -96,6 +120,7 @@ export function CurriculoCurso({ trainingId, subtemasDoCurso, disponiveisParaAdi
           <tbody>
             {subtemasDoCurso.map((s, idx) => {
               const editando = horasEditando[s.id] !== undefined;
+              const editandoPosicao = posicaoEditando[s.id] !== undefined;
               return (
                 <tr key={s.id} className="border-t border-white/[0.06] hover:bg-white/[0.02]">
                   <td className="px-4 py-2.5 text-gray-500">
@@ -116,7 +141,18 @@ export function CurriculoCurso({ trainingId, subtemasDoCurso, disponiveisParaAdi
                           <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <span>{s.sortOrder}</span>
+                      <input
+                        title="Posição no currículo — edite pra mover direto pra outro lugar"
+                        className={`${inputClass} w-12 text-center`}
+                        value={editandoPosicao ? posicaoEditando[s.id] : String(idx + 1)}
+                        onChange={(e) => setPosicaoEditando((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && salvarPosicao(s.id)}
+                      />
+                      {editandoPosicao && (
+                        <button onClick={() => salvarPosicao(s.id)} disabled={pending} className="p-1 rounded-md hover:bg-emerald-500/10 text-emerald-400">
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-2.5 text-white font-medium">{s.name}</td>

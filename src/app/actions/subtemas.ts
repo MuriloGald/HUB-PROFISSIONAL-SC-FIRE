@@ -410,3 +410,42 @@ export async function moverSubtemaNoCurso(trainingId: string, subthemeId: string
   revalidatePath("/treinador");
   return { success: true };
 }
+
+/**
+ * Move um subtema para uma posição específica (1-based) no currículo do curso e
+ * renumera o sort_order de todos sequencialmente (0..N-1) — corrige qualquer
+ * duplicata de sort_order que já exista (ex.: subtemas migrados/adicionados com
+ * a mesma posição) como efeito colateral, já que ninguém mais fica com o mesmo número.
+ */
+export async function definirPosicaoSubtema(trainingId: string, subthemeId: string, posicao1Based: number) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("training_subthemes")
+    .select("subtheme_id, sort_order")
+    .eq("training_id", trainingId)
+    .order("sort_order", { ascending: true });
+
+  if (error) return { error: error.message };
+
+  const linhas = data ?? [];
+  const idxAtual = linhas.findIndex((r) => r.subtheme_id === subthemeId);
+  if (idxAtual === -1) return { error: "Subtema não encontrado neste curso." };
+
+  const [item] = linhas.splice(idxAtual, 1);
+  const idxDestino = Math.max(0, Math.min(posicao1Based - 1, linhas.length));
+  linhas.splice(idxDestino, 0, item);
+
+  const resultados = await Promise.all(
+    linhas.map((r, i) =>
+      r.sort_order === i
+        ? Promise.resolve({ error: null })
+        : supabase.from("training_subthemes").update({ sort_order: i }).eq("training_id", trainingId).eq("subtheme_id", r.subtheme_id)
+    )
+  );
+  const falhou = resultados.find((r) => r.error);
+  if (falhou?.error) return { error: falhou.error.message };
+
+  revalidatePath("/treinamentos/cursos");
+  revalidatePath("/treinador");
+  return { success: true };
+}
