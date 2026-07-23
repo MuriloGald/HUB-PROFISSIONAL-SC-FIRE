@@ -54,7 +54,7 @@ export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps)
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
 
-  const checkInUrl = turma && typeof window !== "undefined" ? `${window.location.origin}/aluno/check-in?token=${turma.qrCodeToken}` : "";
+  const checkInUrl = turma && typeof window !== "undefined" ? `${window.location.origin}/aluno/ava?token=${turma.qrCodeToken}` : "";
 
   useEffect(() => {
     const id = setInterval(() => setSegundos((s) => s + 1), 1000);
@@ -319,8 +319,11 @@ export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps)
 
             <div className="space-y-6 pt-4">
               <div className="space-y-1.5">
-                <h3 className="text-base font-bold text-foreground">Registro de Presença</h3>
-                <p className="text-xs text-muted-foreground">Peça para os alunos escanearem o QR Code abaixo com a câmera do celular pra confirmar presença.</p>
+                <h3 className="text-base font-bold text-foreground">Ambiente Virtual de Aprendizagem</h3>
+                <p className="text-xs text-muted-foreground">
+                  Peça para os alunos escanearem o QR Code abaixo com a câmera do celular — lá eles marcam presença, acessam a apostila, fazem a
+                  avaliação e respondem a pesquisa de satisfação.
+                </p>
               </div>
 
               <div className="w-56 h-56 bg-white p-3 rounded-2xl mx-auto shadow-inner flex items-center justify-center relative border border-border">
