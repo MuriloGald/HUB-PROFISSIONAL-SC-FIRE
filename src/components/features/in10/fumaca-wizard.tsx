@@ -72,6 +72,7 @@ export function FumacaWizard({ clientes, clienteIdInicial, initialState }: Fumac
           re: cliente.re ?? undefined,
           proprietario_nome: cliente.razao_social ?? cliente.nome,
           proprietario_email: cliente.email ?? undefined,
+          proprietario_fone: cliente.telefone ?? undefined,
         });
       }
     }
@@ -205,6 +206,7 @@ export function FumacaWizard({ clientes, clienteIdInicial, initialState }: Fumac
               re: cliente.re,
               proprietario_nome: cliente.razao_social,
               proprietario_email: cliente.email,
+              proprietario_fone: cliente.telefone,
             })
           }
         />
@@ -334,6 +336,7 @@ function StepIdentificacao({
     ocupacao_tipo: state.ocupacao_tipo ?? "",
     proprietario_nome: state.proprietario_nome ?? "",
     proprietario_email: state.proprietario_email ?? "",
+    proprietario_fone: state.proprietario_fone ?? "",
     responsavel_uso_nome: state.responsavel_uso_nome ?? "",
     responsavel_uso_email: state.responsavel_uso_email ?? "",
     rt_nome: state.rt_nome ?? "",
@@ -402,7 +405,7 @@ function StepIdentificacao({
       </div>
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Proprietário</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <label className={labelClass}>Nome</label>
           <input className={inputClass} value={form.proprietario_nome} onChange={(e) => update("proprietario_nome", e.target.value)} />
@@ -410,6 +413,10 @@ function StepIdentificacao({
         <div className="space-y-1.5">
           <label className={labelClass}>E-mail</label>
           <input className={inputClass} value={form.proprietario_email} onChange={(e) => update("proprietario_email", e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Fone</label>
+          <input className={inputClass} value={form.proprietario_fone} onChange={(e) => update("proprietario_fone", e.target.value)} />
         </div>
       </div>
 
@@ -528,6 +535,13 @@ function StepInspecaoEspecifico({
       />
 
       <ChecklistGenerico titulo="Integridade dos componentes do sistema" itens={INTEGRIDADE_COMPONENTES} respostas={state.integridade || {}} onChange={onChangeIntegridade} />
+      <textarea
+        rows={2}
+        placeholder="Se não, explicar"
+        className={inputClass}
+        value={state.integridade_explicacao ?? ""}
+        onChange={(e) => onChange({ integridade_explicacao: e.target.value })}
+      />
     </div>
   );
 }
@@ -571,10 +585,27 @@ function StepConclusao({
   const [dataEntrega, setDataEntrega] = useState(state.data_entrega_funcionamento ?? "");
   const [nomeInstalador, setNomeInstalador] = useState(state.nome_instalador ?? "");
   const [infoAdicionais, setInfoAdicionais] = useState(state.informacoes_adicionais ?? "");
+  const [testProprietarioNome, setTestProprietarioNome] = useState(state.testemunha_proprietario_nome ?? "");
+  const [testProprietarioCargo, setTestProprietarioCargo] = useState(state.testemunha_proprietario_cargo ?? "");
+  const [testProprietarioData, setTestProprietarioData] = useState(state.testemunha_proprietario_data ?? "");
+  const [testInstaladorNome, setTestInstaladorNome] = useState(state.testemunha_instalador_nome ?? "");
+  const [testInstaladorCargo, setTestInstaladorCargo] = useState(state.testemunha_instalador_cargo ?? "");
+  const [testInstaladorData, setTestInstaladorData] = useState(state.testemunha_instalador_data ?? "");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onNext({ conclusao, data_entrega_funcionamento: dataEntrega, nome_instalador: nomeInstalador, informacoes_adicionais: infoAdicionais });
+    onNext({
+      conclusao,
+      data_entrega_funcionamento: dataEntrega,
+      nome_instalador: nomeInstalador,
+      informacoes_adicionais: infoAdicionais,
+      testemunha_proprietario_nome: testProprietarioNome,
+      testemunha_proprietario_cargo: testProprietarioCargo,
+      testemunha_proprietario_data: testProprietarioData,
+      testemunha_instalador_nome: testInstaladorNome,
+      testemunha_instalador_cargo: testInstaladorCargo,
+      testemunha_instalador_data: testInstaladorData,
+    });
   }
 
   return (
@@ -592,6 +623,36 @@ function StepConclusao({
         <div className="space-y-1.5">
           <label className={labelClass}>Nome do instalador</label>
           <input className={inputClass} value={nomeInstalador} onChange={(e) => setNomeInstalador(e.target.value)} />
+        </div>
+      </div>
+
+      <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Testemunhas</h4>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-1.5">
+          <label className={labelClass}>Representante do proprietário</label>
+          <input className={inputClass} value={testProprietarioNome} onChange={(e) => setTestProprietarioNome(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Cargo</label>
+          <input className={inputClass} value={testProprietarioCargo} onChange={(e) => setTestProprietarioCargo(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Data</label>
+          <input type="date" className={inputClass} value={testProprietarioData} onChange={(e) => setTestProprietarioData(e.target.value)} />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-1.5">
+          <label className={labelClass}>Representante do instalador</label>
+          <input className={inputClass} value={testInstaladorNome} onChange={(e) => setTestInstaladorNome(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Cargo</label>
+          <input className={inputClass} value={testInstaladorCargo} onChange={(e) => setTestInstaladorCargo(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Data</label>
+          <input type="date" className={inputClass} value={testInstaladorData} onChange={(e) => setTestInstaladorData(e.target.value)} />
         </div>
       </div>
 

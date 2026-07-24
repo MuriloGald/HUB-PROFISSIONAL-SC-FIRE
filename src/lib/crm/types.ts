@@ -23,7 +23,7 @@ export interface Lead {
   created_at: string;
 }
 
-export type InteractionType = "ligacao" | "email" | "reuniao" | "nota" | "proposta";
+export type InteractionType = "ligacao" | "email" | "reuniao" | "nota" | "proposta" | "whatsapp";
 
 export interface Interaction {
   id: string;

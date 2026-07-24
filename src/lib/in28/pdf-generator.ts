@@ -8,7 +8,7 @@
  */
 
 import { jsPDF } from "jspdf";
-import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, carregarImagemComoDataUrl, MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
+import { drawCabecalhoOficialCBMSC, drawCabecalhoInstitucional, desenharTabelaRotulos, carregarImagemComoDataUrl, MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
 import { quebrarSeNecessario } from "../shared/checklist-pdf";
 import type { PibiState, RelatorioFormacaoState, RelatorioPrestacaoState } from "./types";
 
@@ -28,16 +28,14 @@ function desenharBlocoTexto(doc: jsPDF, y: number, titulo: string, texto: string
   return cursorY + linhas.length * 5 + 6;
 }
 
-function nomeArquivoPibi(state: PibiState): string {
+function nomeArquivoPibi(state: PibiState, sufixo = ""): string {
   const nome = (state.razao_social || state.cliente?.razao_social || "imovel").replace(/\s+/g, "_");
-  return `Anexo_C_PIBI_${state.codigo || "rascunho"}_${nome}.pdf`;
+  return `Anexo_C_PIBI_${state.codigo || "rascunho"}_${nome}${sufixo}.pdf`;
 }
 
-/** Gera o PDF do Anexo C — Plano de Implementação de Brigada de Incêndio (PIBI), IN 28/CBMSC. */
-export async function gerarPdfPibi(state: PibiState): Promise<string> {
-  const doc = new jsPDF();
-
-  let y = await drawCabecalhoOficialCBMSC(doc, "ANEXO C — Plano de Implementação de Brigada de Incêndio (PIBI)");
+/** Desenha o corpo do PIBI (seções 1-4, planta/croquis e assinatura) — idêntico entre a via oficial CBMSC e a segunda via com identidade visual SC Fire; só o cabeçalho muda entre elas. */
+async function desenharCorpoPibi(doc: jsPDF, yInicial: number, state: PibiState): Promise<number> {
+  let y = yInicial;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -166,7 +164,35 @@ export async function gerarPdfPibi(state: PibiState): Promise<string> {
   y += 5;
   doc.text("Nome completo do responsável técnico", margin, y);
 
+  return y;
+}
+
+/** Gera o PDF do Anexo C — Plano de Implementação de Brigada de Incêndio (PIBI), IN 28/CBMSC. Via oficial, enviada ao CBMSC — cabeçalho institucional oficial, não alterar. */
+export async function gerarPdfPibi(state: PibiState): Promise<string> {
+  const doc = new jsPDF();
+
+  const y = await drawCabecalhoOficialCBMSC(doc, "ANEXO C — Plano de Implementação de Brigada de Incêndio (PIBI)");
+  await desenharCorpoPibi(doc, y, state);
+
   const fileName = nomeArquivoPibi(state);
+  doc.save(fileName);
+  return fileName;
+}
+
+/**
+ * Segunda via do PIBI, com a identidade visual da SC Fire (logo + dados
+ * institucionais no cabeçalho) em vez do cabeçalho oficial do CBMSC. Conteúdo
+ * idêntico ao de gerarPdfPibi() — só o cabeçalho muda. Uso: cópia para o
+ * cliente/arquivo interno; a via oficial enviada ao CBMSC continua sendo
+ * gerarPdfPibi().
+ */
+export async function gerarPdfPibiIdentidadeVisual(state: PibiState): Promise<string> {
+  const doc = new jsPDF();
+
+  const y = await drawCabecalhoInstitucional(doc, "Plano de Implementação de Brigada de Incêndio (PIBI)", "ANEXO C — IN 28/CBMSC", state.codigo);
+  await desenharCorpoPibi(doc, y, state);
+
+  const fileName = nomeArquivoPibi(state, "_SCFire");
   doc.save(fileName);
   return fileName;
 }

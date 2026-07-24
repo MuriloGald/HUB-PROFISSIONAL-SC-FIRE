@@ -32,6 +32,7 @@ const INTERACAO_LABEL: Record<InteractionType, string> = {
   reuniao: "Reunião",
   nota: "Nota",
   proposta: "Proposta",
+  whatsapp: "WhatsApp",
 };
 
 interface CrmKanbanProps {

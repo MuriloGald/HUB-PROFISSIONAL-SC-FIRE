@@ -11,6 +11,7 @@ import { jsPDF } from "jspdf";
 import { applyPlugin } from "jspdf-autotable";
 import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
 import { quebrarSeNecessario, type DocWithAutoTable } from "../shared/checklist-pdf";
+import { formatarDataBR } from "../shared/date-format";
 import { DOCS_DEIXADOS, INTEGRIDADE_COMPONENTES, ENSAIOS_FUMACA, type ChecklistItem } from "./constants";
 import type { ControleFumacaState, RespostaSN } from "./types";
 
@@ -61,6 +62,7 @@ function desenharCabecalhoIdentificacao(doc: DocWithAutoTable, y: number, state:
     [
       { label: "Proprietário", valor: state.proprietario_nome || "" },
       { label: "E-mail", valor: state.proprietario_email || "" },
+      { label: "Fone", valor: state.proprietario_fone || "" },
     ],
     [
       { label: "Responsável uso/brigadista", valor: state.responsavel_uso_nome || "" },
@@ -91,7 +93,7 @@ function desenharClima(doc: DocWithAutoTable, y: number, state: ControleFumacaSt
 }
 
 function desenharConclusaoAssinaturas(doc: DocWithAutoTable, y: number, state: ControleFumacaState): void {
-  let cursorY = quebrarSeNecessario(doc, y, 60);
+  let cursorY = quebrarSeNecessario(doc, y, 90);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text(
@@ -101,7 +103,7 @@ function desenharConclusaoAssinaturas(doc: DocWithAutoTable, y: number, state: C
     { maxWidth: contentWidth }
   );
   cursorY += 8;
-  const dataEntrega = state.data_entrega_funcionamento ? new Date(state.data_entrega_funcionamento).toLocaleDateString("pt-BR") : "";
+  const dataEntrega = formatarDataBR(state.data_entrega_funcionamento);
   doc.text(`Data em que a instalação foi entregue em funcionamento: ${dataEntrega}`, margin, cursorY);
   cursorY += 10;
 
@@ -112,6 +114,35 @@ function desenharConclusaoAssinaturas(doc: DocWithAutoTable, y: number, state: C
   doc.text(`Responsável técnico (Assinatura Digital): ${state.rt_nome || ""}`, margin, cursorY);
   cursorY += 6;
   doc.text(`Nº do Registro Profissional: ${state.rt_registro || ""}`, margin, cursorY);
+  cursorY += 10;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Testemunhas", margin, cursorY);
+  cursorY += 6;
+  doc.setFont("helvetica", "normal");
+
+  doc.line(margin, cursorY, margin + 80, cursorY);
+  cursorY += 5;
+  doc.text(
+    `Representante do proprietário: ${state.testemunha_proprietario_nome || ""}   Cargo: ${state.testemunha_proprietario_cargo || ""}   Data: ${formatarDataBR(
+      state.testemunha_proprietario_data
+    )}`,
+    margin,
+    cursorY,
+    { maxWidth: contentWidth }
+  );
+  cursorY += 10;
+
+  doc.line(margin, cursorY, margin + 80, cursorY);
+  cursorY += 5;
+  doc.text(
+    `Representante do instalador: ${state.testemunha_instalador_nome || ""}   Cargo: ${state.testemunha_instalador_cargo || ""}   Data: ${formatarDataBR(
+      state.testemunha_instalador_data
+    )}`,
+    margin,
+    cursorY,
+    { maxWidth: contentWidth }
+  );
   cursorY += 10;
 
   if (state.informacoes_adicionais) {
@@ -223,6 +254,14 @@ export async function gerarPdfInspecaoFumaca(state: ControleFumacaState): Promis
   }
 
   y = desenharListaSimNao(doc, y, "Integridade dos componentes do sistema", INTEGRIDADE_COMPONENTES, state.integridade || {});
+  if (state.integridade_explicacao) {
+    y = quebrarSeNecessario(doc, y, 10);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    const linhas = doc.splitTextToSize(`Observações: ${state.integridade_explicacao}`, contentWidth);
+    doc.text(linhas, margin, y);
+    y += linhas.length * 5 + 5;
+  }
 
   y = desenharClima(doc, y, state);
   y += 5;

@@ -13,6 +13,22 @@ import type { PibiState } from "@/lib/in28/types";
 const DRAFT_KEY = "scfire_in28_pibi_wizard_draft";
 const STEPS = [{ label: "Imóvel/Responsáveis" }, { label: "Composição da Brigada" }, { label: "Revisão" }];
 
+const SISTEMAS_PROTECAO_OPCOES = [
+  "Extintores de incêndio",
+  "Sistema de hidrantes e mangotinhos",
+  "Sistema de chuveiros automáticos (sprinklers)",
+  "Sistema de iluminação de emergência",
+  "Sistema de alarme e detecção de incêndio",
+  "Sinalização de emergência",
+  "Saídas de emergência / rotas de fuga",
+  "Sistema de controle de fumaça",
+  "Sistema de proteção contra descargas atmosféricas (SPDA)",
+  "Grupo motobomba de incêndio",
+  "Reservatório de incêndio",
+  "Porta corta-fogo",
+  "Compartimentação horizontal/vertical",
+];
+
 const inputClass =
   "w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all";
 const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider";
@@ -30,6 +46,7 @@ export function PibiWizard({ clientes, clienteIdInicial, initialState }: PibiWiz
   const [salvo, setSalvo] = useState<PibiState | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [baixando, setBaixando] = useState(false);
+  const [baixandoScFire, setBaixandoScFire] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -133,6 +150,22 @@ export function PibiWizard({ clientes, clienteIdInicial, initialState }: PibiWiz
     }
   }
 
+  /** Segunda via do PIBI, com a identidade visual da SC Fire — a oficial pro CBMSC continua sendo handleBaixar. */
+  async function handleBaixarScFire() {
+    if (!salvo) return;
+    setBaixandoScFire(true);
+    setErro(null);
+    try {
+      const { gerarPdfPibiIdentidadeVisual } = await import("@/lib/in28/pdf-generator");
+      await gerarPdfPibiIdentidadeVisual(salvo);
+    } catch (err) {
+      console.error("Erro ao gerar o PDF:", err);
+      setErro(mensagemErroGeracao(err, "Ocorreu um erro ao gerar o PDF. Tente novamente."));
+    } finally {
+      setBaixandoScFire(false);
+    }
+  }
+
   function handleConcluir() {
     clearDraft();
     router.push("/documentos/in28/pibi");
@@ -231,7 +264,7 @@ export function PibiWizard({ clientes, clienteIdInicial, initialState }: PibiWiz
             </div>
           ) : (
             <div className="space-y-4 pt-2">
-              <div className="flex justify-center">
+              <div className="flex justify-center flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={handleBaixar}
@@ -240,6 +273,16 @@ export function PibiWizard({ clientes, clienteIdInicial, initialState }: PibiWiz
                 >
                   {baixando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
                   Baixar Anexo C — PIBI (PDF)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBaixarScFire}
+                  disabled={baixandoScFire}
+                  title="Segunda via com a identidade visual da SC Fire (logo e dados institucionais) — não é o Anexo C oficial enviado ao CBMSC"
+                  className="px-4 py-2 border border-red-500/40 hover:border-red-500 hover:bg-red-500/10 text-red-400 hover:text-red-300 text-xs font-semibold rounded-lg transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2"
+                >
+                  {baixandoScFire ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+                  Baixar PIBI — Identidade Visual SC Fire (PDF)
                 </button>
               </div>
               <div className="flex justify-center">
@@ -461,9 +504,24 @@ function StepComposicaoBrigada({ state, onBack, onNext }: { state: PibiState; on
     local_data: state.local_data ?? "",
   });
   const [plantaCroqui, setPlantaCroqui] = useState(state.planta_croqui ?? []);
+  const [novoSistema, setNovoSistema] = useState("");
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  const sistemasSelecionados = form.sistemas_protecao
+    ? form.sistemas_protecao.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  function adicionarSistema(valor: string) {
+    const item = valor.trim();
+    if (!item || sistemasSelecionados.includes(item)) return;
+    update("sistemas_protecao", [...sistemasSelecionados, item].join(", "));
+  }
+
+  function removerSistema(valor: string) {
+    update("sistemas_protecao", sistemasSelecionados.filter((s) => s !== valor).join(", "));
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -514,7 +572,57 @@ function StepComposicaoBrigada({ state, onBack, onNext }: { state: PibiState; on
 
       <div className="space-y-1.5">
         <label className={labelClass}>Sistema de Proteção Contra Incêndios Instalados</label>
-        <textarea rows={2} className={inputClass} value={form.sistemas_protecao} onChange={(e) => update("sistemas_protecao", e.target.value)} />
+        {sistemasSelecionados.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {sistemasSelecionados.map((sistema) => (
+              <span key={sistema} className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-xs text-red-300">
+                {sistema}
+                <button type="button" onClick={() => removerSistema(sistema)} className="hover:text-red-100">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <select
+          value=""
+          className={inputClass}
+          onChange={(e) => {
+            if (e.target.value) adicionarSistema(e.target.value);
+          }}
+        >
+          <option value="">+ Selecionar sistema para adicionar...</option>
+          {SISTEMAS_PROTECAO_OPCOES.filter((o) => !sistemasSelecionados.includes(o)).map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+        <div className="flex gap-2">
+          <input
+            className={inputClass}
+            placeholder="Outro sistema não listado..."
+            value={novoSistema}
+            onChange={(e) => setNovoSistema(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                adicionarSistema(novoSistema);
+                setNovoSistema("");
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              adicionarSistema(novoSistema);
+              setNovoSistema("");
+            }}
+            className="px-4 py-2 border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white hover:text-red-400 text-xs font-semibold rounded-lg transition-all whitespace-nowrap"
+          >
+            Adicionar
+          </button>
+        </div>
       </div>
       <div className="space-y-1.5">
         <label className={labelClass}>Outros Recursos Disponíveis (EPIs, radiocomunicação etc.)</label>

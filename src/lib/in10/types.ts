@@ -22,6 +22,7 @@ export interface ControleFumacaState {
 
   proprietario_nome?: string;
   proprietario_email?: string;
+  proprietario_fone?: string;
   responsavel_uso_nome?: string;
   responsavel_uso_email?: string;
   rt_nome?: string;
@@ -41,6 +42,7 @@ export interface ControleFumacaState {
   instrucao_nome_responsavel?: string;
   instrucao_explicacao?: string;
   integridade?: Record<string, RespostaSN>;
+  integridade_explicacao?: string;
 
   // clima (comum aos dois)
   vento_velocidade?: string;
@@ -56,6 +58,15 @@ export interface ControleFumacaState {
   conclusao?: RespostaSN;
   data_entrega_funcionamento?: string;
   nome_instalador?: string;
+
+  // Testemunhas (fl. 03/03, comum aos dois anexos)
+  testemunha_proprietario_nome?: string;
+  testemunha_proprietario_cargo?: string;
+  testemunha_proprietario_data?: string;
+  testemunha_instalador_nome?: string;
+  testemunha_instalador_cargo?: string;
+  testemunha_instalador_data?: string;
+
   informacoes_adicionais?: string;
 
   data_emissao?: string;

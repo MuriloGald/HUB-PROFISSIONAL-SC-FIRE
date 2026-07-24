@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 import { BniModal } from "@/components/features/bni-modal";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { AppRole } from "@/lib/auth/roles";
 
 type NavLink = { type?: "link"; label: string; href: string; icon: React.ElementType };
@@ -182,10 +183,10 @@ function NavGroupItem({
         className={`flex items-center justify-center px-2 py-2.5 rounded-lg transition-all duration-200 ${
           isGroupActive
             ? "bg-red-500/10 text-red-500"
-            : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
+            : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
         }`}
       >
-        <Icon className={`w-5 h-5 flex-shrink-0 ${isGroupActive ? "text-red-500" : "text-gray-500"}`} />
+        <Icon className={`w-5 h-5 flex-shrink-0 ${isGroupActive ? "text-red-500" : "text-muted-foreground"}`} />
       </Link>
     );
   }
@@ -197,20 +198,20 @@ function NavGroupItem({
         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
           isGroupActive
             ? "bg-red-500/10 text-red-400 font-semibold"
-            : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
+            : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
         }`}
       >
-        <Icon className={`w-5 h-5 flex-shrink-0 ${isGroupActive ? "text-red-500" : "text-gray-500"}`} />
+        <Icon className={`w-5 h-5 flex-shrink-0 ${isGroupActive ? "text-red-500" : "text-muted-foreground"}`} />
         <span className="text-sm flex-1 text-left whitespace-nowrap">{item.label}</span>
         <ChevronDown
           className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""} ${
-            isGroupActive ? "text-red-400" : "text-gray-600"
+            isGroupActive ? "text-red-400" : "text-muted-foreground"
           }`}
         />
       </button>
 
       {open && (
-        <div className="ml-8 mt-0.5 space-y-0.5 border-l border-white/[0.06] pl-3">
+        <div className="ml-8 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-3">
           {item.items.map((sub) => {
             const isSubActive = pathname === sub.href;
             return (
@@ -221,7 +222,7 @@ function NavGroupItem({
                 className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200 ${
                   isSubActive
                     ? "text-red-400 font-semibold"
-                    : "text-gray-500 hover:text-white"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {isSubActive && <div className="w-1 h-1 rounded-full bg-red-500" />}
@@ -270,7 +271,7 @@ export function DashboardShell({
         <aside
           className={`
             fixed lg:relative z-50 flex flex-col h-dvh
-            bg-[#050505] border-r border-white/[0.08]
+            bg-sidebar-bg border-r border-sidebar-border
             transition-all duration-300 ease-in-out
             ${collapsed ? "lg:w-[72px]" : "lg:w-[260px]"}
             ${mobileOpen ? "translate-x-0 w-[280px]" : "-translate-x-full lg:translate-x-0"}
@@ -278,20 +279,20 @@ export function DashboardShell({
         >
           {/* Logo */}
           <div
-            className={`flex items-center gap-3 px-5 h-16 border-b border-white/[0.08] flex-shrink-0 ${collapsed ? "justify-center" : ""}`}
+            className={`flex items-center gap-3 px-5 h-16 border-b border-sidebar-border flex-shrink-0 ${collapsed ? "justify-center" : ""}`}
           >
             <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-red-600 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-md shadow-red-500/20">
               <Flame className="w-5 h-5 text-white" />
             </div>
             {!collapsed && (
               <div className="animate-fade-in overflow-hidden">
-                <h2 className="text-sm font-bold text-white whitespace-nowrap">SC FIRE</h2>
-                <p className="text-[11px] text-gray-400 whitespace-nowrap">Sistema Operacional</p>
+                <h2 className="text-sm font-bold text-foreground whitespace-nowrap">SC FIRE</h2>
+                <p className="text-[11px] text-muted-foreground whitespace-nowrap">Sistema Operacional</p>
               </div>
             )}
             <button
               onClick={() => setMobileOpen(false)}
-              className="ml-auto lg:hidden text-gray-400 hover:text-white"
+              className="ml-auto lg:hidden text-muted-foreground hover:text-foreground"
             >
               <X className="w-5 h-5" />
             </button>
@@ -304,7 +305,7 @@ export function DashboardShell({
                 if (collapsed) return null;
                 return (
                   <div key={idx} className="pt-4 pb-1 px-3">
-                    <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                       {item.label}
                     </span>
                   </div>
@@ -337,12 +338,12 @@ export function DashboardShell({
                     ${
                       isActive
                         ? "bg-red-500/10 text-red-500 font-semibold"
-                        : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
+                        : "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
                     }
                   `}
                 >
                   <item.icon
-                    className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-red-500" : "text-gray-500 group-hover:text-white"}`}
+                    className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-red-500" : "text-muted-foreground group-hover:text-foreground"}`}
                   />
                   {!collapsed && (
                     <span className="text-sm whitespace-nowrap">{item.label}</span>
@@ -362,20 +363,20 @@ export function DashboardShell({
                 className={`
                   w-full group flex items-center gap-3 rounded-lg transition-all duration-200 mt-1
                   ${collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"}
-                  text-gray-400 hover:bg-white/[0.04] hover:text-white
+                  text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground
                 `}
               >
-                <Presentation className="w-5 h-5 flex-shrink-0 text-gray-500 group-hover:text-white" />
+                <Presentation className="w-5 h-5 flex-shrink-0 text-muted-foreground group-hover:text-foreground" />
                 {!collapsed && <span className="text-sm whitespace-nowrap">Módulo BNI</span>}
               </button>
             )}
           </nav>
 
           {/* Footer */}
-          <div className="border-t border-white/[0.08] p-3 flex-shrink-0 space-y-2">
+          <div className="border-t border-sidebar-border p-3 flex-shrink-0 space-y-2">
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="hidden lg:flex items-center justify-center w-full h-9 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.04] transition-all duration-200"
+              className="hidden lg:flex items-center justify-center w-full h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-all duration-200"
               title={collapsed ? "Expandir menu" : "Recolher menu"}
             >
               {collapsed ? (
@@ -392,7 +393,7 @@ export function DashboardShell({
               <button
                 type="submit"
                 title={collapsed ? "Sair" : undefined}
-                className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 ${collapsed ? "justify-center px-2" : ""}`}
+                className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 ${collapsed ? "justify-center px-2" : ""}`}
               >
                 <LogOut className="w-5 h-5 flex-shrink-0" />
                 {!collapsed && <span className="text-sm">Sair</span>}
@@ -402,23 +403,24 @@ export function DashboardShell({
         </aside>
 
         {/* ── Main Content ── */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0a]">
-          <header className="flex items-center h-16 px-4 lg:px-6 border-b border-white/[0.08] bg-[#050505]/50 backdrop-blur-md flex-shrink-0">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background">
+          <header className="flex items-center h-16 px-4 lg:px-6 border-b border-border bg-sidebar-bg/50 backdrop-blur-md flex-shrink-0">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden mr-3 text-gray-400 hover:text-white transition-colors"
+              className="lg:hidden mr-3 text-muted-foreground hover:text-foreground transition-colors"
             >
               <Menu className="w-5 h-5" />
             </button>
 
             <div className="flex items-center gap-2 text-sm">
               <Flame className="w-4 h-4 text-red-500 lg:hidden" />
-              <span className="text-gray-400 font-medium">SC FIRE Hub</span>
+              <span className="text-muted-foreground font-medium">SC FIRE Hub</span>
             </div>
 
             <div className="ml-auto flex items-center gap-3">
-              <span className="hidden sm:block text-xs text-gray-400" title={email}>
-                {displayName} <span className="text-gray-600">· {roleLabel}</span>
+              <ThemeToggle />
+              <span className="hidden sm:block text-xs text-muted-foreground" title={email}>
+                {displayName} <span className="text-muted-foreground/70">· {roleLabel}</span>
               </span>
               <div
                 className="w-8 h-8 rounded-full bg-gradient-to-tr from-red-600 to-orange-500 flex items-center justify-center text-white text-xs font-bold shadow-sm"
