@@ -49,6 +49,11 @@ const AUTOTABLE_MARGIN = { left: MARGIN_LEFT, right: MARGIN_RIGHT };
 // Texto normal do documento: fonte 11, espaçamento ~1,5 entre linhas (11pt × 1,5 ≈ 5,8mm).
 const FONTE_NORMAL = 11;
 const ALTURA_LINHA_NORMAL = 5.8;
+// Texto compacto — usado nos blocos de observação dentro do anexo de setor, ao lado
+// das tabelas em fonte 8/9 (mesma fonte/altura de linha de desenharTabelaRotulos),
+// pra não destoar do resto da página, que é toda em fonte pequena.
+const FONTE_COMPACTA = 9;
+const ALTURA_LINHA_COMPACTA = 4.6;
 // Texto comum levemente acinzentado em vez de preto puro (mais suave na leitura).
 const COR_TEXTO_NORMAL: [number, number, number] = [55, 65, 81];
 
@@ -205,6 +210,25 @@ function drawResumoSetores(doc: DocWithAutoTable, startY: number, setores: Setor
   return doc.lastAutoTable.finalY + 6;
 }
 
+/**
+ * Desenha linhas já quebradas (splitTextToSize) uma a uma, verificando o limite
+ * de página a cada linha — em vez de um único doc.text(linhasArray) que, se o
+ * bloco for mais alto que o espaço restante na página, desenha linhas abaixo da
+ * margem inferior e o texto simplesmente some (não aparece na impressão/export).
+ */
+function desenharParagrafoPaginado(doc: DocWithAutoTable, linhas: string[], x: number, startY: number, alturaLinha: number): number {
+  let y = startY;
+  for (const linha of linhas) {
+    if (y > PAGE_BREAK_Y) {
+      doc.addPage();
+      y = MARGIN_TOP + 10;
+    }
+    doc.text(linha, x, y);
+    y += alturaLinha;
+  }
+  return y;
+}
+
 async function drawSetorAnexo(
   doc: DocWithAutoTable,
   s: SetorVistoria,
@@ -326,13 +350,13 @@ async function drawSetorAnexo(
     }
 
     if (s.altObs) {
-      doc.setFontSize(FONTE_NORMAL);
+      doc.setFontSize(FONTE_COMPACTA);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...COR_TEXTO_NORMAL);
       const linhasTexto = doc.splitTextToSize(`Detalhes das adequações propostas: ${s.altObs}`, contentWidth);
-      doc.text(linhasTexto, margin, y);
+      y = desenharParagrafoPaginado(doc, linhasTexto, margin, y, ALTURA_LINHA_COMPACTA);
       doc.setTextColor(0, 0, 0);
-      y += linhasTexto.length * ALTURA_LINHA_NORMAL + 4;
+      y += 4;
     }
   }
 
@@ -341,15 +365,16 @@ async function drawSetorAnexo(
       doc.addPage();
       y = MARGIN_TOP + 10;
     }
-    doc.setFontSize(FONTE_NORMAL);
+    doc.setFontSize(FONTE_COMPACTA);
     doc.setFont("helvetica", "bold");
     doc.text("Observações do setor:", margin, y);
+    y += ALTURA_LINHA_COMPACTA;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COR_TEXTO_NORMAL);
     const linhasObs = doc.splitTextToSize(s.observacoes, contentWidth);
-    doc.text(linhasObs, margin, y + ALTURA_LINHA_NORMAL);
+    y = desenharParagrafoPaginado(doc, linhasObs, margin, y, ALTURA_LINHA_COMPACTA);
     doc.setTextColor(0, 0, 0);
-    y += linhasObs.length * ALTURA_LINHA_NORMAL + 8;
+    y += 8;
   }
 
   if (s.imagens.length) {
@@ -398,9 +423,9 @@ export async function gerarPdfVistoria(state: VistoriaWizardState): Promise<stri
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COR_TEXTO_NORMAL);
     const linhas = doc.splitTextToSize(state.observacoesGerais, contentWidth);
-    doc.text(linhas, margin, y + ALTURA_LINHA_NORMAL);
+    y = desenharParagrafoPaginado(doc, linhas, margin, y + ALTURA_LINHA_NORMAL, ALTURA_LINHA_NORMAL);
     doc.setTextColor(0, 0, 0);
-    y += linhas.length * ALTURA_LINHA_NORMAL + 8;
+    y += 8;
   }
 
   drawAssinaturasVistoria(doc, y, state);
