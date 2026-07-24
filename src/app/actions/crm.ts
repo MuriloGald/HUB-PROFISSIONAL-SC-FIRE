@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requireRole } from "@/lib/auth/roles";
 import type { Interaction, InteractionType, Lead, LeadStage } from "@/lib/crm/types";
+
+/** CRM é de uso de diretor e administrador — professor não opera o funil. */
+const CRM_ROLES = ["diretor", "administrador"] as const;
 
 /** Lista os leads ativos do funil (sem os arquivados), mais recentes primeiro. */
 export async function listarLeads() {
@@ -24,6 +28,8 @@ export async function listarLeadsArquivados() {
 
 /** Arquiva o lead (ex: negócio "Ganho" já faturado) — some do quadro ativo sem excluir o histórico. */
 export async function arquivarLead(id: string) {
+  const guard = await requireRole([...CRM_ROLES]);
+  if (guard.error) return { error: guard.error };
   const supabase = await createClient();
   const { error } = await supabase.from("crm_leads").update({ archived: true }).eq("id", id);
   if (error) return { error: error.message };
@@ -34,6 +40,8 @@ export async function arquivarLead(id: string) {
 
 /** Desarquiva o lead, devolvendo pro quadro ativo. */
 export async function desarquivarLead(id: string) {
+  const guard = await requireRole([...CRM_ROLES]);
+  if (guard.error) return { error: guard.error };
   const supabase = await createClient();
   const { error } = await supabase.from("crm_leads").update({ archived: false }).eq("id", id);
   if (error) return { error: error.message };
@@ -54,6 +62,8 @@ export interface NovoLeadInput {
 
 /** Cria uma nova oportunidade no funil, no estágio "novo". */
 export async function criarLead(input: NovoLeadInput) {
+  const guard = await requireRole([...CRM_ROLES]);
+  if (guard.error) return { error: guard.error };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("crm_leads")
@@ -78,6 +88,8 @@ export async function criarLead(input: NovoLeadInput) {
 
 /** Move o lead pra outro estágio do funil (drag-and-drop do kanban). */
 export async function atualizarEstagioLead(id: string, stage: LeadStage) {
+  const guard = await requireRole([...CRM_ROLES]);
+  if (guard.error) return { error: guard.error };
   const supabase = await createClient();
   const { error } = await supabase.from("crm_leads").update({ stage, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) return { error: error.message };
@@ -97,6 +109,8 @@ export interface EditarContatoLeadInput {
 
 /** Atualiza os dados de contato/valor/notas do lead — editado na drawer de detalhe. */
 export async function atualizarContatoLead(id: string, input: EditarContatoLeadInput) {
+  const guard = await requireRole([...CRM_ROLES]);
+  if (guard.error) return { error: guard.error };
   const supabase = await createClient();
   const { error } = await supabase
     .from("crm_leads")
@@ -119,6 +133,8 @@ export async function atualizarContatoLead(id: string, input: EditarContatoLeadI
 
 /** Exclui o lead (e o histórico de interações junto, via cascade). */
 export async function excluirLead(id: string) {
+  const guard = await requireRole([...CRM_ROLES]);
+  if (guard.error) return { error: guard.error };
   const supabase = await createClient();
   const { error } = await supabase.from("crm_leads").delete().eq("id", id);
   if (error) return { error: error.message };
@@ -142,6 +158,8 @@ export async function listarInteracoes(leadId: string) {
 
 /** Registra uma interação no histórico do lead. */
 export async function criarInteracao(leadId: string, tipo: InteractionType, conteudo: string) {
+  const guard = await requireRole([...CRM_ROLES]);
+  if (guard.error) return { error: guard.error };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("crm_interactions")

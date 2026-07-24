@@ -32,3 +32,25 @@ export interface Interaction {
   content: string;
   created_at: string;
 }
+
+export interface SdrConfig {
+  id: string;
+  agent_name: string;
+  company_context: string;
+  products: string;
+  qualification_criteria: string;
+  communication_style: string;
+  handoff_rules: string;
+  enabled: boolean;
+  updated_at: string;
+}
+
+export type WhatsappInstanceStatus = "disconnected" | "connected";
+
+export interface WhatsappInstance {
+  id: string;
+  name: string;
+  phone: string | null;
+  status: WhatsappInstanceStatus;
+  created_at: string;
+}
