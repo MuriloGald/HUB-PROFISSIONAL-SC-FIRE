@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileDown, Loader2 } from "lucide-react";
 import { PERGUNTAS_MAP } from "@/lib/laudos/constants";
+import { formatDateBR } from "@/lib/laudos/formatters";
 import { salvarLaudoEvento } from "@/app/actions/laudos";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import type { EventoWizardState } from "@/lib/laudos/types";
@@ -71,7 +72,7 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
         <div className="text-sm text-gray-300 space-y-1">
           <p><strong className="text-white">Evento:</strong> {state.nome_evento}</p>
           <p><strong className="text-white">Cliente Responsável:</strong> {state.cliente?.razao_social || "N/A"}</p>
-          <p><strong className="text-white">Período:</strong> {state.data_inicio} até {state.data_termino}</p>
+          <p><strong className="text-white">Período:</strong> {formatDateBR(state.data_inicio)} até {formatDateBR(state.data_termino)}</p>
           <p><strong className="text-white">Porte Classificado:</strong> <span className="capitalize">{state.porteFinal}</span></p>
         </div>
 

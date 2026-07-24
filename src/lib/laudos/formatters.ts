@@ -39,6 +39,13 @@ export function formatCEP(value: string): string {
     .replace(/(-\d{3})\d+?$/, "$1");
 }
 
+export function formatDateBR(value: string | undefined | null): string {
+  if (!value) return "";
+  const [ano, mes, dia] = value.split("-");
+  if (!ano || !mes || !dia) return value;
+  return `${dia}/${mes}/${ano}`;
+}
+
 export function formatPhone(value: string): string {
   if (!value) return "";
   const raw = value.replace(/\D/g, "");

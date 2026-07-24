@@ -9,6 +9,7 @@
 import { jsPDF } from "jspdf";
 import { applyPlugin, type RowInput } from "jspdf-autotable";
 import { RESPONSAVEIS_TECNICOS, EMPRESA, PERGUNTAS_MAP } from "./constants";
+import { formatDateBR } from "./formatters";
 import { drawCabecalhoInstitucional, desenharTabelaRotulos, type CelulaRotulo } from "../shared/pdf-branding";
 import type { EventoWizardState, Respostas } from "./types";
 
@@ -62,8 +63,8 @@ function drawIdentificacao(doc: DocWithAutoTable, startY: number, state: EventoW
       [{ label: "Nome do evento", valor: state.nome_evento || "" }],
       [{ label: "Descrição do evento", valor: state.descricao_evento || "" }],
       [
-        { label: "Início", valor: `${state.data_inicio || ""} às ${state.hora_inicio || ""}h` },
-        { label: "Encerramento", valor: `${state.data_termino || ""} às ${state.hora_termino || ""}h` },
+        { label: "Início", valor: `${formatDateBR(state.data_inicio) || ""} às ${state.hora_inicio || ""}h` },
+        { label: "Encerramento", valor: `${formatDateBR(state.data_termino) || ""} às ${state.hora_termino || ""}h` },
       ],
       [{ label: "Público total previsto", valor: `${state.publico || ""} pessoas` }],
       [
@@ -108,8 +109,8 @@ function drawIdentificacao(doc: DocWithAutoTable, startY: number, state: EventoW
     [{ content: `Nome do evento: ${state.nome_evento || ""}`, colSpan: 2 }],
     [{ content: `Descrição do evento: ${state.descricao_evento || ""}`, colSpan: 2 }],
     [
-      `Início: ${state.data_inicio || ""} Horário: ${state.hora_inicio || ""}h`,
-      `Encerramento: ${state.data_termino || ""} Horário: ${state.hora_termino || ""}h`,
+      `Início: ${formatDateBR(state.data_inicio) || ""} Horário: ${state.hora_inicio || ""}h`,
+      `Encerramento: ${formatDateBR(state.data_termino) || ""} Horário: ${state.hora_termino || ""}h`,
     ],
     [{ content: `Público total previsto: ${state.publico || ""} pessoas`, colSpan: 2 }],
     [`End.: ${state.logradouro_evento || ""}, Nº ${state.numero_evento || ""}`, `CEP: ${state.cep_evento || ""}`],

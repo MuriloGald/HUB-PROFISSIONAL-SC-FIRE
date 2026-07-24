@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Plus, Eye, Pencil, Download, Trash2, FileSignature, Flame, X } from "lucide-react";
 import { excluirLaudoEvento } from "@/app/actions/laudos";
 import { PERGUNTAS_MAP } from "@/lib/laudos/constants";
+import { formatDateBR } from "@/lib/laudos/formatters";
 import type { Laudo } from "@/lib/supabase/types";
 import type { EventoWizardState } from "@/lib/laudos/types";
 
@@ -97,7 +98,7 @@ export function EventosList({ laudos }: { laudos: Laudo[] }) {
                 </div>
                 <p className="text-xs text-gray-400">
                   <strong className="text-gray-300">Responsável:</strong> {dados.cliente?.razao_social || "Desconhecido"} |{" "}
-                  <strong className="text-gray-300">Data:</strong> {dados.data_inicio} até {dados.data_termino}
+                  <strong className="text-gray-300">Data:</strong> {formatDateBR(dados.data_inicio)} até {formatDateBR(dados.data_termino)}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -186,7 +187,7 @@ export function EventosList({ laudos }: { laudos: Laudo[] }) {
             <div className="grid grid-cols-2 gap-3 text-sm text-gray-300 mb-6">
               <div><strong className="text-white">Nome:</strong> {detalhes.nome_evento}</div>
               <div><strong className="text-white">Porte:</strong> <span className="capitalize">{detalhes.porteFinal}</span></div>
-              <div><strong className="text-white">Data:</strong> {detalhes.data_inicio} até {detalhes.data_termino}</div>
+              <div><strong className="text-white">Data:</strong> {formatDateBR(detalhes.data_inicio)} até {formatDateBR(detalhes.data_termino)}</div>
               <div><strong className="text-white">Público:</strong> {detalhes.publico} pessoas</div>
               <div><strong className="text-white">Responsável:</strong> {detalhes.cliente?.razao_social}</div>
               <div><strong className="text-white">Emissão:</strong> {detalhes.data_emissao ? new Date(detalhes.data_emissao).toLocaleString("pt-BR") : "-"}</div>
