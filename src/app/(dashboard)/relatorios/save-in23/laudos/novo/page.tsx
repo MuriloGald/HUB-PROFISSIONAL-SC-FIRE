@@ -1,6 +1,7 @@
 import { listarClausulasPadrao, buscarLaudoTecnico } from "@/app/actions/save-in23";
-import { listarClientes } from "@/app/actions/clientes";
+import { listarClientes, buscarCliente } from "@/app/actions/clientes";
 import { LaudoTecnicoWizard } from "@/components/features/save-in23/laudo/laudo-tecnico-wizard";
+import { preencherLacunasSnapshot } from "@/lib/clientes/snapshot";
 import type { LaudoTecnicoWizardState } from "@/lib/save-in23/types";
 
 export default async function NovoLaudoSave23Page({
@@ -16,6 +17,14 @@ export default async function NovoLaudoSave23Page({
     const { data: laudo } = await buscarLaudoTecnico(editarId);
     if (laudo) {
       initialState = { ...(laudo.dados as unknown as LaudoTecnicoWizardState), laudoId: laudo.id, step: 6 };
+      // Mesmo backfill do snapshot congelado usado na Vistoria de Campo — ver
+      // preencherLacunasSnapshot.
+      if (initialState.cliente_id) {
+        const { data: clienteAtual } = await buscarCliente(initialState.cliente_id);
+        if (clienteAtual) {
+          initialState.cliente = preencherLacunasSnapshot(initialState.cliente, clienteAtual);
+        }
+      }
     }
   }
 

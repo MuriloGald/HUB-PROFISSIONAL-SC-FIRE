@@ -1,6 +1,7 @@
-import { listarClientes } from "@/app/actions/clientes";
+import { listarClientes, buscarCliente } from "@/app/actions/clientes";
 import { buscarVistoria } from "@/app/actions/save-in23";
 import { VistoriaWizard } from "@/components/features/save-in23/vistoria/vistoria-wizard";
+import { preencherLacunasSnapshot } from "@/lib/clientes/snapshot";
 import type { VistoriaWizardState } from "@/lib/save-in23/types";
 
 export default async function NovaVistoriaPage({
@@ -16,6 +17,15 @@ export default async function NovaVistoriaPage({
     const { data: vistoria } = await buscarVistoria(editarId);
     if (vistoria) {
       initialState = { ...(vistoria.dados as unknown as VistoriaWizardState), laudoId: vistoria.id, step: 3 };
+      // Snapshot congelado na criação — se um campo (ex: RE) foi cadastrado no
+      // cliente depois deste documento existir, o snapshot antigo fica sem ele.
+      // Preenche só as lacunas, sem sobrescrever o que já foi preservado de propósito.
+      if (initialState.cliente_id) {
+        const { data: clienteAtual } = await buscarCliente(initialState.cliente_id);
+        if (clienteAtual) {
+          initialState.cliente = preencherLacunasSnapshot(initialState.cliente, clienteAtual);
+        }
+      }
     }
   }
 
