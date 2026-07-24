@@ -9,6 +9,7 @@
 import { jsPDF } from "jspdf";
 import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, carregarImagemComoDataUrl, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
 import { quebrarSeNecessario } from "../shared/checklist-pdf";
+import { formatarDataBR } from "../shared/date-format";
 import type { EventoPirotecnicoState } from "./types";
 
 const margin = MARGIN_LEFT;
@@ -24,7 +25,7 @@ function desenharDadosEvento(doc: jsPDF, y: number, state: EventoPirotecnicoStat
   return desenharTabelaRotulos(doc, y, [
     [
       { label: "Tipo de evento pirotécnico", valor: tipo },
-      { label: "Data / Horário de início", valor: `${state.data_evento ? new Date(state.data_evento).toLocaleDateString("pt-BR") : ""} ${state.horario_inicio || ""}` },
+      { label: "Data / Horário de início", valor: `${formatarDataBR(state.data_evento)} ${state.horario_inicio || ""}` },
     ],
     [{ label: "Logradouro", valor: `${state.evento_logradouro || ""}  Nº: ${state.evento_numero || ""}  Complemento: ${state.evento_complemento || ""}  Bairro: ${state.evento_bairro || ""}` }],
     [{ label: "Cidade", valor: `${state.evento_cidade || ""}   CEP: ${state.evento_cep || ""}` }],

@@ -29,6 +29,7 @@ import {
   PAGE_HEIGHT,
   PAGE_BREAK_Y,
 } from "../shared/pdf-branding";
+import { formatarDataBR } from "../shared/date-format";
 import type { Cenario, Imagem, LaudoTecnicoWizardState, SetorVistoria, VistoriaWizardState } from "./types";
 import type { ClienteSnapshot } from "@/lib/clientes/types";
 
@@ -492,7 +493,7 @@ function drawCapitulo1(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
     ],
     [
       { label: "Altura total", valor: `${cap1.altura || ""} m` },
-      { label: "Validade do atestado", valor: cap1.validadeAtestado || "" },
+      { label: "Validade do atestado", valor: formatarDataBR(cap1.validadeAtestado) },
     ],
   ]);
   y += 5;

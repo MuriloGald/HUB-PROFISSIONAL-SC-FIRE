@@ -14,6 +14,7 @@ import { jsPDF } from "jspdf";
 import { applyPlugin } from "jspdf-autotable";
 import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
 import { desenharSecaoChecklist, quebrarSeNecessario, type DocWithAutoTable } from "../shared/checklist-pdf";
+import { formatarDataBR } from "../shared/date-format";
 import { SECOES_CHUVEIROS } from "./constants";
 import type { ChuveirosState, RespostaSN } from "./types";
 
@@ -71,7 +72,7 @@ function desenharConclusaoAssinaturas(doc: DocWithAutoTable, y: number, state: C
     maxWidth: contentWidth,
   });
   cursorY += 8;
-  const data = state.data_entrega_ou_inspecao ? new Date(state.data_entrega_ou_inspecao).toLocaleDateString("pt-BR") : "";
+  const data = formatarDataBR(state.data_entrega_ou_inspecao);
   doc.text(`Data: ${data}`, margin, cursorY);
   cursorY += 10;
 

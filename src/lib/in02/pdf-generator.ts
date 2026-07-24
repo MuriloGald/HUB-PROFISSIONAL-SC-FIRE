@@ -8,6 +8,7 @@
 
 import { jsPDF } from "jspdf";
 import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
+import { formatarDataBR } from "../shared/date-format";
 import type { RecursoWizardState, RessarcimentoWizardState } from "./types";
 
 const margin = MARGIN_LEFT;
@@ -26,7 +27,7 @@ export async function gerarPdfRecurso(state: RecursoWizardState): Promise<string
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  const recebidoEm = state.auto_infracao_recebido_em ? new Date(state.auto_infracao_recebido_em).toLocaleDateString("pt-BR") : "";
+  const recebidoEm = formatarDataBR(state.auto_infracao_recebido_em);
   doc.text(`Recurso referente ao Auto de Infração Nº ${state.auto_infracao_numero || ""}    Recebido em: ${recebidoEm}`, margin, y);
   y += 8;
 

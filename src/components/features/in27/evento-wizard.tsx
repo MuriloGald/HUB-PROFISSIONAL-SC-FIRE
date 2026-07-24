@@ -7,6 +7,7 @@ import { ClientePicker } from "@/components/features/clientes/cliente-picker";
 import { ImageUploader } from "@/components/features/shared/image-uploader";
 import { salvarEventoPirotecnico } from "@/app/actions/in27";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
+import { formatarDataBR } from "@/lib/shared/date-format";
 import type { Cliente } from "@/lib/supabase/types";
 import type { EventoPirotecnicoState } from "@/lib/in27/types";
 
@@ -215,7 +216,7 @@ export function EventoWizard({ clientes, clienteIdInicial, initialState }: Event
 
           <div className="rounded-xl bg-black/20 border border-white/[0.08] p-5 space-y-2 text-sm text-gray-300">
             <p><strong className="text-white">Promotor:</strong> {state.promotor_nome || "-"}</p>
-            <p><strong className="text-white">Data do evento:</strong> {state.data_evento ? new Date(state.data_evento).toLocaleDateString("pt-BR") : "-"}</p>
+            <p><strong className="text-white">Data do evento:</strong> {state.data_evento ? formatarDataBR(state.data_evento) : "-"}</p>
             <p><strong className="text-white">Blaster:</strong> {state.blaster_nome || "-"}</p>
           </div>
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PlusCircle, Users, Clock } from "lucide-react";
 import { listarTurmas } from "@/app/actions/turmas";
+import { formatarDataBR } from "@/lib/shared/date-format";
 
 const STATUS_LABEL: Record<string, string> = { agendada: "Agendada", em_andamento: "Em andamento" };
 const STATUS_COLOR: Record<string, string> = {
@@ -52,7 +53,7 @@ export default async function TurmasPage() {
               {t.scheduled_at && (
                 <span className="inline-flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  {new Date(t.scheduled_at).toLocaleDateString("pt-BR")}
+                  {formatarDataBR(t.scheduled_at)}
                 </span>
               )}
             </div>

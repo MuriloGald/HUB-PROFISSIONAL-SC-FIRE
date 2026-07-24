@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Plus, Pencil, Download, Trash2, FileSignature } from "lucide-react";
 import { excluirEventoPirotecnico } from "@/app/actions/in27";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
+import { formatarDataBR } from "@/lib/shared/date-format";
 import type { Laudo } from "@/lib/supabase/types";
 import type { EventoPirotecnicoState } from "@/lib/in27/types";
 
@@ -90,7 +91,7 @@ export function EventoList({ laudos }: { laudos: Laudo[] }) {
                   <h3 className="text-white font-semibold">{dados.promotor_nome || "Sem promotor"}</h3>
                 </div>
                 <p className="text-xs text-gray-400">
-                  <strong className="text-gray-300">Data:</strong> {dados.data_evento ? new Date(dados.data_evento).toLocaleDateString("pt-BR") : "-"} |{" "}
+                  <strong className="text-gray-300">Data:</strong> {dados.data_evento ? formatarDataBR(dados.data_evento) : "-"} |{" "}
                   <strong className="text-gray-300">Blaster:</strong> {dados.blaster_nome || "-"}
                 </p>
               </div>
