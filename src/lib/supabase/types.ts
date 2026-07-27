@@ -217,6 +217,7 @@ export type LaudoTipoDocumento =
   | "Habite-se"
   | "PlanoEnsino"
   | "IN02"
+  | "IN04"
   | "IN07"
   | "IN09"
   | "IN10"

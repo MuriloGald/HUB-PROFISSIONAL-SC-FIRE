@@ -14,3 +14,15 @@ export function formatarDataBR(value: string | undefined | null): string {
   if (!ano || !mes || !dia || ano.length !== 4) return value;
   return `${dia}/${mes}/${ano}`;
 }
+
+/** Soma N meses a uma data "yyyy-mm-dd" e devolve o resultado já em "dd/mm/yyyy" — usado para calcular o próximo vencimento (DRT/validade) a partir da data do último teste/manutenção. */
+export function somarMeses(dataISO: string, meses: number): string {
+  const [ano, mes, dia] = dataISO.slice(0, 10).split("-").map(Number);
+  if (!ano || !mes || !dia) return "";
+  const data = new Date(Date.UTC(ano, mes - 1, dia));
+  data.setUTCMonth(data.getUTCMonth() + meses);
+  const y = data.getUTCFullYear();
+  const m = String(data.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(data.getUTCDate()).padStart(2, "0");
+  return `${d}/${m}/${y}`;
+}
