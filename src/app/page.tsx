@@ -1,14 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "@/components/features/login-form";
 import { HubLanding } from "@/components/features/hub-landing";
+import { getCurrentProfile } from "@/lib/auth/roles";
 
 export default async function RootPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // getCurrentProfile já cobre "sem usuário" e "sem perfil" (defesa extra,
+  // igual ao (dashboard)/layout.tsx). Professor nunca chega aqui — o
+  // middleware já redireciona pra /treinador antes de renderizar.
+  const profile = await getCurrentProfile();
 
-  if (!user) {
+  if (!profile) {
     return <LoginForm />;
   }
+
+  const supabase = await createClient();
 
   // Fetch statistics in parallel with error fallbacks
   const [clientesRes, condominiosRes, laudosRes] = await Promise.all([
@@ -23,5 +28,5 @@ export default async function RootPage() {
     laudos: laudosRes.count || 0,
   };
 
-  return <HubLanding stats={stats} userEmail={user.email ?? null} />;
+  return <HubLanding stats={stats} profile={profile} />;
 }
