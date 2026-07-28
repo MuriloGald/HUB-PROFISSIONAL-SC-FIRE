@@ -17,24 +17,36 @@ import {
   ClipboardList,
   FileText,
   Download,
+  Send,
 } from "lucide-react";
 import {
   criarEstagioProcesso,
+  criarInteracaoProcesso,
   criarProcessoSave23,
   excluirEstagioProcesso,
   excluirProcessoSave23,
+  listarInteracoesProcesso,
   moverProcessoSave23,
   renomearEstagioProcesso,
   trocarOrdemEstagios,
   atualizarProcessoSave23,
 } from "@/app/actions/save23-processos";
-import type { EstagioProcesso, ProcessoSave23 } from "@/lib/save23-processos/types";
+import type { EstagioProcesso, ProcessoInteracao, ProcessoInteractionType, ProcessoSave23 } from "@/lib/save23-processos/types";
 import type { Cliente, Laudo } from "@/lib/supabase/types";
 import type { VistoriaWizardState, LaudoTecnicoWizardState } from "@/lib/save-in23/types";
 
 const inputClass =
   "w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all";
 const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider";
+
+const INTERACAO_LABEL: Record<ProcessoInteractionType, string> = {
+  ligacao: "Ligação",
+  email: "E-mail",
+  reuniao: "Reunião",
+  nota: "Nota",
+  proposta: "Proposta",
+  whatsapp: "WhatsApp",
+};
 
 function nomeCliente(cliente: Cliente | undefined): string {
   if (!cliente) return "Cliente removido";
@@ -66,6 +78,11 @@ export function ProcessosKanban({ estagiosIniciais, processosIniciais, clientes,
   const [editResponsavel, setEditResponsavel] = useState("");
   const [editObservacoes, setEditObservacoes] = useState("");
   const [editando, setEditando] = useState(false);
+
+  const [interacoes, setInteracoes] = useState<ProcessoInteracao[]>([]);
+  const [carregandoInteracoes, setCarregandoInteracoes] = useState(false);
+  const [novaInteracaoTipo, setNovaInteracaoTipo] = useState<ProcessoInteractionType>("nota");
+  const [novaInteracaoTexto, setNovaInteracaoTexto] = useState("");
 
   const [modalAberto, setModalAberto] = useState(false);
   const [novoClienteId, setNovoClienteId] = useState("");
@@ -100,6 +117,24 @@ export function ProcessosKanban({ estagiosIniciais, processosIniciais, clientes,
   function abrirCard(processo: ProcessoSave23) {
     setSelecionado(processo);
     setEditando(false);
+    setCarregandoInteracoes(true);
+    listarInteracoesProcesso(processo.id).then((res) => {
+      setInteracoes(res.data);
+      setCarregandoInteracoes(false);
+    });
+  }
+
+  function adicionarInteracao() {
+    if (!selecionado || !novaInteracaoTexto.trim()) return;
+    startTransition(async () => {
+      const res = await criarInteracaoProcesso(selecionado.id, novaInteracaoTipo, novaInteracaoTexto);
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      setInteracoes((prev) => [res.data!, ...prev]);
+      setNovaInteracaoTexto("");
+    });
   }
 
   const documentosDoCliente = useMemo(() => {
@@ -510,6 +545,52 @@ export function ProcessosKanban({ estagiosIniciais, processosIniciais, clientes,
                       >
                         <Download className="w-3.5 h-3.5" />
                       </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico</h4>
+              <div className="space-y-2">
+                <select
+                  value={novaInteracaoTipo}
+                  onChange={(e) => setNovaInteracaoTipo(e.target.value as ProcessoInteractionType)}
+                  className={`${inputClass} w-full`}
+                >
+                  {(Object.keys(INTERACAO_LABEL) as ProcessoInteractionType[]).map((t) => (
+                    <option key={t} value={t} className="bg-[#111625]">
+                      {INTERACAO_LABEL[t]}
+                    </option>
+                  ))}
+                </select>
+                <textarea
+                  className={inputClass}
+                  rows={3}
+                  value={novaInteracaoTexto}
+                  onChange={(e) => setNovaInteracaoTexto(e.target.value)}
+                  placeholder="Registrar..."
+                  onKeyDown={(e) => e.key === "Enter" && (e.metaKey || e.ctrlKey) && adicionarInteracao()}
+                />
+                <div className="flex justify-end">
+                  <button onClick={adicionarInteracao} className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-600 hover:bg-red-500 text-white">
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {carregandoInteracoes ? (
+                <p className="text-xs text-gray-500">Carregando...</p>
+              ) : interacoes.length === 0 ? (
+                <p className="text-xs text-gray-500">Nenhuma interação registrada.</p>
+              ) : (
+                <div className="space-y-2">
+                  {interacoes.map((i) => (
+                    <div key={i.id} className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] text-xs">
+                      <span className="font-bold text-red-400">{INTERACAO_LABEL[i.interaction_type]}</span>
+                      <span className="text-gray-500"> · {new Date(i.created_at).toLocaleString("pt-BR")}</span>
+                      <p className="text-gray-300 mt-1">{i.content}</p>
                     </div>
                   ))}
                 </div>

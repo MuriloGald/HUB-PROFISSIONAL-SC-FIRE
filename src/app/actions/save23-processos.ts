@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { EstagioProcesso, ProcessoSave23 } from "@/lib/save23-processos/types";
+import type { EstagioProcesso, ProcessoInteracao, ProcessoInteractionType, ProcessoSave23 } from "@/lib/save23-processos/types";
 
 const PROCESSOS_PATH = "/relatorios/save-in23/processos";
 
@@ -144,4 +144,32 @@ export async function excluirProcessoSave23(id: string) {
 
   revalidatePath(PROCESSOS_PATH);
   return { success: true };
+}
+
+/** Lista o histórico de interações (ligações, e-mails, notas...) de um processo. */
+export async function listarInteracoesProcesso(processoId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("save23_processo_interacoes")
+    .select("*")
+    .eq("processo_id", processoId)
+    .order("created_at", { ascending: false });
+
+  if (error) return { error: error.message, data: [] as ProcessoInteracao[] };
+  return { data: (data ?? []) as ProcessoInteracao[] };
+}
+
+/** Registra uma interação no histórico do processo — anotação que acompanha o condomínio. */
+export async function criarInteracaoProcesso(processoId: string, tipo: ProcessoInteractionType, conteudo: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("save23_processo_interacoes")
+    .insert({ processo_id: processoId, interaction_type: tipo, content: conteudo.trim() })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+
+  revalidatePath(PROCESSOS_PATH);
+  return { data: data as ProcessoInteracao };
 }

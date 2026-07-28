@@ -14,3 +14,13 @@ export interface ProcessoSave23 {
   created_at: string;
   updated_at: string;
 }
+
+export type ProcessoInteractionType = "ligacao" | "email" | "reuniao" | "nota" | "proposta" | "whatsapp";
+
+export interface ProcessoInteracao {
+  id: string;
+  processo_id: string;
+  interaction_type: ProcessoInteractionType;
+  content: string;
+  created_at: string;
+}
