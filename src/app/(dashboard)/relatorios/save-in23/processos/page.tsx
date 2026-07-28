@@ -1,12 +1,15 @@
 import { listarEstagiosProcesso, listarProcessosSave23 } from "@/app/actions/save23-processos";
 import { listarClientes } from "@/app/actions/clientes";
+import { listarVistorias, listarLaudosTecnicos } from "@/app/actions/save-in23";
 import { ProcessosKanban } from "@/components/features/save-in23/processos/processos-kanban";
 
 export default async function Save23ProcessosPage() {
-  const [{ data: estagios }, { data: processos }, { data: clientes }] = await Promise.all([
+  const [{ data: estagios }, { data: processos }, { data: clientes }, { data: vistorias }, { data: laudosTecnicos }] = await Promise.all([
     listarEstagiosProcesso(),
     listarProcessosSave23(),
     listarClientes(),
+    listarVistorias(),
+    listarLaudosTecnicos(),
   ]);
 
   return (
@@ -18,7 +21,13 @@ export default async function Save23ProcessosPage() {
         </p>
       </div>
 
-      <ProcessosKanban estagiosIniciais={estagios} processosIniciais={processos} clientes={clientes} />
+      <ProcessosKanban
+        estagiosIniciais={estagios}
+        processosIniciais={processos}
+        clientes={clientes}
+        vistorias={vistorias}
+        laudosTecnicos={laudosTecnicos}
+      />
     </div>
   );
 }

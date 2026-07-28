@@ -6,6 +6,13 @@ import type { EstagioProcesso, ProcessoSave23 } from "@/lib/save23-processos/typ
 
 const PROCESSOS_PATH = "/relatorios/save-in23/processos";
 
+/** save23_processos.estagio_id referencia uma coluna que já não existe mais no banco —
+ * acontece quando a aba ficou aberta enquanto colunas eram editadas em outra sessão. */
+function mensagemErroEstagioInvalido(error: { code?: string; message: string }): string {
+  if (error.code === "23503") return "Essa coluna não existe mais. Atualize a página (F5) e tente novamente.";
+  return error.message;
+}
+
 /** Lista as colunas do kanban (editáveis pelo usuário), na ordem cadastrada. */
 export async function listarEstagiosProcesso() {
   const supabase = await createClient();
@@ -94,7 +101,7 @@ export async function criarProcessoSave23(input: NovoProcessoInput) {
     .select()
     .single();
 
-  if (error) return { error: error.message };
+  if (error) return { error: mensagemErroEstagioInvalido(error) };
 
   revalidatePath(PROCESSOS_PATH);
   return { data: data as ProcessoSave23 };
@@ -104,7 +111,7 @@ export async function criarProcessoSave23(input: NovoProcessoInput) {
 export async function moverProcessoSave23(id: string, estagioId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("save23_processos").update({ estagio_id: estagioId, updated_at: new Date().toISOString() }).eq("id", id);
-  if (error) return { error: error.message };
+  if (error) return { error: mensagemErroEstagioInvalido(error) };
 
   revalidatePath(PROCESSOS_PATH);
   return { success: true };

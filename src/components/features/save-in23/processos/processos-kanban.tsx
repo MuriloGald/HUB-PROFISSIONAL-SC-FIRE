@@ -1,8 +1,23 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import { Search, Plus, X, User, Pencil, Save, Building2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  Plus,
+  X,
+  User,
+  Pencil,
+  Save,
+  Building2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  FileText,
+  Download,
+} from "lucide-react";
 import {
   criarEstagioProcesso,
   criarProcessoSave23,
@@ -14,7 +29,8 @@ import {
   atualizarProcessoSave23,
 } from "@/app/actions/save23-processos";
 import type { EstagioProcesso, ProcessoSave23 } from "@/lib/save23-processos/types";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Laudo } from "@/lib/supabase/types";
+import type { VistoriaWizardState, LaudoTecnicoWizardState } from "@/lib/save-in23/types";
 
 const inputClass =
   "w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all";
@@ -29,9 +45,11 @@ interface ProcessosKanbanProps {
   estagiosIniciais: EstagioProcesso[];
   processosIniciais: ProcessoSave23[];
   clientes: Cliente[];
+  vistorias: Laudo[];
+  laudosTecnicos: Laudo[];
 }
 
-export function ProcessosKanban({ estagiosIniciais, processosIniciais, clientes }: ProcessosKanbanProps) {
+export function ProcessosKanban({ estagiosIniciais, processosIniciais, clientes, vistorias, laudosTecnicos }: ProcessosKanbanProps) {
   const [estagios, setEstagios] = useState<EstagioProcesso[]>(estagiosIniciais);
   const [processos, setProcessos] = useState<ProcessoSave23[]>(processosIniciais);
   const [search, setSearch] = useState("");
@@ -82,6 +100,32 @@ export function ProcessosKanban({ estagiosIniciais, processosIniciais, clientes 
   function abrirCard(processo: ProcessoSave23) {
     setSelecionado(processo);
     setEditando(false);
+  }
+
+  const documentosDoCliente = useMemo(() => {
+    if (!selecionado) return [];
+    const doCliente = (l: Laudo) => l.cliente_id === selecionado.cliente_id;
+    const vistoriasDoCliente = vistorias.filter(doCliente).map((laudo) => ({
+      laudo,
+      tipo: "vistoria" as const,
+      codigo: (laudo.dados as unknown as VistoriaWizardState).codigo,
+    }));
+    const laudosDoCliente = laudosTecnicos.filter(doCliente).map((laudo) => ({
+      laudo,
+      tipo: "laudo" as const,
+      codigo: (laudo.dados as unknown as LaudoTecnicoWizardState).codigo,
+    }));
+    return [...vistoriasDoCliente, ...laudosDoCliente].sort((a, b) => b.laudo.created_at.localeCompare(a.laudo.created_at));
+  }, [selecionado, vistorias, laudosTecnicos]);
+
+  async function handleBaixarDocumento(laudo: Laudo, tipo: "vistoria" | "laudo") {
+    if (tipo === "vistoria") {
+      const { gerarPdfVistoria } = await import("@/lib/save-in23/pdf-generator");
+      await gerarPdfVistoria(laudo.dados as unknown as VistoriaWizardState);
+    } else {
+      const { gerarPdfLaudo } = await import("@/lib/save-in23/pdf-generator");
+      await gerarPdfLaudo(laudo.dados as unknown as LaudoTecnicoWizardState);
+    }
   }
 
   function iniciarEdicaoCard() {
@@ -423,6 +467,51 @@ export function ProcessosKanban({ estagiosIniciais, processosIniciais, clientes 
                   )}
                   {selecionado.observacoes && <p className="text-xs text-gray-500 pt-1 border-t border-white/[0.06] mt-2">{selecionado.observacoes}</p>}
                   {!selecionado.responsavel && !selecionado.observacoes && <p className="text-xs text-gray-600">Nenhum detalhe registrado.</p>}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Documentos SAVE 23</h4>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={`/relatorios/save-in23/vistorias/nova?clienteId=${selecionado.cliente_id}`}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600/15 hover:bg-emerald-600/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <ClipboardList className="w-3.5 h-3.5" /> Nova Vistoria
+                </Link>
+                <Link
+                  href={`/relatorios/save-in23/laudos/novo?clienteId=${selecionado.cliente_id}`}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-red-600/15 hover:bg-red-600/25 border border-red-500/30 text-red-300 text-xs font-semibold rounded-lg transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5" /> Novo Laudo
+                </Link>
+              </div>
+
+              {documentosDoCliente.length === 0 ? (
+                <p className="text-xs text-gray-600">Nenhum documento cadastrado ainda para este condomínio.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {documentosDoCliente.map(({ laudo, tipo, codigo }) => (
+                    <div key={laudo.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {tipo === "vistoria" ? (
+                          <ClipboardList className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                        ) : (
+                          <FileText className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
+                        )}
+                        <span className="text-xs text-gray-300 truncate">{codigo || (tipo === "vistoria" ? "Vistoria" : "Laudo Técnico")}</span>
+                      </div>
+                      <button
+                        onClick={() => handleBaixarDocumento(laudo, tipo)}
+                        title="Baixar relatório"
+                        className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-md border border-white/[0.08] hover:border-emerald-500/50 hover:bg-white/[0.04] text-gray-400 hover:text-emerald-400 transition-all"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
