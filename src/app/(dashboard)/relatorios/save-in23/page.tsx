@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { Building2, ClipboardList, FileText, ShieldCheck, CalendarPlus } from "lucide-react";
+import { Building2, ClipboardList, FileText, ShieldCheck, CalendarPlus, KanbanSquare } from "lucide-react";
 import { listarVistorias, listarLaudosTecnicos } from "@/app/actions/save-in23";
 import { listarClientes } from "@/app/actions/clientes";
+import { listarProcessosSave23 } from "@/app/actions/save23-processos";
 import { avaliarSetor } from "@/lib/save-in23/classificador";
 import type { VistoriaWizardState } from "@/lib/save-in23/types";
 
 export default async function Save23DashboardPage() {
-  const [{ data: clientes }, { data: vistorias }, { data: laudos }] = await Promise.all([
+  const [{ data: clientes }, { data: vistorias }, { data: laudos }, { data: processos }] = await Promise.all([
     listarClientes(),
     listarVistorias(),
     listarLaudosTecnicos(),
+    listarProcessosSave23(),
   ]);
 
   const setoresDispensados = vistorias.reduce((acc, l) => {
@@ -32,6 +34,13 @@ export default async function Save23DashboardPage() {
       href: "/relatorios/save-in23/laudos/novo",
       color: "from-red-600 to-orange-400",
     },
+    {
+      title: "Acompanhamento de Processos",
+      desc: "Quadro do status de atendimento de cada condomínio — do contato inicial à dispensa concedida.",
+      icon: KanbanSquare,
+      href: "/relatorios/save-in23/processos",
+      color: "from-blue-600 to-cyan-400",
+    },
   ];
 
   return (
@@ -43,7 +52,7 @@ export default async function Save23DashboardPage() {
         </p>
       </div>
 
-      <section className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-5 gap-4">
         <Link href="/clientes" className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.15] transition-all flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Clientes Cadastrados</span>
@@ -75,9 +84,20 @@ export default async function Save23DashboardPage() {
           </div>
           <FileText className="w-8 h-8 text-red-500/30" />
         </div>
+
+        <Link
+          href="/relatorios/save-in23/processos"
+          className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.15] transition-all flex items-center justify-between"
+        >
+          <div>
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Processos em Andamento</span>
+            <div className="text-2xl font-bold text-white mt-1">{processos.length}</div>
+          </div>
+          <KanbanSquare className="w-8 h-8 text-cyan-500/30" />
+        </Link>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {acoes.map((a) => (
           <Link
             key={a.title}

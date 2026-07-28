@@ -147,6 +147,7 @@ function getNavItems(role: AppRole): NavItem[] {
         { label: "SAVE — IN 23 (Dashboard)", href: "/relatorios/save-in23" },
         { label: "Vistorias de Campo", href: "/relatorios/save-in23/vistorias" },
         { label: "Laudos Técnicos", href: "/relatorios/save-in23/laudos" },
+        { label: "Acompanhamento de Processos", href: "/relatorios/save-in23/processos" },
       ],
     },
 
