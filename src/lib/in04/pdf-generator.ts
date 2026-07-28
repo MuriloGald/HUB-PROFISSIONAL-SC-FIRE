@@ -212,7 +212,7 @@ export async function gerarPdfVistoriaManutencao(state: VistoriaManutencaoState)
   y = desenharParagrafo(
     doc,
     y,
-    "Este documento apresenta os resultados da vistoria técnica realizada nas dependências do imóvel, avaliando a conformidade operacional e o estado de manutenção dos Sistemas e Medidas de Segurança Contra Incêndio (SMSCI) instalados."
+    "Este documento apresenta os resultados da vistoria técnica realizada nas dependências do imóvel, visando auditar a conformidade operacional e o estado de manutenção dos Sistemas e Medidas de Segurança Contra Incêndio (SMSCI) instalados frente ao Projeto Preventivo Contra Incêndio (PPCI) aprovado e à realidade física da edificação na data presente."
   );
 
   y = desenharTituloSecao(doc, y, "2. Objetivo e Referencial Normativo");
@@ -267,11 +267,21 @@ export async function gerarPdfVistoriaManutencao(state: VistoriaManutencaoState)
   }
 
   y = desenharTituloSecao(doc, y, "6. Conclusão de Conformidade");
+  const dataVistoriaFormatada = formatarDataBR(state.data_vistoria) || "acima indicada";
   const textoConclusao =
     totalNaoConformidades.length === 0
-      ? `Com base nos dados coletados, conclui-se que o imóvel ${c?.razao_social || ""} apresenta seus SMSCI em pleno estado de conformidade com as normas vigentes do CBMSC (IN 04).`
-      : `Com base nos dados coletados, foram identificadas ${totalNaoConformidades.length} pendência(s) de conformidade nos SMSCI do imóvel ${c?.razao_social || ""}, relacionadas na seção 5 deste relatório. Recomenda-se a regularização das pendências dentro dos prazos previstos nas Instruções Normativas do CBMSC aplicáveis a cada sistema.`;
+      ? `Com base nos dados coletados, conclui-se que, na data da vistoria (${dataVistoriaFormatada}), o imóvel ${c?.razao_social || ""} apresentava seus SMSCI em pleno estado de conformidade com as normas vigentes do CBMSC (IN 04).`
+      : `Com base nos dados coletados, conclui-se que, na data da vistoria (${dataVistoriaFormatada}), foram identificadas ${totalNaoConformidades.length} pendência(s) de conformidade nos SMSCI do imóvel ${c?.razao_social || ""}, relacionadas na seção 5 deste relatório. Recomenda-se a regularização das pendências dentro dos prazos previstos nas Instruções Normativas do CBMSC aplicáveis a cada sistema.`;
   y = desenharParagrafo(doc, y, textoConclusao);
+
+  // Ressalva de auto-defesa jurídica: a conformidade atestada é uma fotografia do
+  // momento da vistoria, não uma garantia contínua — a manutenção do estado
+  // verificado é responsabilidade do proprietário/responsável pelo uso a partir daí.
+  y = desenharParagrafo(
+    doc,
+    y,
+    `Esta conclusão reflete exclusivamente o estado dos SMSCI verificado na data e no momento da vistoria acima indicada (${dataVistoriaFormatada}), não constituindo garantia de conformidade em data anterior ou posterior a essa. A manutenção da conformidade ao longo do tempo, bem como a operacionalidade e a realização das manutenções e vistorias periódicas previstas nas Instruções Normativas do CBMSC aplicáveis a cada sistema, são de responsabilidade exclusiva do proprietário e/ou do responsável pelo uso do imóvel.`
+  );
 
   if (state.observacoesGerais) {
     y = desenharTituloSecao(doc, y, "Observações Gerais");

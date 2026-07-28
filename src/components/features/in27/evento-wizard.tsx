@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper, Search } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
 import { ImageUploader } from "@/components/features/shared/image-uploader";
 import { salvarEventoPirotecnico } from "@/app/actions/in27";
@@ -310,9 +310,59 @@ function StepEventoPromotor({
     promotor_cidade: state.promotor_cidade ?? "",
     promotor_cep: state.promotor_cep ?? "",
   });
+  const [buscandoCepEvento, setBuscandoCepEvento] = useState(false);
+  const [cepInfoEvento, setCepInfoEvento] = useState("");
+  const [buscandoCepPromotor, setBuscandoCepPromotor] = useState(false);
+  const [cepInfoPromotor, setCepInfoPromotor] = useState("");
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function buscarCepEvento() {
+    const cepLimpo = form.evento_cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) {
+      setCepInfoEvento("CEP incompleto — preenchendo o endereço manualmente é só continuar.");
+      return;
+    }
+    setBuscandoCepEvento(true);
+    setCepInfoEvento("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({ ...f, evento_logradouro: data.logradouro, evento_bairro: data.bairro, evento_cidade: data.localidade }));
+      } else {
+        setCepInfoEvento("CEP não encontrado — preencha o endereço manualmente.");
+      }
+    } catch {
+      setCepInfoEvento("Não consegui buscar o CEP agora — preencha o endereço manualmente.");
+    } finally {
+      setBuscandoCepEvento(false);
+    }
+  }
+
+  async function buscarCepPromotor() {
+    const cepLimpo = form.promotor_cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) {
+      setCepInfoPromotor("CEP incompleto — preenchendo o endereço manualmente é só continuar.");
+      return;
+    }
+    setBuscandoCepPromotor(true);
+    setCepInfoPromotor("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({ ...f, promotor_logradouro: data.logradouro, promotor_bairro: data.bairro, promotor_cidade: data.localidade }));
+      } else {
+        setCepInfoPromotor("CEP não encontrado — preencha o endereço manualmente.");
+      }
+    } catch {
+      setCepInfoPromotor("Não consegui buscar o CEP agora — preencha o endereço manualmente.");
+    } finally {
+      setBuscandoCepPromotor(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -370,7 +420,19 @@ function StepEventoPromotor({
       </div>
       <div className="space-y-1.5 max-w-xs">
         <label className={labelClass}>CEP</label>
-        <input className={inputClass} value={form.evento_cep} onChange={(e) => update("evento_cep", e.target.value)} />
+        <div className="flex gap-2">
+          <input className={inputClass} value={form.evento_cep} onChange={(e) => update("evento_cep", e.target.value)} />
+          <button
+            type="button"
+            onClick={buscarCepEvento}
+            disabled={buscandoCepEvento}
+            className="px-3 rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+          >
+            {buscandoCepEvento ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            Buscar
+          </button>
+        </div>
+        {cepInfoEvento && <span className="text-xs text-gray-400">{cepInfoEvento}</span>}
       </div>
       <div className="space-y-1.5">
         <label className={labelClass}>Descrição do evento</label>
@@ -422,7 +484,19 @@ function StepEventoPromotor({
       </div>
       <div className="space-y-1.5 max-w-xs">
         <label className={labelClass}>CEP</label>
-        <input className={inputClass} value={form.promotor_cep} onChange={(e) => update("promotor_cep", e.target.value)} />
+        <div className="flex gap-2">
+          <input className={inputClass} value={form.promotor_cep} onChange={(e) => update("promotor_cep", e.target.value)} />
+          <button
+            type="button"
+            onClick={buscarCepPromotor}
+            disabled={buscandoCepPromotor}
+            className="px-3 rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+          >
+            {buscandoCepPromotor ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            Buscar
+          </button>
+        </div>
+        {cepInfoPromotor && <span className="text-xs text-gray-400">{cepInfoPromotor}</span>}
       </div>
 
       <div className="flex justify-between pt-2">
@@ -469,9 +543,59 @@ function StepBlasterRt({
     rt_cidade: state.rt_cidade ?? "",
     rt_cep: state.rt_cep ?? "",
   });
+  const [buscandoCepBlaster, setBuscandoCepBlaster] = useState(false);
+  const [cepInfoBlaster, setCepInfoBlaster] = useState("");
+  const [buscandoCepRt, setBuscandoCepRt] = useState(false);
+  const [cepInfoRt, setCepInfoRt] = useState("");
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function buscarCepBlaster() {
+    const cepLimpo = form.blaster_cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) {
+      setCepInfoBlaster("CEP incompleto — preenchendo o endereço manualmente é só continuar.");
+      return;
+    }
+    setBuscandoCepBlaster(true);
+    setCepInfoBlaster("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({ ...f, blaster_logradouro: data.logradouro, blaster_bairro: data.bairro, blaster_cidade: data.localidade }));
+      } else {
+        setCepInfoBlaster("CEP não encontrado — preencha o endereço manualmente.");
+      }
+    } catch {
+      setCepInfoBlaster("Não consegui buscar o CEP agora — preencha o endereço manualmente.");
+    } finally {
+      setBuscandoCepBlaster(false);
+    }
+  }
+
+  async function buscarCepRt() {
+    const cepLimpo = form.rt_cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) {
+      setCepInfoRt("CEP incompleto — preenchendo o endereço manualmente é só continuar.");
+      return;
+    }
+    setBuscandoCepRt(true);
+    setCepInfoRt("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({ ...f, rt_logradouro: data.logradouro, rt_bairro: data.bairro, rt_cidade: data.localidade }));
+      } else {
+        setCepInfoRt("CEP não encontrado — preencha o endereço manualmente.");
+      }
+    } catch {
+      setCepInfoRt("Não consegui buscar o CEP agora — preencha o endereço manualmente.");
+    } finally {
+      setBuscandoCepRt(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -526,7 +650,19 @@ function StepBlasterRt({
       </div>
       <div className="space-y-1.5 max-w-xs">
         <label className={labelClass}>CEP</label>
-        <input className={inputClass} value={form.blaster_cep} onChange={(e) => update("blaster_cep", e.target.value)} />
+        <div className="flex gap-2">
+          <input className={inputClass} value={form.blaster_cep} onChange={(e) => update("blaster_cep", e.target.value)} />
+          <button
+            type="button"
+            onClick={buscarCepBlaster}
+            disabled={buscandoCepBlaster}
+            className="px-3 rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+          >
+            {buscandoCepBlaster ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            Buscar
+          </button>
+        </div>
+        {cepInfoBlaster && <span className="text-xs text-gray-400">{cepInfoBlaster}</span>}
       </div>
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">4. Responsável Técnico pelo Espetáculo Pirotécnico</h4>
@@ -580,7 +716,19 @@ function StepBlasterRt({
           </div>
           <div className="space-y-1.5 max-w-xs">
             <label className={labelClass}>CEP</label>
-            <input className={inputClass} value={form.rt_cep} onChange={(e) => update("rt_cep", e.target.value)} />
+            <div className="flex gap-2">
+              <input className={inputClass} value={form.rt_cep} onChange={(e) => update("rt_cep", e.target.value)} />
+              <button
+                type="button"
+                onClick={buscarCepRt}
+                disabled={buscandoCepRt}
+                className="px-3 rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+              >
+                {buscandoCepRt ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                Buscar
+              </button>
+            </div>
+            {cepInfoRt && <span className="text-xs text-gray-400">{cepInfoRt}</span>}
           </div>
         </>
       )}

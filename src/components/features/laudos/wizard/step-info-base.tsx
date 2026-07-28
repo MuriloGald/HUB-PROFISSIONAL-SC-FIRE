@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Leaf, Zap, Flame } from "lucide-react";
+import { ArrowLeft, ArrowRight, Leaf, Zap, Flame, Search, Loader2 } from "lucide-react";
 import { classificarEvento, type Porte } from "@/lib/laudos/classificador";
 import type { EventoWizardState } from "@/lib/laudos/types";
 
@@ -51,6 +51,8 @@ export function StepInfoBase({ state, onBack, onNext }: StepInfoBaseProps) {
   });
   const [porteManual, setPorteManual] = useState<Porte | undefined>(state.porteFinal);
   const [mesmoEndereco, setMesmoEndereco] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepInfo, setCepInfo] = useState("");
 
   const porteSugerido = useMemo(
     () =>
@@ -94,6 +96,29 @@ export function StepInfoBase({ state, onBack, onNext }: StepInfoBaseProps) {
         cidade_evento: "",
         complemento_evento: "",
       }));
+    }
+  }
+
+  async function buscarCep() {
+    const cepLimpo = form.cep_evento.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) {
+      setCepInfo("CEP incompleto — preenchendo o endereço manualmente é só continuar.");
+      return;
+    }
+    setBuscandoCep(true);
+    setCepInfo("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({ ...f, logradouro_evento: data.logradouro, bairro_evento: data.bairro, cidade_evento: data.localidade }));
+      } else {
+        setCepInfo("CEP não encontrado — preencha o endereço manualmente.");
+      }
+    } catch {
+      setCepInfo("Não consegui buscar o CEP agora — preencha o endereço manualmente.");
+    } finally {
+      setBuscandoCep(false);
     }
   }
 
@@ -153,7 +178,19 @@ export function StepInfoBase({ state, onBack, onNext }: StepInfoBaseProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <label className={labelClass}>CEP</label>
-          <input required className={inputClass} value={form.cep_evento} onChange={(e) => update("cep_evento", e.target.value)} />
+          <div className="flex gap-2">
+            <input required className={inputClass} value={form.cep_evento} onChange={(e) => update("cep_evento", e.target.value)} />
+            <button
+              type="button"
+              onClick={buscarCep}
+              disabled={buscandoCep}
+              className="px-3 rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+            >
+              {buscandoCep ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+              Buscar
+            </button>
+          </div>
+          {cepInfo && <span className="text-xs text-gray-400">{cepInfo}</span>}
         </div>
         <div className="space-y-1.5 md:col-span-2">
           <label className={labelClass}>Logradouro (Rua, Av.)</label>

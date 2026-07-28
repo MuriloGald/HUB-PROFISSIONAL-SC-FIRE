@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper, Search } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
 import { salvarRecurso } from "@/app/actions/in02";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
@@ -304,9 +304,59 @@ function StepDados({
     responsavel_nome: state.responsavel_nome ?? state.autuado_nome ?? "",
     responsavel_cpf: state.responsavel_cpf ?? "",
   });
+  const [buscandoCepAutuado, setBuscandoCepAutuado] = useState(false);
+  const [cepInfoAutuado, setCepInfoAutuado] = useState("");
+  const [buscandoCepImovel, setBuscandoCepImovel] = useState(false);
+  const [cepInfoImovel, setCepInfoImovel] = useState("");
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function buscarCepAutuado() {
+    const cepLimpo = form.autuado_cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) {
+      setCepInfoAutuado("CEP incompleto — preenchendo o endereço manualmente é só continuar.");
+      return;
+    }
+    setBuscandoCepAutuado(true);
+    setCepInfoAutuado("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({ ...f, autuado_logradouro: data.logradouro, autuado_bairro: data.bairro, autuado_cidade: data.localidade }));
+      } else {
+        setCepInfoAutuado("CEP não encontrado — preencha o endereço manualmente.");
+      }
+    } catch {
+      setCepInfoAutuado("Não consegui buscar o CEP agora — preencha o endereço manualmente.");
+    } finally {
+      setBuscandoCepAutuado(false);
+    }
+  }
+
+  async function buscarCepImovel() {
+    const cepLimpo = form.imovel_cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) {
+      setCepInfoImovel("CEP incompleto — preenchendo o endereço manualmente é só continuar.");
+      return;
+    }
+    setBuscandoCepImovel(true);
+    setCepInfoImovel("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({ ...f, imovel_logradouro: data.logradouro, imovel_bairro: data.bairro, imovel_cidade: data.localidade }));
+      } else {
+        setCepInfoImovel("CEP não encontrado — preencha o endereço manualmente.");
+      }
+    } catch {
+      setCepInfoImovel("Não consegui buscar o CEP agora — preencha o endereço manualmente.");
+    } finally {
+      setBuscandoCepImovel(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -373,7 +423,19 @@ function StepDados({
       </div>
       <div className="space-y-1.5 max-w-xs">
         <label className={labelClass}>CEP</label>
-        <input className={inputClass} value={form.autuado_cep} onChange={(e) => update("autuado_cep", e.target.value)} />
+        <div className="flex gap-2">
+          <input className={inputClass} value={form.autuado_cep} onChange={(e) => update("autuado_cep", e.target.value)} />
+          <button
+            type="button"
+            onClick={buscarCepAutuado}
+            disabled={buscandoCepAutuado}
+            className="px-3 rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+          >
+            {buscandoCepAutuado ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            Buscar
+          </button>
+        </div>
+        {cepInfoAutuado && <span className="text-xs text-gray-400">{cepInfoAutuado}</span>}
       </div>
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">2. Descrição do Imóvel</h4>
@@ -413,7 +475,19 @@ function StepDados({
       </div>
       <div className="space-y-1.5 max-w-xs">
         <label className={labelClass}>CEP</label>
-        <input className={inputClass} value={form.imovel_cep} onChange={(e) => update("imovel_cep", e.target.value)} />
+        <div className="flex gap-2">
+          <input className={inputClass} value={form.imovel_cep} onChange={(e) => update("imovel_cep", e.target.value)} />
+          <button
+            type="button"
+            onClick={buscarCepImovel}
+            disabled={buscandoCepImovel}
+            className="px-3 rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+          >
+            {buscandoCepImovel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+            Buscar
+          </button>
+        </div>
+        {cepInfoImovel && <span className="text-xs text-gray-400">{cepInfoImovel}</span>}
       </div>
       <div className="space-y-1.5">
         <label className={labelClass}>Detalhes (se houver)</label>

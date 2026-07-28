@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper, Search } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
 import { ImageUploader } from "@/components/features/shared/image-uploader";
 import { salvarPibi } from "@/app/actions/in28";
@@ -329,9 +329,34 @@ function StepImovelResponsaveis({ state, onBack, onNext }: { state: PibiState; o
     rt_registro: state.rt_registro ?? "",
     rt_atribuicao: state.rt_atribuicao ?? "",
   });
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepInfo, setCepInfo] = useState("");
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function buscarCep() {
+    const cepLimpo = form.cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) {
+      setCepInfo("CEP incompleto — preenchendo o endereço manualmente é só continuar.");
+      return;
+    }
+    setBuscandoCep(true);
+    setCepInfo("");
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({ ...f, endereco: data.logradouro, bairro: data.bairro, cidade: data.localidade }));
+      } else {
+        setCepInfo("CEP não encontrado — preencha o endereço manualmente.");
+      }
+    } catch {
+      setCepInfo("Não consegui buscar o CEP agora — preencha o endereço manualmente.");
+    } finally {
+      setBuscandoCep(false);
+    }
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -387,7 +412,19 @@ function StepImovelResponsaveis({ state, onBack, onNext }: { state: PibiState; o
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <label className={labelClass}>CEP</label>
-          <input className={inputClass} value={form.cep} onChange={(e) => update("cep", e.target.value)} />
+          <div className="flex gap-2">
+            <input className={inputClass} value={form.cep} onChange={(e) => update("cep", e.target.value)} />
+            <button
+              type="button"
+              onClick={buscarCep}
+              disabled={buscandoCep}
+              className="px-3 rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap"
+            >
+              {buscandoCep ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+              Buscar
+            </button>
+          </div>
+          {cepInfo && <span className="text-xs text-gray-400">{cepInfo}</span>}
         </div>
         <div className="space-y-1.5">
           <label className={labelClass}>Telefone</label>
