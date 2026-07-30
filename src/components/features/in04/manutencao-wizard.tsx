@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, FileDown, Loader2, PartyPopper, Plus, X } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ImageUploader } from "@/components/features/shared/image-uploader";
 import { ChecklistCategoria } from "./checklist-categoria";
 import { salvarVistoriaManutencao } from "@/app/actions/in04";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
@@ -290,14 +291,23 @@ export function ManutencaoWizard({ clientes, initialState }: ManutencaoWizardPro
           </div>
 
           {!salvo && (
-            <div className="space-y-1.5">
-              <label className={labelClass}>Observações gerais</label>
-              <textarea
-                rows={3}
-                className={inputClass}
-                value={state.observacoesGerais ?? ""}
-                onChange={(e) => setState((s) => ({ ...s, observacoesGerais: e.target.value }))}
-              />
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className={labelClass}>Observações gerais</label>
+                <textarea
+                  rows={3}
+                  className={inputClass}
+                  value={state.observacoesGerais ?? ""}
+                  onChange={(e) => setState((s) => ({ ...s, observacoesGerais: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className={labelClass}>Fotos das observações gerais</label>
+                <ImageUploader
+                  imagens={state.imagensObservacoesGerais ?? []}
+                  onChange={(imagens) => setState((s) => ({ ...s, imagensObservacoesGerais: imagens }))}
+                />
+              </div>
             </div>
           )}
 

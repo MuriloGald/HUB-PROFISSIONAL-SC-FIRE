@@ -148,6 +148,10 @@ async function drawFotosAnexadas(doc: DocWithAutoTable, state: VistoriaManutenca
       }
     }
   }
+  for (const img of state.imagensObservacoesGerais ?? []) {
+    imagens.push({ url: img.url, legenda: img.legenda || "Observações Gerais" });
+  }
+
   if (imagens.length === 0) return;
 
   doc.addPage();

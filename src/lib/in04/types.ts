@@ -60,5 +60,6 @@ export interface VistoriaManutencaoState {
   categoriaAtiva?: CategoriaKey;
 
   observacoesGerais?: string;
+  imagensObservacoesGerais?: Imagem[];
   data_emissao?: string;
 }

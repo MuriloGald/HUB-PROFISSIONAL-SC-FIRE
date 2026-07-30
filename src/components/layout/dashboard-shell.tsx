@@ -116,12 +116,22 @@ function getNavItems(role: AppRole): NavItem[] {
     },
     {
       type: "group",
+      label: "Inspeção de Regularidade",
+      icon: ShieldCheck,
+      basePath: "/documentos/in04",
+      items: [
+        { label: "Dashboard", href: "/documentos/in04" },
+        { label: "Nova Vistoria", href: "/documentos/in04/novo" },
+        { label: "Consultar Vistorias", href: "/documentos/in04/lista" },
+      ],
+    },
+    {
+      type: "group",
       label: "Preenchíveis CBMSC",
       icon: ScrollText,
       basePath: "/documentos",
       items: [
         { label: "IN 02 — Recursos e Multas", href: "/documentos/in02" },
-        { label: "IN 04 — Manutenção do SMSCI", href: "/documentos/in04" },
         { label: "IN 07 — Hidrantes (SHP)", href: "/documentos/in07" },
         { label: "IN 09 — Elevador de Emergência", href: "/documentos/in09" },
         { label: "IN 10 — Controle de Fumaça", href: "/documentos/in10" },
