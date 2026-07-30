@@ -224,6 +224,7 @@ export type LaudoTipoDocumento =
   | "IN15"
   | "IN27"
   | "IN28"
+  | "LaudoTecnico"
   | "Outro";
 export type LaudoStatus = "rascunho" | "concluido" | "cancelado";
 

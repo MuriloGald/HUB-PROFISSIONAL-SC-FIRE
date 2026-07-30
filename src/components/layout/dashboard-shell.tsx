@@ -123,6 +123,9 @@ function getNavItems(role: AppRole): NavItem[] {
         { label: "Dashboard", href: "/documentos/in04" },
         { label: "Nova Vistoria", href: "/documentos/in04/novo" },
         { label: "Consultar Vistorias", href: "/documentos/in04/lista" },
+        { label: "Laudos Técnicos (Dashboard)", href: "/documentos/laudos-tecnicos" },
+        { label: "Novo Laudo Técnico", href: "/documentos/laudos-tecnicos/novo" },
+        { label: "Consultar Laudos Técnicos", href: "/documentos/laudos-tecnicos/lista" },
       ],
     },
     {
