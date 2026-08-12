@@ -7,10 +7,16 @@ export interface RelatorioTurmaIdentificacao {
   finishedAt: string | null;
 }
 
-export interface RelatorioTurmaAvaliacao {
+export interface RelatorioTurmaAvaliacaoFase {
   totalRespostas: number;
-  totalPresentes: number;
   mediaAcertosPercent: number;
+}
+
+export interface RelatorioTurmaAvaliacao {
+  totalPresentes: number;
+  incendio: RelatorioTurmaAvaliacaoFase;
+  socorros: RelatorioTurmaAvaliacaoFase;
+  mediaGeralPercent: number;
 }
 
 export interface RelatorioPerguntaSatisfacao {

@@ -110,16 +110,18 @@ function drawIdentificacao(doc: DocWithAutoTable, y: number, data: RelatorioTurm
 
 function drawAvaliacao(doc: DocWithAutoTable, y: number, data: RelatorioTurmaData): number {
   const { avaliacao } = data;
-  const startY = drawSecaoTitulo(doc, y, "2. AVALIAÇÃO DE APRENDIZAGEM");
+  const startY = drawSecaoTitulo(doc, y, "2. AVALIAÇÃO DE APRENDIZAGEM (EM 2 PROVAS)");
+
+  const totalRespostasTotal = avaliacao.incendio.totalRespostas + avaliacao.socorros.totalRespostas;
 
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...COR_TEXTO_SUAVE);
-  const resumo = `${avaliacao.totalRespostas} de ${avaliacao.totalPresentes} aluno(s) presente(s) concluíram a avaliação de verificação.`;
+  const resumo = `Resultado das provas aplicadas aos ${avaliacao.totalPresentes} aluno(s) presente(s).`;
   doc.text(resumo, margin, startY + 6);
   doc.setTextColor(0, 0, 0);
 
-  if (avaliacao.totalRespostas === 0) {
+  if (totalRespostasTotal === 0) {
     doc.setFontSize(8.5);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(...COR_TEXTO_SUAVE);
@@ -128,14 +130,40 @@ function drawAvaliacao(doc: DocWithAutoTable, y: number, data: RelatorioTurmaDat
     return startY + 20;
   }
 
-  const cursorY = drawBarraHorizontal(
-    doc,
-    startY + 12,
-    "Média de acertos",
-    avaliacao.mediaAcertosPercent,
-    100,
-    `${avaliacao.mediaAcertosPercent.toFixed(0)}%`
-  );
+  let cursorY = startY + 12;
+
+  if (avaliacao.incendio.totalRespostas > 0) {
+    cursorY = drawBarraHorizontal(
+      doc,
+      cursorY,
+      "Prova 1: Combate a Incêndio",
+      avaliacao.incendio.mediaAcertosPercent,
+      100,
+      `${avaliacao.incendio.mediaAcertosPercent.toFixed(0)}%`
+    );
+  }
+
+  if (avaliacao.socorros.totalRespostas > 0) {
+    cursorY = drawBarraHorizontal(
+      doc,
+      cursorY,
+      "Prova 2: Primeiros Socorros",
+      avaliacao.socorros.mediaAcertosPercent,
+      100,
+      `${avaliacao.socorros.mediaAcertosPercent.toFixed(0)}%`
+    );
+  }
+
+  if (avaliacao.incendio.totalRespostas > 0 && avaliacao.socorros.totalRespostas > 0) {
+    cursorY = drawBarraHorizontal(
+      doc,
+      cursorY,
+      "Média Geral de Aprendizagem",
+      avaliacao.mediaGeralPercent,
+      100,
+      `${avaliacao.mediaGeralPercent.toFixed(0)}%`
+    );
+  }
 
   return cursorY + 4;
 }

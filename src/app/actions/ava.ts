@@ -53,30 +53,56 @@ function seededShuffle<T>(array: T[], seedStr: string): T[] {
   return result;
 }
 
-/** Achata as questões de verificação de todos os subtemas e sorteia no máximo `limit` questões (padrão 10). */
-export async function buscarQuestoesAvaliacao(trainingId: string, studentId?: string, limit = 10) {
+export type FaseAvaliacao = "incendio" | "primeiros_socorros";
+
+/** Achata as questões de verificação filtrando pela fase (incendio x primeiros_socorros) e sorteia no máximo `limit` questões (padrão 10). */
+export async function buscarQuestoesAvaliacao(
+  trainingId: string,
+  studentId?: string,
+  fase: FaseAvaliacao = "incendio",
+  limit = 10
+) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("training_subthemes")
-    .select("sort_order,subtheme:subthemes(name,conteudo)")
+    .select("sort_order,subtheme:subthemes(name,category,conteudo)")
     .eq("training_id", trainingId)
     .order("sort_order", { ascending: true });
 
   if (error) return { error: error.message, data: [] as QuestaoAvaliacao[] };
 
-  const rows = (data ?? []) as unknown as { subtheme: { name: string; conteudo: ConteudoAula | null } | null }[];
+  const rows = (data ?? []) as unknown as {
+    subtheme: { name: string; category: string; conteudo: ConteudoAula | null } | null;
+  }[];
+
   const banco: QuestaoAvaliacao[] = [];
   for (const r of rows) {
-    const perguntas = r.subtheme?.conteudo?.verificacao?.questoes ?? [];
+    if (!r.subtheme) continue;
+    const cat = (r.subtheme.category || r.subtheme.conteudo?.modulo || "").toLowerCase();
+    const subName = (r.subtheme.name || "").toLowerCase();
+
+    const isPrimeirosSocorros =
+      cat.includes("socorro") ||
+      cat.includes("aph") ||
+      subName.includes("b4") ||
+      subName.includes("b5") ||
+      subName.includes("b6") ||
+      subName.includes("socorros");
+
+    if (fase === "primeiros_socorros" && !isPrimeirosSocorros) continue;
+    if (fase === "incendio" && isPrimeirosSocorros) continue;
+
+    const perguntas = r.subtheme.conteudo?.verificacao?.questoes ?? [];
     for (const q of perguntas) {
-      banco.push({ subtemaNome: r.subtheme?.name ?? "", pergunta: q.pergunta, opcoes: q.opcoes });
+      banco.push({ subtemaNome: r.subtheme.name ?? "", pergunta: q.pergunta, opcoes: q.opcoes });
     }
   }
 
   let questoes = banco;
   if (questoes.length > limit) {
-    if (studentId) {
-      questoes = seededShuffle(banco, studentId).slice(0, limit);
+    const seed = studentId ? `${studentId}_${fase}` : undefined;
+    if (seed) {
+      questoes = seededShuffle(banco, seed).slice(0, limit);
     } else {
       questoes = banco.slice(0, limit);
     }
@@ -85,23 +111,33 @@ export async function buscarQuestoesAvaliacao(trainingId: string, studentId?: st
   return { data: questoes };
 }
 
-/** Verifica se o aluno já respondeu a avaliação desta turma (pra mostrar o resultado em vez do formulário de novo). */
-export async function buscarAvaliacaoDoAluno(classId: string, studentId: string) {
+/** Busca os resultados de todas as fases já respondidas pelo aluno nesta turma. */
+export async function buscarTodasAvaliacoesDoAluno(classId: string, studentId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("avaliacao_respostas")
-    .select("respostas,acertos,total")
+    .select("fase,respostas,acertos,total")
     .eq("class_id", classId)
-    .eq("student_id", studentId)
-    .maybeSingle();
+    .eq("student_id", studentId);
 
-  if (!data) return { data: null };
-  return { data: data as unknown as AvaliacaoResultado };
+  const porFase: Record<string, AvaliacaoResultado> = {};
+  (data ?? []).forEach((r) => {
+    const item = r as unknown as { fase?: string; respostas: number[]; acertos: number; total: number };
+    porFase[item.fase || "incendio"] = { acertos: item.acertos, total: item.total, respostas: item.respostas };
+  });
+
+  return { data: porFase };
 }
 
-/** Recebe as respostas do aluno, recalcula o score no servidor (não confia no cliente) e grava. */
-export async function enviarAvaliacao(classId: string, studentId: string, trainingId: string, respostas: number[]) {
-  const { data: questoes, error: errQuestoes } = await buscarQuestoesAvaliacao(trainingId, studentId, 10);
+/** Recebe as respostas do aluno para uma determinada fase, recalcula o score e grava. */
+export async function enviarAvaliacao(
+  classId: string,
+  studentId: string,
+  trainingId: string,
+  respostas: number[],
+  fase: FaseAvaliacao = "incendio"
+) {
+  const { data: questoes, error: errQuestoes } = await buscarQuestoesAvaliacao(trainingId, studentId, fase, 10);
   if (errQuestoes) return { error: errQuestoes };
 
   let acertos = 0;
@@ -114,13 +150,14 @@ export async function enviarAvaliacao(classId: string, studentId: string, traini
   const { error } = await supabase.from("avaliacao_respostas").insert({
     class_id: classId,
     student_id: studentId,
+    fase,
     respostas,
     acertos,
     total: questoes.length,
   });
 
   if (error) {
-    if (error.code === "23505") return { error: "Você já respondeu a avaliação desta turma." };
+    if (error.code === "23505") return { error: "Você já respondeu a esta fase da avaliação." };
     return { error: error.message };
   }
 

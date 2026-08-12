@@ -191,7 +191,7 @@ export async function buscarRelatorioTurma(classId: string): Promise<{ data: Rel
       .eq("id", classId)
       .single(),
     supabase.from("attendances").select("student_id").eq("class_id", classId),
-    supabase.from("avaliacao_respostas").select("student_id,acertos,total").eq("class_id", classId),
+    supabase.from("avaliacao_respostas").select("student_id,fase,acertos,total").eq("class_id", classId),
     supabase.from("pesquisas_satisfacao").select("student_id,notas,comentario").eq("class_id", classId),
   ]);
 
@@ -211,9 +211,18 @@ export async function buscarRelatorioTurma(classId: string): Promise<{ data: Rel
   ((satisfacaoRes.data ?? []) as { student_id: string }[]).forEach((r) => { if (r.student_id) setAlunosPresentes.add(r.student_id); });
   const totalPresentes = setAlunosPresentes.size;
 
-  const avaliacaoRows = (avaliacaoRes.data ?? []) as { acertos: number; total: number }[];
-  const percentuais = avaliacaoRows.filter((r) => r.total > 0).map((r) => (r.acertos / r.total) * 100);
-  const mediaAcertosPercent = percentuais.length > 0 ? percentuais.reduce((a, b) => a + b, 0) / percentuais.length : 0;
+  const avaliacaoRows = (avaliacaoRes.data ?? []) as { fase?: string; acertos: number; total: number }[];
+  const incendioRows = avaliacaoRows.filter((r) => (r.fase || "incendio") === "incendio" && r.total > 0);
+  const socorrosRows = avaliacaoRows.filter((r) => r.fase === "primeiros_socorros" && r.total > 0);
+
+  const pctIncendio = incendioRows.map((r) => (r.acertos / r.total) * 100);
+  const mediaIncendio = pctIncendio.length > 0 ? pctIncendio.reduce((a, b) => a + b, 0) / pctIncendio.length : 0;
+
+  const pctSocorros = socorrosRows.map((r) => (r.acertos / r.total) * 100);
+  const mediaSocorros = pctSocorros.length > 0 ? pctSocorros.reduce((a, b) => a + b, 0) / pctSocorros.length : 0;
+
+  const todosPct = avaliacaoRows.filter((r) => r.total > 0).map((r) => (r.acertos / r.total) * 100);
+  const mediaGeralPercent = todosPct.length > 0 ? todosPct.reduce((a, b) => a + b, 0) / todosPct.length : 0;
 
   const satisfacaoRows = (satisfacaoRes.data ?? []) as { notas: number[]; comentario: string | null }[];
   const perguntas = PERGUNTAS_PESQUISA_SATISFACAO.map((pergunta, i) => {
@@ -240,7 +249,12 @@ export async function buscarRelatorioTurma(classId: string): Promise<{ data: Rel
       scheduledAt: turmaRow.scheduled_at,
       finishedAt: turmaRow.finished_at,
     },
-    avaliacao: { totalRespostas: avaliacaoRows.length, totalPresentes, mediaAcertosPercent },
+    avaliacao: {
+      totalPresentes,
+      incendio: { totalRespostas: incendioRows.length, mediaAcertosPercent: mediaIncendio },
+      socorros: { totalRespostas: socorrosRows.length, mediaAcertosPercent: mediaSocorros },
+      mediaGeralPercent,
+    },
     satisfacao: { totalRespostas: satisfacaoRows.length, totalPresentes, mediaGeral, perguntas, comentarios },
   };
 
