@@ -189,7 +189,7 @@ function drawPesquisaSatisfacao(doc: DocWithAutoTable, y: number, data: Relatori
   doc.autoTable({
     startY: cursorY,
     theme: "grid",
-    head: [["Pergunta", "1★", "2★", "3★", "4★", "5★"]],
+    head: [["Pergunta", "Nota 1", "Nota 2", "Nota 3", "Nota 4", "Nota 5"]],
     body,
     headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: "bold", halign: "center", fontSize: 8, cellPadding: 2 },
     styles: { fontSize: 8, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },

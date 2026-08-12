@@ -190,9 +190,9 @@ export async function buscarRelatorioTurma(classId: string): Promise<{ data: Rel
       .select("instrutor_nome,scheduled_at,finished_at,training:trainings(name,total_hours),cliente:clientes(nome,razao_social)")
       .eq("id", classId)
       .single(),
-    supabase.from("attendances").select("id", { count: "exact", head: true }).eq("class_id", classId),
-    supabase.from("avaliacao_respostas").select("acertos,total").eq("class_id", classId),
-    supabase.from("pesquisas_satisfacao").select("notas,comentario").eq("class_id", classId),
+    supabase.from("attendances").select("student_id").eq("class_id", classId),
+    supabase.from("avaliacao_respostas").select("student_id,acertos,total").eq("class_id", classId),
+    supabase.from("pesquisas_satisfacao").select("student_id,notas,comentario").eq("class_id", classId),
   ]);
 
   if (turmaRes.error) return { error: turmaRes.error.message };
@@ -205,7 +205,11 @@ export async function buscarRelatorioTurma(classId: string): Promise<{ data: Rel
     cliente: { nome: string; razao_social: string | null } | null;
   };
 
-  const totalPresentes = presencasRes.count ?? 0;
+  const setAlunosPresentes = new Set<string>();
+  ((presencasRes.data ?? []) as { student_id: string }[]).forEach((r) => { if (r.student_id) setAlunosPresentes.add(r.student_id); });
+  ((avaliacaoRes.data ?? []) as { student_id: string }[]).forEach((r) => { if (r.student_id) setAlunosPresentes.add(r.student_id); });
+  ((satisfacaoRes.data ?? []) as { student_id: string }[]).forEach((r) => { if (r.student_id) setAlunosPresentes.add(r.student_id); });
+  const totalPresentes = setAlunosPresentes.size;
 
   const avaliacaoRows = (avaliacaoRes.data ?? []) as { acertos: number; total: number }[];
   const percentuais = avaliacaoRows.filter((r) => r.total > 0).map((r) => (r.acertos / r.total) * 100);

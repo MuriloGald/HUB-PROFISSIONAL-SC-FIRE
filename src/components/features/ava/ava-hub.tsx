@@ -66,8 +66,12 @@ export function AvaHub({ token }: { token: string }) {
       const salvo = window.localStorage.getItem(chaveAluno(token));
       if (salvo) {
         try {
-          setAluno(JSON.parse(salvo));
+          const info = JSON.parse(salvo);
+          setAluno(info);
           setEtapa("hub");
+          registrarPresenca({ classId: t.id, studentId: info.id, latitude: null, longitude: null }).then((r) => {
+            if (!r.error) setPresencaStatus("sucesso");
+          });
           return;
         } catch {
           // ignora e segue pro fluxo de identificacao
@@ -83,6 +87,11 @@ export function AvaHub({ token }: { token: string }) {
     window.localStorage.setItem(chaveAluno(token), JSON.stringify(info));
     setAluno(info);
     setEtapa("hub");
+    if (turma) {
+      registrarPresenca({ classId: turma.id, studentId: id, latitude: null, longitude: null }).then((r) => {
+        if (!r.error) setPresencaStatus("sucesso");
+      });
+    }
   }
 
   async function handleBuscarCpf() {
