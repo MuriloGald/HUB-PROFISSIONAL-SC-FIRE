@@ -114,11 +114,27 @@ export async function buscarQuestoesAvaliacao(
 /** Busca os resultados de todas as fases já respondidas pelo aluno nesta turma. */
 export async function buscarTodasAvaliacoesDoAluno(classId: string, studentId: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("avaliacao_respostas")
     .select("fase,respostas,acertos,total")
     .eq("class_id", classId)
     .eq("student_id", studentId);
+
+  if (error) {
+    // Se a coluna 'fase' ainda não foi criada no Supabase via migration, busca sem ela
+    const fallback = await supabase
+      .from("avaliacao_respostas")
+      .select("respostas,acertos,total")
+      .eq("class_id", classId)
+      .eq("student_id", studentId);
+
+    const porFase: Record<string, AvaliacaoResultado> = {};
+    if (fallback.data && fallback.data.length > 0) {
+      const item = fallback.data[0] as unknown as { respostas: number[]; acertos: number; total: number };
+      porFase["incendio"] = { acertos: item.acertos, total: item.total, respostas: item.respostas };
+    }
+    return { data: porFase };
+  }
 
   const porFase: Record<string, AvaliacaoResultado> = {};
   (data ?? []).forEach((r) => {
@@ -147,7 +163,9 @@ export async function enviarAvaliacao(
   });
 
   const supabase = await createClient();
-  const { error } = await supabase.from("avaliacao_respostas").insert({
+
+  // Tenta salvar incluindo a coluna 'fase'
+  let { error } = await supabase.from("avaliacao_respostas").insert({
     class_id: classId,
     student_id: studentId,
     fase,
@@ -156,8 +174,20 @@ export async function enviarAvaliacao(
     total: questoes.length,
   });
 
+  // Se der erro porque a coluna 'fase' ainda não foi criada no banco, faz o fallback salvando sem a coluna 'fase'
+  if (error && (error.message.includes("fase") || error.code === "PGRST204" || error.code === "42703")) {
+    const fallback = await supabase.from("avaliacao_respostas").insert({
+      class_id: classId,
+      student_id: studentId,
+      respostas,
+      acertos,
+      total: questoes.length,
+    });
+    error = fallback.error;
+  }
+
   if (error) {
-    if (error.code === "23505") return { error: "Você já respondeu a esta fase da avaliação." };
+    if (error.code === "23505") return { error: "Você já respondeu a esta avaliação." };
     return { error: error.message };
   }
 
