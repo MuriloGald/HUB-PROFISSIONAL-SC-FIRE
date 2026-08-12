@@ -1,4 +1,5 @@
 import { listarClientes, buscarCliente } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { buscarVistoria } from "@/app/actions/save-in23";
 import { VistoriaWizard } from "@/components/features/save-in23/vistoria/vistoria-wizard";
 import { preencherLacunasSnapshot } from "@/lib/clientes/snapshot";
@@ -10,7 +11,7 @@ export default async function NovaVistoriaPage({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const { data: clientes } = await listarClientes();
+  const [{ data: clientes }, { data: profissionais }] = await Promise.all([listarClientes(), listarProfissionais()]);
 
   let initialState: VistoriaWizardState | undefined;
   if (editarId) {
@@ -29,5 +30,5 @@ export default async function NovaVistoriaPage({
     }
   }
 
-  return <VistoriaWizard clientes={clientes} clienteIdInicial={clienteId} initialState={initialState} />;
+  return <VistoriaWizard clientes={clientes} profissionais={profissionais} clienteIdInicial={clienteId} initialState={initialState} />;
 }

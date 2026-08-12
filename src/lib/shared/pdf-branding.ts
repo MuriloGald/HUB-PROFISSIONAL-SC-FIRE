@@ -218,6 +218,24 @@ export async function drawCabecalhoOficialCBMSC(doc: jsPDF, titulo: string): Pro
   return y + 3;
 }
 
+export interface ProfissionalAssinatura {
+  nome: string;
+  registroTipo?: "crea" | "cft" | string | null;
+  registroNumero?: string | null;
+}
+
+/**
+ * Formata o número de registro no conselho de classe pra exibir embaixo do
+ * nome na assinatura — "CREA/SC ####" ou "CFT ####". Fonte única usada por
+ * todo gerador de PDF que assina como Responsável Técnico (cadastro em
+ * src/app/actions/profissionais.ts), pra garantir que toda assinatura do hub
+ * mostre o registro do mesmo jeito.
+ */
+export function formatarRegistroProfissional(p: ProfissionalAssinatura): string {
+  const prefixo = p.registroTipo === "cft" ? "CFT" : p.registroTipo === "crea" ? "CREA/SC" : "";
+  return [prefixo, p.registroNumero].filter(Boolean).join(" ");
+}
+
 export interface CelulaRotulo {
   label: string;
   valor: string;

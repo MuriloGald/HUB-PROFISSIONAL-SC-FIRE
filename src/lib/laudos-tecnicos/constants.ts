@@ -1,9 +1,14 @@
 /**
- * Dados fixos dos Laudos Técnicos decorrentes da Inspeção de Regularidade (IN 04):
- * Alarme (nível de pressão sonora), Iluminação de Emergência (luxímetro) e
- * Estanqueidade da Rede de Gás — modelados a partir de laudos reais emitidos
- * por terceiros ("Laudos das inspeções/"), portados para a identidade visual
- * SC Fire e para o mesmo padrão de wizard/PDF do restante do hub.
+ * Dados fixos dos Laudos Técnicos decorrentes da Inspeção de Regularidade (IN 04)
+ * — um laudo por sistema preventivo, conforme o que for constatado na vistoria:
+ * Extintores, SHP (hidrantes/mangotinhos), Iluminação de Emergência, Alarme e
+ * Estanqueidade da Rede de Gás. Alarme, Iluminação e Gás foram modelados a
+ * partir de laudos reais emitidos por terceiros ("Laudos das inspeções/");
+ * Extintor e SHP seguem a mesma estrutura narrativa, com base nas Instruções
+ * Normativas do CBMSC aplicáveis a cada sistema — sem um laudo real de
+ * referência para copiar, então o critério de aprovação desses dois é lançado
+ * manualmente pelo RT (ver comentário em MedicaoExtintor/MedicaoShp), em vez
+ * de calculado como em Alarme/Iluminação/Gás.
  * Reaproveita a lista de RTs já definida no módulo de Eventos (IN 24) — mesma
  * equipe técnica da SC Fire, sem duplicar cadastro.
  */
@@ -26,6 +31,23 @@ export interface LaudoTecnicoConfig {
 }
 
 export const LAUDOS_TECNICOS_CONFIG: Record<LaudoTecnicoTipo, LaudoTecnicoConfig> = {
+  extintor: {
+    titulo: "LAUDO TÉCNICO DE INSPEÇÃO, MANUTENÇÃO E RECARGA DE EXTINTORES DE INCÊNDIO",
+    subtitulo: "Sistema de Proteção por Extintores de Incêndio — IN 21/CBMSC",
+    apresentacao:
+      "Apresentamos o laudo técnico de inspeção, manutenção e recarga dos extintores de incêndio, com a finalidade de conferir se os equipamentos permanecem em condições normais de funcionamento e em conformidade com as previsões do projeto e/ou relatório de regularização aprovados perante o Corpo de Bombeiros Militar de Santa Catarina.",
+    objetivo: (descricaoImovel) =>
+      `O presente laudo tem como objetivo verificar o estado de manutenção e a validade da recarga e do teste hidrostático dos extintores de incêndio instalados em ${descricaoImovel}.`,
+    referencias:
+      "Como referência para elaboração deste laudo técnico, utilizou-se da Instrução Normativa nº 21 — Sistema de Proteção por Extintores de Incêndio, do CBMSC, bem como da ABNT NBR 12962 — Inspeção, manutenção e recarga em extintores de incêndio.",
+    instrumentoDefault: "Manômetro de teste / Balança de precisão",
+    labelSistema: "sistema de proteção por extintores de incêndio",
+    colunasResultado: ["Identificação/Localização", "Tipo/Capacidade", "Validade da recarga", "Validade do teste hidrostático"],
+    conclusaoAprovado:
+      "Os extintores de incêndio inspecionados encontram-se dentro do prazo de validade de recarga e de teste hidrostático, e em condições normais de funcionamento, atendendo às exigências do Corpo de Bombeiros Militar de Santa Catarina.",
+    conclusaoReprovado: (qtd) =>
+      `Foram identificados ${qtd} extintor(es) em desacordo com os prazos de validade e/ou condições de funcionamento exigidos, relacionados na tabela de resultados. Recomenda-se a substituição, recarga ou realização do teste hidrostático, conforme aplicável.`,
+  },
   alarme: {
     titulo: "LAUDO TÉCNICO DO TESTE DE FUNCIONAMENTO DO NÍVEL DE PRESSÃO SONORA PARA O SISTEMA DE ALARME E DETECÇÃO DE INCÊNDIO",
     subtitulo: "Sistema de Alarme e Detecção de Incêndio — IN 12/CBMSC",
@@ -60,6 +82,23 @@ export const LAUDOS_TECNICOS_CONFIG: Record<LaudoTecnicoTipo, LaudoTecnicoConfig
     conclusaoReprovado: (qtd) =>
       `Foram identificados ${qtd} pavimento(s) com nível de iluminamento abaixo do mínimo exigido, relacionados na tabela de resultados. Recomenda-se a adoção das medidas corretivas necessárias para a regularização do sistema.`,
   },
+  shp: {
+    titulo: "LAUDO TÉCNICO DE TESTE DE VAZÃO E PRESSÃO DO SISTEMA DE HIDRANTES E MANGOTINHOS",
+    subtitulo: "Sistema Hidráulico Preventivo (SHP) — IN 07/CBMSC",
+    apresentacao:
+      "Apresentamos o laudo técnico do teste de vazão e pressão dinâmica dos pontos de hidrante/mangotinho do Sistema Hidráulico Preventivo, com a finalidade de conferir se o sistema permanece em condições normais de funcionamento e em conformidade com as previsões do projeto e/ou relatório de regularização aprovados perante o Corpo de Bombeiros Militar de Santa Catarina.",
+    objetivo: (descricaoImovel) =>
+      `O presente laudo tem como objetivo medir a pressão dinâmica e a vazão nos pontos de hidrante/mangotinho do Sistema Hidráulico Preventivo instalado em ${descricaoImovel}.`,
+    referencias:
+      "Como referência para elaboração deste laudo técnico, utilizou-se da Instrução Normativa nº 07 — Sistema de Hidrantes e Mangotinhos (SHP), do CBMSC, bem como da ABNT NBR 13714 — Sistemas de hidrantes e de mangotinhos para combate a incêndio.",
+    instrumentoDefault: "Manômetro / Medidor de vazão tipo Pitot",
+    labelSistema: "Sistema Hidráulico Preventivo (SHP)",
+    colunasResultado: ["Ponto testado", "Pressão dinâmica", "Vazão (L/min)"],
+    conclusaoAprovado:
+      "O Sistema Hidráulico Preventivo (hidrantes/mangotinhos) testado encontra-se em conformidade com a pressão dinâmica e a vazão mínimas exigidas em projeto, atendendo às exigências do Corpo de Bombeiros Militar de Santa Catarina.",
+    conclusaoReprovado: (qtd) =>
+      `Foram identificados ${qtd} ponto(s) de hidrante/mangotinho fora dos parâmetros de pressão e/ou vazão exigidos em projeto, relacionados na tabela de resultados. Recomenda-se a adoção das medidas corretivas necessárias para a regularização do sistema.`,
+  },
   gas: {
     titulo: "LAUDO TÉCNICO DE ESTANQUEIDADE DA REDE DE GÁS",
     subtitulo: "Estanqueidade da Rede de Gás Combustível — IN 08/CBMSC",
@@ -77,8 +116,11 @@ export const LAUDOS_TECNICOS_CONFIG: Record<LaudoTecnicoTipo, LaudoTecnicoConfig
   },
 };
 
+/** Ordem de exibição dos cartões de tipo no wizard. */
 export const LAUDOS_TECNICOS_LABELS: Record<LaudoTecnicoTipo, string> = {
-  alarme: "Alarme de Incêndio",
+  extintor: "Extintores de Incêndio",
   iluminacao: "Iluminação de Emergência",
+  shp: "SHP (Hidrantes/Mangotinhos)",
+  alarme: "Alarme de Incêndio",
   gas: "Estanqueidade da Rede de Gás",
 };

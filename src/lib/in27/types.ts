@@ -1,4 +1,5 @@
 import type { ClienteSnapshot } from "@/lib/clientes/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
 
 export type TipoEventoPirotecnico = "indoor" | "outdoor";
 
@@ -44,16 +45,19 @@ export interface EventoPirotecnicoState {
   blaster_cep?: string;
 
   rt_e_blaster?: boolean;
-  rt_nome?: string;
-  rt_registro?: string;
-  rt_fone?: string;
-  rt_email?: string;
+  rt_id?: string;
+  rt?: ProfissionalSnapshot;
   rt_logradouro?: string;
   rt_numero?: string;
   rt_complemento?: string;
   rt_bairro?: string;
   rt_cidade?: string;
   rt_cep?: string;
+  /** @deprecated nome/registro/fone/e-mail digitados a mao — so aparecem em eventos salvos antes do RT virar um Profissional cadastrado. */
+  rt_nome?: string;
+  rt_registro?: string;
+  rt_fone?: string;
+  rt_email?: string;
 
   classes_fogos?: string;
 

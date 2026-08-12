@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper, Search } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { ImageUploader } from "@/components/features/shared/image-uploader";
 import { salvarEventoPirotecnico } from "@/app/actions/in27";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import { formatarDataBR } from "@/lib/shared/date-format";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { EventoPirotecnicoState } from "@/lib/in27/types";
 
 const DRAFT_KEY = "scfire_in27_evento_wizard_draft";
@@ -20,11 +21,12 @@ const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider
 
 interface EventoWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: EventoPirotecnicoState;
 }
 
-export function EventoWizard({ clientes, clienteIdInicial, initialState }: EventoWizardProps) {
+export function EventoWizard({ clientes, profissionais, clienteIdInicial, initialState }: EventoWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<EventoPirotecnicoState>(() => initialState ?? { step: clienteIdInicial ? 1 : 0 });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -200,7 +202,9 @@ export function EventoWizard({ clientes, clienteIdInicial, initialState }: Event
 
       {step === 1 && <StepEventoPromotor state={state} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />}
 
-      {step === 2 && <StepBlasterRt state={state} onBack={() => avancarPara(1)} onNext={(partial) => avancarPara(3, partial)} />}
+      {step === 2 && (
+        <StepBlasterRt state={state} profissionais={profissionais} onBack={() => avancarPara(1)} onNext={(partial) => avancarPara(3, partial)} />
+      )}
 
       {step === 3 && <StepFogosCroqui state={state} onBack={() => avancarPara(2)} onNext={(partial) => avancarPara(4, partial)} />}
 
@@ -513,10 +517,12 @@ function StepEventoPromotor({
 
 function StepBlasterRt({
   state,
+  profissionais,
   onBack,
   onNext,
 }: {
   state: EventoPirotecnicoState;
+  profissionais: Profissional[];
   onBack: () => void;
   onNext: (partial: Partial<EventoPirotecnicoState>) => void;
 }) {
@@ -532,10 +538,8 @@ function StepBlasterRt({
     blaster_bairro: state.blaster_bairro ?? "",
     blaster_cidade: state.blaster_cidade ?? "",
     blaster_cep: state.blaster_cep ?? "",
-    rt_nome: state.rt_nome ?? "",
-    rt_registro: state.rt_registro ?? "",
-    rt_fone: state.rt_fone ?? "",
-    rt_email: state.rt_email ?? "",
+    rt_id: state.rt_id ?? "",
+    rt: state.rt,
     rt_logradouro: state.rt_logradouro ?? "",
     rt_numero: state.rt_numero ?? "",
     rt_complemento: state.rt_complemento ?? "",
@@ -672,24 +676,12 @@ function StepBlasterRt({
       </label>
       {!rtEBlaster && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className={labelClass}>Nome</label>
-              <input className={inputClass} value={form.rt_nome} onChange={(e) => update("rt_nome", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelClass}>Nº do registro</label>
-              <input className={inputClass} value={form.rt_registro} onChange={(e) => update("rt_registro", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelClass}>Fone</label>
-              <input className={inputClass} value={form.rt_fone} onChange={(e) => update("rt_fone", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <label className={labelClass}>E-mail</label>
-              <input className={inputClass} value={form.rt_email} onChange={(e) => update("rt_email", e.target.value)} />
-            </div>
-          </div>
+          <ProfissionalCampoSelect
+            profissionais={profissionais}
+            value={form.rt_id}
+            redirectToNovoProfissional="/documentos/in27/novo"
+            onChange={(id, p) => setForm((f) => ({ ...f, rt_id: id, rt: p }))}
+          />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5 md:col-span-2">
               <label className={labelClass}>Logradouro</label>

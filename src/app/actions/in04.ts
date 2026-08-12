@@ -54,6 +54,22 @@ export async function listarVistoriasManutencao() {
   return { data: (data ?? []) as Laudo[] };
 }
 
+/** Busca a Vistoria de Manutenção (IN 04) mais recente de um cliente, para pré-preencher Laudos Técnicos decorrentes. */
+export async function buscarUltimaVistoriaManutencaoPorCliente(clienteId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("laudos")
+    .select("*")
+    .eq("tipo_documento", "IN04")
+    .eq("cliente_id", clienteId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  return { data: data as Laudo | null };
+}
+
 export async function buscarVistoriaManutencao(id: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.from("laudos").select("*").eq("id", id).single();

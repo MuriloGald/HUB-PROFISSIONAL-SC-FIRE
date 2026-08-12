@@ -76,7 +76,7 @@ export function VistoriasList({ laudos }: { laudos: Laudo[] }) {
                   <h3 className="text-white font-semibold">{dados.cliente?.razao_social}</h3>
                 </div>
                 <p className="text-xs text-gray-400">
-                  <strong className="text-gray-300">Vistoriador:</strong> {dados.vistoriador || "N/A"} |{" "}
+                  <strong className="text-gray-300">Vistoriador:</strong> {dados.vistoriador_profissional?.nome || "N/A"} |{" "}
                   <strong className="text-gray-300">Setores:</strong> {dados.setores.length}
                   {dispensados > 0 && <> ({dispensados} dispensado(s))</>}
                 </p>

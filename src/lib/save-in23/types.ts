@@ -1,5 +1,6 @@
 import type { Enquadramento } from "./classificador";
 import type { ClienteSnapshot } from "@/lib/clientes/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
 
 export interface Imagem {
   url: string;
@@ -62,6 +63,11 @@ export interface VistoriaWizardState {
   cliente_id?: string;
   cliente?: ClienteSnapshot;
 
+  vistoriador_id?: string;
+  vistoriador_profissional?: ProfissionalSnapshot;
+  rt_id?: string;
+  rt?: ProfissionalSnapshot;
+  /** @deprecated nomes digitados a mao — so aparecem em vistorias salvas antes do Vistoriador/RT virarem Profissionais cadastrados. */
   vistoriador?: string;
   respTecnico?: string;
 
@@ -112,6 +118,9 @@ export interface LaudoTecnicoWizardState {
   subtitulo?: string;
   propriedade?: string;
   revisao?: string;
+  rt_id?: string;
+  rt?: ProfissionalSnapshot;
+  /** @deprecated nome digitado a mao — so aparece em laudos salvos antes do RT virar um Profissional cadastrado. */
   respTecnico?: string;
 
   capitulo1: {

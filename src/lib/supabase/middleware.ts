@@ -20,6 +20,7 @@ const PROTECTED_SEGMENTS = [
   "/laudos",
   "/orcamentos",
   "/plano-ensino",
+  "/profissionais",
   "/relatorios",
   "/treinador",
   "/treinamentos",

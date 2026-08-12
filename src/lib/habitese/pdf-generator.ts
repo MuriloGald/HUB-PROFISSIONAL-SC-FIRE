@@ -17,6 +17,7 @@ import {
   carregarImagemComoDataUrl,
   drawCabecalhoOficialCBMSC,
   desenharTabelaRotulos,
+  formatarRegistroProfissional,
   COR_CINZA_INSTITUCIONAL,
   MARGIN_TOP,
   MARGIN_LEFT,
@@ -37,12 +38,24 @@ const margin = MARGIN_LEFT;
 const pageWidth = PAGE_WIDTH;
 const contentWidth = pageWidth - MARGIN_LEFT - MARGIN_RIGHT;
 
+/** RT agora e um Profissional cadastrado; o formato antigo (chave fixa rt1/rt2 ou "outro" digitado a mao) so aparece em termos salvos antes dessa mudanca. */
 function resolverRt(state: HabiteseWizardState): ResponsavelTecnicoCustom {
-  if (state.rt?.chave === "outro" && state.rt.custom) {
-    return state.rt.custom;
+  const rt = state.rt;
+  if (rt && "chave" in rt) {
+    if (rt.chave === "outro" && rt.custom) return rt.custom;
+    const fixo = RESPONSAVEIS_TECNICOS[rt.chave ?? "rt1"];
+    return { nome: fixo.nome, cpf: fixo.cpf, telefone: fixo.telefone, email: fixo.email, registro: fixo.nr_rt };
   }
-  const fixo = RESPONSAVEIS_TECNICOS[state.rt?.chave ?? "rt1"];
-  return { nome: fixo.nome, cpf: fixo.cpf, telefone: fixo.telefone, email: fixo.email, registro: fixo.nr_rt };
+  if (rt) {
+    return {
+      nome: rt.nome,
+      cpf: rt.cpf ?? "",
+      telefone: rt.telefone ?? "",
+      email: rt.email ?? "",
+      registro: formatarRegistroProfissional({ nome: rt.nome, registroTipo: rt.registro_tipo, registroNumero: rt.registro_numero }),
+    };
+  }
+  return { nome: "", cpf: "", telefone: "", email: "", registro: "" };
 }
 
 /** Quebra a página se o bloco a partir de `y` (com a altura `blockHeight` informada) não couber até a margem inferior. */

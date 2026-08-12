@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { PlusCircle, Users, Clock } from "lucide-react";
-import { listarTurmas } from "@/app/actions/turmas";
+import { PlusCircle, Users, Clock, CheckCircle2 } from "lucide-react";
+import { listarTurmas, listarTurmasConcluidas } from "@/app/actions/turmas";
 import { formatarDataBR } from "@/lib/shared/date-format";
+import { RelatorioTurmaButton } from "@/components/features/turmas/relatorio-turma-button";
 
 const STATUS_LABEL: Record<string, string> = { agendada: "Agendada", em_andamento: "Em andamento" };
 const STATUS_COLOR: Record<string, string> = {
@@ -10,7 +11,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default async function TurmasPage() {
-  const { data: turmas } = await listarTurmas();
+  const [{ data: turmas }, { data: turmasConcluidas }] = await Promise.all([listarTurmas(), listarTurmasConcluidas()]);
 
   return (
     <div className="space-y-8">
@@ -59,6 +60,46 @@ export default async function TurmasPage() {
             </div>
           </Link>
         ))}
+      </div>
+
+      <div className="pt-4 border-t border-white/[0.06]">
+        <div className="mb-4">
+          <h2 className="text-lg font-bold text-white">Turmas Concluídas</h2>
+          <p className="text-sm text-gray-400 mt-1">Gere o Relatório da Turma com os gráficos da pesquisa de satisfação e o resultado da avaliação.</p>
+        </div>
+
+        {turmasConcluidas.length === 0 && (
+          <div className="p-6 rounded-xl bg-white/[0.02] border border-white/[0.06] text-sm text-gray-400 flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-gray-600" />
+            Nenhuma turma concluída ainda.
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {turmasConcluidas.map((t) => (
+            <div key={t.id} className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08]">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="text-base font-bold text-white">{t.trainingName}</h3>
+                <span className="text-[10px] font-bold px-2 py-1 rounded-full border flex-shrink-0 bg-white/[0.06] text-gray-400 border-white/[0.1]">
+                  Concluída
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">{t.clienteNome ?? "Sem cliente vinculado"}</p>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  {t.instrutor_nome && <span>{t.instrutor_nome}</span>}
+                  {t.finished_at && (
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatarDataBR(t.finished_at)}
+                    </span>
+                  )}
+                </div>
+                <RelatorioTurmaButton classId={t.id} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

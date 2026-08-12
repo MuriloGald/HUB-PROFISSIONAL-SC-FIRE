@@ -8,7 +8,16 @@
 
 import { jsPDF } from "jspdf";
 import { applyPlugin } from "jspdf-autotable";
-import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH, PAGE_BREAK_Y } from "../shared/pdf-branding";
+import {
+  drawCabecalhoOficialCBMSC,
+  desenharTabelaRotulos,
+  formatarRegistroProfissional,
+  MARGIN_TOP,
+  MARGIN_LEFT,
+  MARGIN_RIGHT,
+  PAGE_WIDTH,
+  PAGE_BREAK_Y,
+} from "../shared/pdf-branding";
 import { SECOES_SHP } from "./constants";
 import type { ComissionamentoSHPState } from "./types";
 
@@ -39,11 +48,24 @@ function nomeArquivo(state: ComissionamentoSHPState): string {
   return `Anexo_C_Comissionamento_SHP_${state.codigo || "rascunho"}_${nome}.pdf`;
 }
 
+/** RT agora e um Profissional cadastrado; os campos digitados a mao (rt_nome/rt_registro/rt_email) so aparecem em laudos salvos antes dessa mudanca. */
+function resolverRt(state: ComissionamentoSHPState): { nome: string; registro: string; email: string } {
+  if (state.rt) {
+    return {
+      nome: state.rt.nome,
+      registro: formatarRegistroProfissional({ nome: state.rt.nome, registroTipo: state.rt.registro_tipo, registroNumero: state.rt.registro_numero }),
+      email: state.rt.email ?? "",
+    };
+  }
+  return { nome: state.rt_nome ?? "", registro: state.rt_registro ?? "", email: state.rt_email ?? "" };
+}
+
 /** Gera o PDF do Anexo C (Relatório de Comissionamento do SHP, IN 07/CBMSC) e dispara o download. */
 export async function gerarPdfComissionamentoSHP(state: ComissionamentoSHPState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
   let y = await drawCabecalhoOficialCBMSC(doc, "ANEXO C — Relatório de Comissionamento e de Inspeção Periódica do Sistema de Hidrantes e Mangotinhos");
+  const rt = resolverRt(state);
 
   y = desenharTabelaRotulos(doc, y, [
     [{ label: "Endereço", valor: `${state.endereco || ""}  Nº: ${state.numero || ""}  Complemento: ${state.complemento || ""}` }],
@@ -64,10 +86,10 @@ export async function gerarPdfComissionamentoSHP(state: ComissionamentoSHPState)
       { label: "E-mail", valor: state.responsavel_uso_email || "" },
     ],
     [
-      { label: "Responsável Técnico pelo comissionamento/inspeção", valor: state.rt_nome || "" },
-      { label: "Nº de registro", valor: state.rt_registro || "" },
+      { label: "Responsável Técnico pelo comissionamento/inspeção", valor: rt.nome },
+      { label: "Nº de registro", valor: rt.registro },
     ],
-    [{ label: "E-mail do RT", valor: state.rt_email || "" }],
+    [{ label: "E-mail do RT", valor: rt.email }],
   ]);
   y += 5;
 

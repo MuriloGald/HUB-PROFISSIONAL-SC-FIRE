@@ -9,7 +9,7 @@
 
 import { jsPDF } from "jspdf";
 import { applyPlugin } from "jspdf-autotable";
-import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
+import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, formatarRegistroProfissional, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
 import { quebrarSeNecessario, type DocWithAutoTable } from "../shared/checklist-pdf";
 import { formatarDataBR } from "../shared/date-format";
 import { DOCS_DEIXADOS, INTEGRIDADE_COMPONENTES, ENSAIOS_FUMACA, type ChecklistItem } from "./constants";
@@ -22,6 +22,19 @@ const contentWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 
 function respostaTexto(v: RespostaSN | undefined): string {
   return v === "sim" ? "SIM" : v === "nao" ? "NÃO" : "";
+}
+
+/** RT agora e um Profissional cadastrado; os campos digitados a mao (rt_nome/rt_registro/rt_email/rt_fone) so aparecem em laudos salvos antes dessa mudanca. */
+function resolverRt(state: ControleFumacaState): { nome: string; registro: string; email: string; fone: string } {
+  if (state.rt) {
+    return {
+      nome: state.rt.nome,
+      registro: formatarRegistroProfissional({ nome: state.rt.nome, registroTipo: state.rt.registro_tipo, registroNumero: state.rt.registro_numero }),
+      email: state.rt.email ?? "",
+      fone: state.rt.telefone ?? "",
+    };
+  }
+  return { nome: state.rt_nome ?? "", registro: state.rt_registro ?? "", email: state.rt_email ?? "", fone: state.rt_fone ?? "" };
 }
 
 function desenharListaSimNao(doc: DocWithAutoTable, y: number, titulo: string, itens: ChecklistItem[], respostas: Record<string, RespostaSN>): number {
@@ -49,6 +62,7 @@ function desenharListaSimNao(doc: DocWithAutoTable, y: number, titulo: string, i
 }
 
 function desenharCabecalhoIdentificacao(doc: DocWithAutoTable, y: number, state: ControleFumacaState): number {
+  const rt = resolverRt(state);
   return desenharTabelaRotulos(doc, y, [
     [{ label: "Endereço", valor: `${state.endereco || ""}  Nº: ${state.numero || ""}  Complemento: ${state.complemento || ""}` }],
     [
@@ -69,12 +83,12 @@ function desenharCabecalhoIdentificacao(doc: DocWithAutoTable, y: number, state:
       { label: "E-mail", valor: state.responsavel_uso_email || "" },
     ],
     [
-      { label: "Responsável Técnico", valor: state.rt_nome || "" },
-      { label: "Nº de registro", valor: state.rt_registro || "" },
+      { label: "Responsável Técnico", valor: rt.nome },
+      { label: "Nº de registro", valor: rt.registro },
     ],
     [
-      { label: "E-mail do RT", valor: state.rt_email || "" },
-      { label: "Fone do RT", valor: state.rt_fone || "" },
+      { label: "E-mail do RT", valor: rt.email },
+      { label: "Fone do RT", valor: rt.fone },
     ],
   ]);
 }
@@ -93,6 +107,7 @@ function desenharClima(doc: DocWithAutoTable, y: number, state: ControleFumacaSt
 }
 
 function desenharConclusaoAssinaturas(doc: DocWithAutoTable, y: number, state: ControleFumacaState): void {
+  const rt = resolverRt(state);
   let cursorY = quebrarSeNecessario(doc, y, 90);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -111,9 +126,9 @@ function desenharConclusaoAssinaturas(doc: DocWithAutoTable, y: number, state: C
   cursorY += 5;
   doc.text(`Nome do instalador: ${state.nome_instalador || ""}`, margin, cursorY);
   cursorY += 6;
-  doc.text(`Responsável técnico (Assinatura Digital): ${state.rt_nome || ""}`, margin, cursorY);
+  doc.text(`Responsável técnico (Assinatura Digital): ${rt.nome}`, margin, cursorY);
   cursorY += 6;
-  doc.text(`Nº do Registro Profissional: ${state.rt_registro || ""}`, margin, cursorY);
+  doc.text(`Nº do Registro Profissional: ${rt.registro}`, margin, cursorY);
   cursorY += 10;
 
   doc.setFont("helvetica", "bold");

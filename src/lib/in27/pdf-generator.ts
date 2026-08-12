@@ -7,13 +7,34 @@
  */
 
 import { jsPDF } from "jspdf";
-import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, carregarImagemComoDataUrl, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
+import {
+  drawCabecalhoOficialCBMSC,
+  desenharTabelaRotulos,
+  carregarImagemComoDataUrl,
+  formatarRegistroProfissional,
+  MARGIN_LEFT,
+  MARGIN_RIGHT,
+  PAGE_WIDTH,
+} from "../shared/pdf-branding";
 import { quebrarSeNecessario } from "../shared/checklist-pdf";
 import { formatarDataBR } from "../shared/date-format";
 import type { EventoPirotecnicoState } from "./types";
 
 const margin = MARGIN_LEFT;
 const contentWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+
+/** RT agora e um Profissional cadastrado; os campos digitados a mao (rt_nome/rt_registro/rt_fone/rt_email) so aparecem em eventos salvos antes dessa mudanca. Nao se aplica quando rt_e_blaster (o blaster nao e um Profissional CREA/CFT cadastrado). */
+function resolverRt(state: EventoPirotecnicoState): { nome: string; registro: string; fone: string; email: string } {
+  if (state.rt) {
+    return {
+      nome: state.rt.nome,
+      registro: formatarRegistroProfissional({ nome: state.rt.nome, registroTipo: state.rt.registro_tipo, registroNumero: state.rt.registro_numero }),
+      fone: state.rt.telefone ?? "",
+      email: state.rt.email ?? "",
+    };
+  }
+  return { nome: state.rt_nome ?? "", registro: state.rt_registro ?? "", fone: state.rt_fone ?? "", email: state.rt_email ?? "" };
+}
 
 function nomeArquivo(state: EventoPirotecnicoState, sufixo: string): string {
   const nome = (state.cliente?.razao_social || state.promotor_nome || "evento").replace(/\s+/g, "_");
@@ -48,6 +69,7 @@ function desenharPromotor(doc: jsPDF, y: number, state: EventoPirotecnicoState):
 /** Gera o PDF do Anexo A (Modelo de Requerimento, IN 27/CBMSC) e dispara o download. */
 export async function gerarPdfRequerimento(state: EventoPirotecnicoState): Promise<string> {
   const doc = new jsPDF();
+  const rt = resolverRt(state);
 
   let y = await drawCabecalhoOficialCBMSC(doc, "ANEXO A — MODELO DE REQUERIMENTO");
 
@@ -88,8 +110,8 @@ export async function gerarPdfRequerimento(state: EventoPirotecnicoState): Promi
   } else {
     y = desenharTabelaRotulos(doc, y, [
       [
-        { label: "Nome", valor: state.rt_nome || "" },
-        { label: "Nº do registro", valor: state.rt_registro || "" },
+        { label: "Nome", valor: rt.nome },
+        { label: "Nº do registro", valor: rt.registro },
       ],
     ]);
     y += 5;
@@ -127,7 +149,7 @@ export async function gerarPdfRequerimento(state: EventoPirotecnicoState): Promi
   doc.text("Assinatura do responsável técnico", margin + 100, y);
   y += 5;
   doc.text(state.promotor_nome || "", margin, y);
-  doc.text(state.rt_e_blaster ? state.blaster_nome || "" : state.rt_nome || "", margin + 100, y);
+  doc.text(state.rt_e_blaster ? state.blaster_nome || "" : rt.nome, margin + 100, y);
 
   const fileName = nomeArquivo(state, "Anexo_A_Requerimento");
   doc.save(fileName);
@@ -137,6 +159,7 @@ export async function gerarPdfRequerimento(state: EventoPirotecnicoState): Promi
 /** Gera o PDF do Anexo B (Modelo de Plano de Segurança, IN 27/CBMSC) e dispara o download. */
 export async function gerarPdfPlanoSeguranca(state: EventoPirotecnicoState): Promise<string> {
   const doc = new jsPDF();
+  const rt = resolverRt(state);
 
   let y = await drawCabecalhoOficialCBMSC(doc, "ANEXO B — MODELO DE PLANO DE SEGURANÇA");
 
@@ -180,10 +203,10 @@ export async function gerarPdfPlanoSeguranca(state: EventoPirotecnicoState): Pro
   } else {
     y = desenharTabelaRotulos(doc, y, [
       [
-        { label: "Nome", valor: state.rt_nome || "" },
-        { label: "Nº do registro", valor: state.rt_registro || "" },
+        { label: "Nome", valor: rt.nome },
+        { label: "Nº do registro", valor: rt.registro },
       ],
-      [{ label: "Fone/E-mail", valor: `${state.rt_fone || ""} ${state.rt_email || ""}` }],
+      [{ label: "Fone/E-mail", valor: `${rt.fone} ${rt.email}` }],
       [{ label: "Logradouro", valor: `${state.rt_logradouro || ""}  Nº: ${state.rt_numero || ""}  Complemento: ${state.rt_complemento || ""}  Bairro: ${state.rt_bairro || ""}` }],
       [{ label: "Cidade", valor: `${state.rt_cidade || ""}   CEP: ${state.rt_cep || ""}` }],
     ]);
@@ -222,7 +245,7 @@ export async function gerarPdfPlanoSeguranca(state: EventoPirotecnicoState): Pro
   y += 5;
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text(state.rt_e_blaster ? state.blaster_nome || "" : state.rt_nome || "", margin, y);
+  doc.text(state.rt_e_blaster ? state.blaster_nome || "" : rt.nome, margin, y);
 
   const fileName = nomeArquivo(state, "Anexo_B_Plano_Seguranca");
   doc.save(fileName);
@@ -232,6 +255,7 @@ export async function gerarPdfPlanoSeguranca(state: EventoPirotecnicoState): Pro
 /** Gera o PDF do Anexo C (Sugestão de Modelo de Croqui, IN 27/CBMSC) e dispara o download. */
 export async function gerarPdfCroqui(state: EventoPirotecnicoState): Promise<string> {
   const doc = new jsPDF();
+  const rt = resolverRt(state);
 
   let y = await drawCabecalhoOficialCBMSC(doc, "ANEXO C — SUGESTÃO DE MODELO DE CROQUI");
 
@@ -281,7 +305,7 @@ export async function gerarPdfCroqui(state: EventoPirotecnicoState): Promise<str
   y += 5;
   doc.text("Assinatura responsável técnico pelo espetáculo pirotécnico", margin, y);
   y += 5;
-  doc.text(state.rt_e_blaster ? state.blaster_nome || "" : state.rt_nome || "", margin, y);
+  doc.text(state.rt_e_blaster ? state.blaster_nome || "" : rt.nome, margin, y);
 
   const fileName = nomeArquivo(state, "Anexo_C_Croqui");
   doc.save(fileName);

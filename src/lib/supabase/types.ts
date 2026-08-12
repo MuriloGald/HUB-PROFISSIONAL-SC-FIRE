@@ -210,6 +210,21 @@ export interface Cliente {
   updated_at: string;
 }
 
+export type RegistroConselhoTipo = "crea" | "cft";
+
+/** Profissional (engenheiro/tecnico) que assina como Responsavel Tecnico nos documentos do hub. */
+export interface Profissional {
+  id: string;
+  nome: string;
+  cpf: string | null;
+  telefone: string | null;
+  email: string | null;
+  registro_tipo: RegistroConselhoTipo | null;
+  registro_numero: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export type LaudoTipoDocumento =
   | "SAVE23"
   | "IN24"

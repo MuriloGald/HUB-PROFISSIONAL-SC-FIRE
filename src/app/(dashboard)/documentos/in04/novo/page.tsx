@@ -1,11 +1,12 @@
 import { listarClientes } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { buscarVistoriaManutencao } from "@/app/actions/in04";
 import { ManutencaoWizard } from "@/components/features/in04/manutencao-wizard";
 import type { VistoriaManutencaoState } from "@/lib/in04/types";
 
 export default async function NovaVistoriaManutencaoPage({ searchParams }: { searchParams: Promise<{ editarId?: string }> }) {
   const { editarId } = await searchParams;
-  const { data: clientes } = await listarClientes();
+  const [{ data: clientes }, { data: profissionais }] = await Promise.all([listarClientes(), listarProfissionais()]);
 
   let initialState: VistoriaManutencaoState | undefined;
   if (editarId) {
@@ -15,5 +16,5 @@ export default async function NovaVistoriaManutencaoPage({ searchParams }: { sea
     }
   }
 
-  return <ManutencaoWizard clientes={clientes} initialState={initialState} />;
+  return <ManutencaoWizard clientes={clientes} profissionais={profissionais} initialState={initialState} />;
 }

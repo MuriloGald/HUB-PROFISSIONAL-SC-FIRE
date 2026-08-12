@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { ChecklistGenerico, RespostaToggle, ChoiceGroup } from "@/components/features/shared/resposta-toggle";
 import { salvarChuveiros } from "@/app/actions/in15";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import { SECOES_CHUVEIROS, OPCOES_RISCO, OPCOES_ARMAZENAMENTO, OPCOES_SISTEMA } from "@/lib/in15/constants";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { ChuveirosState, RespostaSN } from "@/lib/in15/types";
 
 const DRAFT_KEY = "scfire_in15_chuveiros_wizard_draft";
@@ -20,11 +21,12 @@ const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider
 
 interface ChuveirosWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: ChuveirosState;
 }
 
-export function ChuveirosWizard({ clientes, clienteIdInicial, initialState }: ChuveirosWizardProps) {
+export function ChuveirosWizard({ clientes, profissionais, clienteIdInicial, initialState }: ChuveirosWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<ChuveirosState>(() => initialState ?? { step: clienteIdInicial ? 1 : 0, fluxo: "inspecao", respostas: {} });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -210,7 +212,9 @@ export function ChuveirosWizard({ clientes, clienteIdInicial, initialState }: Ch
         />
       )}
 
-      {step === 1 && <StepIdentificacao state={state} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />}
+      {step === 1 && (
+        <StepIdentificacao state={state} profissionais={profissionais} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />
+      )}
 
       {step === 2 &&
         (isInspecao ? (
@@ -297,7 +301,17 @@ export function ChuveirosWizard({ clientes, clienteIdInicial, initialState }: Ch
   );
 }
 
-function StepIdentificacao({ state, onBack, onNext }: { state: ChuveirosState; onBack: () => void; onNext: (partial: Partial<ChuveirosState>) => void }) {
+function StepIdentificacao({
+  state,
+  profissionais,
+  onBack,
+  onNext,
+}: {
+  state: ChuveirosState;
+  profissionais: Profissional[];
+  onBack: () => void;
+  onNext: (partial: Partial<ChuveirosState>) => void;
+}) {
   const [fluxo, setFluxo] = useState(state.fluxo ?? "inspecao");
   const [form, setForm] = useState({
     endereco: state.endereco ?? "",
@@ -309,10 +323,8 @@ function StepIdentificacao({ state, onBack, onNext }: { state: ChuveirosState; o
     responsavel_imovel_nome: state.responsavel_imovel_nome ?? "",
     responsavel_imovel_email: state.responsavel_imovel_email ?? "",
     responsavel_imovel_fone: state.responsavel_imovel_fone ?? "",
-    rt_nome: state.rt_nome ?? "",
-    rt_registro: state.rt_registro ?? "",
-    rt_email: state.rt_email ?? "",
-    rt_fone: state.rt_fone ?? "",
+    rt_id: state.rt_id ?? "",
+    rt: state.rt,
     ocupacao_in01: state.ocupacao_in01 ?? "",
     ocupacoes_nbr10897: state.ocupacoes_nbr10897 ?? "",
     vga_numero: state.vga_numero ?? "",
@@ -394,24 +406,12 @@ function StepIdentificacao({ state, onBack, onNext }: { state: ChuveirosState; o
       </div>
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Responsável Técnico</h4>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nome</label>
-          <input className={inputClass} value={form.rt_nome} onChange={(e) => update("rt_nome", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nº de registro</label>
-          <input className={inputClass} value={form.rt_registro} onChange={(e) => update("rt_registro", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>E-mail</label>
-          <input className={inputClass} value={form.rt_email} onChange={(e) => update("rt_email", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Fone</label>
-          <input className={inputClass} value={form.rt_fone} onChange={(e) => update("rt_fone", e.target.value)} />
-        </div>
-      </div>
+      <ProfissionalCampoSelect
+        profissionais={profissionais}
+        value={form.rt_id}
+        redirectToNovoProfissional="/documentos/in15/novo"
+        onChange={(id, p) => setForm((f) => ({ ...f, rt_id: id, rt: p }))}
+      />
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Classificação do Sistema</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

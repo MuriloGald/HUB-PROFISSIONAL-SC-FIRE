@@ -1,11 +1,12 @@
 import { listarClientes } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { buscarLaudoTecnico } from "@/app/actions/laudos-tecnicos";
 import { LaudoTecnicoWizard } from "@/components/features/laudos-tecnicos/laudo-tecnico-wizard";
 import type { LaudoTecnicoWizardState } from "@/lib/laudos-tecnicos/types";
 
 export default async function NovoLaudoTecnicoPage({ searchParams }: { searchParams: Promise<{ editarId?: string }> }) {
   const { editarId } = await searchParams;
-  const { data: clientes } = await listarClientes();
+  const [{ data: clientes }, { data: profissionais }] = await Promise.all([listarClientes(), listarProfissionais()]);
 
   let initialState: LaudoTecnicoWizardState | undefined;
   if (editarId) {
@@ -15,5 +16,5 @@ export default async function NovoLaudoTecnicoPage({ searchParams }: { searchPar
     }
   }
 
-  return <LaudoTecnicoWizard clientes={clientes} initialState={initialState} />;
+  return <LaudoTecnicoWizard clientes={clientes} profissionais={profissionais} initialState={initialState} />;
 }

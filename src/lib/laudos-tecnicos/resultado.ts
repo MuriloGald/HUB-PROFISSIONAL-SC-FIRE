@@ -1,4 +1,14 @@
-import type { MedicaoAlarme, MedicaoIluminacao, MedicaoGas, ResultadoMedicao } from "./types";
+import type { MedicaoAlarme, MedicaoIluminacao, MedicaoGas, MedicaoExtintor, MedicaoShp, ResultadoMedicao } from "./types";
+
+/** Extintor: resultado lançado manualmente (ver comentário em MedicaoExtintor). Função existe só para simetria com resultadoAlarme/Iluminacao/Gas nos chamadores. */
+export function resultadoExtintor(m: MedicaoExtintor): ResultadoMedicao {
+  return m.resultado;
+}
+
+/** SHP: resultado lançado manualmente (ver comentário em MedicaoShp). Função existe só para simetria com resultadoAlarme/Iluminacao/Gas nos chamadores. */
+export function resultadoShp(m: MedicaoShp): ResultadoMedicao {
+  return m.resultado;
+}
 
 /** Aprovado quando o nível em alarme fica ≥ 15 dB(A) acima do nível de ruído local (IN 12). */
 export function resultadoAlarme(m: MedicaoAlarme): ResultadoMedicao {

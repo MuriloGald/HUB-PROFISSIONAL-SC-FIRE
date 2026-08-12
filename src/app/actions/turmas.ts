@@ -6,8 +6,10 @@ import { buscarCurso } from "./subtemas";
 import { listarSubtemasDoCurso, salvarPlanoEnsino } from "./plano-ensino";
 import { buscarCliente } from "./clientes";
 import { formatarDataDia } from "@/lib/plano-ensino/formatters";
+import { PERGUNTAS_PESQUISA_SATISFACAO } from "@/lib/ava/types";
 import type { PlanoEnsinoWizardState } from "@/lib/plano-ensino/types";
 import type { PresencaRegistrada, Student, Turma, TurmaComDetalhes } from "@/lib/turmas/types";
+import type { RelatorioTurmaData } from "@/lib/turmas/relatorio-types";
 
 /** Lista turmas agendadas ou em andamento, com nome do curso e do cliente — pro seletor de "Turma Cadastrada". */
 export async function listarTurmas() {
@@ -17,6 +19,27 @@ export async function listarTurmas() {
     .select("id,training_id,cliente_id,instrutor_nome,status,qr_code_token,scheduled_at,started_at,finished_at,training:trainings(name),cliente:clientes(nome,razao_social)")
     .in("status", ["agendada", "em_andamento"])
     .order("scheduled_at", { ascending: true });
+
+  if (error) return { error: error.message, data: [] as TurmaComDetalhes[] };
+
+  const rows = (data ?? []) as unknown as (Turma & { training: { name: string } | null; cliente: { nome: string; razao_social: string | null } | null })[];
+  const turmas: TurmaComDetalhes[] = rows.map((r) => ({
+    ...r,
+    trainingName: r.training?.name ?? "",
+    clienteNome: r.cliente ? r.cliente.razao_social || r.cliente.nome : null,
+  }));
+
+  return { data: turmas };
+}
+
+/** Lista turmas concluídas, mais recente primeiro — pra aba "Concluídas" onde o instrutor gera o Relatório da Turma. */
+export async function listarTurmasConcluidas() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("classes")
+    .select("id,training_id,cliente_id,instrutor_nome,status,qr_code_token,scheduled_at,started_at,finished_at,training:trainings(name),cliente:clientes(nome,razao_social)")
+    .eq("status", "concluida")
+    .order("finished_at", { ascending: false });
 
   if (error) return { error: error.message, data: [] as TurmaComDetalhes[] };
 
@@ -149,6 +172,75 @@ export async function finalizarTurma(classId: string) {
   revalidatePath("/apresentacao");
   revalidatePath("/treinamentos/turmas");
   return { success: true };
+}
+
+/**
+ * Monta os dados agregados do Relatório da Turma — presença, resultado da
+ * Avaliação (quiz) e da Pesquisa de Satisfação, já prontos pro gerador de PDF
+ * desenhar os gráficos. Sob demanda (não é disparado automaticamente ao
+ * finalizar a turma) porque aluno responde a pesquisa pelo próprio celular e
+ * pode continuar enviando depois que o instrutor encerra a aula.
+ */
+export async function buscarRelatorioTurma(classId: string): Promise<{ data: RelatorioTurmaData } | { error: string }> {
+  const supabase = await createClient();
+
+  const [turmaRes, presencasRes, avaliacaoRes, satisfacaoRes] = await Promise.all([
+    supabase
+      .from("classes")
+      .select("instrutor_nome,scheduled_at,finished_at,training:trainings(name,total_hours),cliente:clientes(nome,razao_social)")
+      .eq("id", classId)
+      .single(),
+    supabase.from("attendances").select("id", { count: "exact", head: true }).eq("class_id", classId),
+    supabase.from("avaliacao_respostas").select("acertos,total").eq("class_id", classId),
+    supabase.from("pesquisas_satisfacao").select("notas,comentario").eq("class_id", classId),
+  ]);
+
+  if (turmaRes.error) return { error: turmaRes.error.message };
+
+  const turmaRow = turmaRes.data as unknown as {
+    instrutor_nome: string | null;
+    scheduled_at: string | null;
+    finished_at: string | null;
+    training: { name: string; total_hours: number } | null;
+    cliente: { nome: string; razao_social: string | null } | null;
+  };
+
+  const totalPresentes = presencasRes.count ?? 0;
+
+  const avaliacaoRows = (avaliacaoRes.data ?? []) as { acertos: number; total: number }[];
+  const percentuais = avaliacaoRows.filter((r) => r.total > 0).map((r) => (r.acertos / r.total) * 100);
+  const mediaAcertosPercent = percentuais.length > 0 ? percentuais.reduce((a, b) => a + b, 0) / percentuais.length : 0;
+
+  const satisfacaoRows = (satisfacaoRes.data ?? []) as { notas: number[]; comentario: string | null }[];
+  const perguntas = PERGUNTAS_PESQUISA_SATISFACAO.map((pergunta, i) => {
+    const notas = satisfacaoRows.map((r) => r.notas?.[i]).filter((n): n is number => typeof n === "number");
+    const distribuicao: [number, number, number, number, number] = [0, 0, 0, 0, 0];
+    notas.forEach((n) => {
+      if (n >= 1 && n <= 5) distribuicao[Math.round(n) - 1]++;
+    });
+    const media = notas.length > 0 ? notas.reduce((a, b) => a + b, 0) / notas.length : 0;
+    return { pergunta, media, distribuicao };
+  });
+
+  const todasNotas = perguntas.flatMap((p) => p.distribuicao.flatMap((qtd, idx) => Array(qtd).fill(idx + 1)));
+  const mediaGeral = todasNotas.length > 0 ? todasNotas.reduce((a: number, b: number) => a + b, 0) / todasNotas.length : 0;
+  const comentarios = satisfacaoRows.map((r) => r.comentario?.trim()).filter((c): c is string => !!c);
+
+  const data: RelatorioTurmaData = {
+    classId,
+    identificacao: {
+      trainingName: turmaRow.training?.name ?? "",
+      totalHours: turmaRow.training?.total_hours ?? null,
+      clienteNome: turmaRow.cliente ? turmaRow.cliente.razao_social || turmaRow.cliente.nome : null,
+      instrutorNome: turmaRow.instrutor_nome,
+      scheduledAt: turmaRow.scheduled_at,
+      finishedAt: turmaRow.finished_at,
+    },
+    avaliacao: { totalRespostas: avaliacaoRows.length, totalPresentes, mediaAcertosPercent },
+    satisfacao: { totalRespostas: satisfacaoRows.length, totalPresentes, mediaGeral, perguntas, comentarios },
+  };
+
+  return { data };
 }
 
 /** Lista as presenças já registradas na turma — usado pro contador ao vivo no cockpit. */

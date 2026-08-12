@@ -2,17 +2,92 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Bell, Check, CheckCircle2, Droplets, FileDown, Lightbulb, Loader2, PartyPopper, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, Check, CheckCircle2, Droplets, FileDown, FireExtinguisher, GlassWater, Lightbulb, Loader2, PartyPopper, Plus, Trash2, X } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { ImageUploader } from "@/components/features/shared/image-uploader";
 import { salvarLaudoTecnico } from "@/app/actions/laudos-tecnicos";
+import { buscarUltimaVistoriaManutencaoPorCliente } from "@/app/actions/in04";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import { LAUDOS_TECNICOS_CONFIG, LAUDOS_TECNICOS_LABELS } from "@/lib/laudos-tecnicos/constants";
 import type { LaudoTecnicoConfig } from "@/lib/laudos-tecnicos/constants";
-import { novaMedicaoAlarme, novaMedicaoIluminacao, novaMedicaoGas } from "@/lib/laudos-tecnicos/types";
-import { resultadoAlarme, resultadoIluminacao, resultadoGas } from "@/lib/laudos-tecnicos/resultado";
-import type { Cliente } from "@/lib/supabase/types";
-import type { LaudoTecnicoTipo, LaudoTecnicoWizardState, MedicaoAlarme, MedicaoIluminacao, MedicaoGas, ResultadoMedicao } from "@/lib/laudos-tecnicos/types";
+import { novaMedicaoAlarme, novaMedicaoIluminacao, novaMedicaoGas, novaMedicaoExtintor, novaMedicaoShp } from "@/lib/laudos-tecnicos/types";
+import { resultadoAlarme, resultadoIluminacao, resultadoGas, resultadoExtintor, resultadoShp } from "@/lib/laudos-tecnicos/resultado";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
+import type { ClienteSnapshot } from "@/lib/clientes/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
+import type { LaudoTecnicoTipo, LaudoTecnicoWizardState, MedicaoAlarme, MedicaoIluminacao, MedicaoGas, MedicaoExtintor, MedicaoShp, ResultadoMedicao } from "@/lib/laudos-tecnicos/types";
+import type { CategoriaKey, VistoriaManutencaoState } from "@/lib/in04/types";
+
+/** Extrai, de todos os pavimentos da vistoria, os equipamentos lançados numa categoria (ex.: "alarme", "gas"). */
+function extrairEquipamentosDaVistoria(vistoria: VistoriaManutencaoState, categoria: CategoriaKey) {
+  return vistoria.pavimentos.flatMap((p) => (p.itens[categoria] ?? []).map((eq) => ({ pavimento: p.nome, identificacao: eq.identificacao })));
+}
+
+function rotuloLocal(pavimento: string, identificacao: string) {
+  if (pavimento && identificacao) return `${pavimento} — ${identificacao}`;
+  return identificacao || pavimento;
+}
+
+/** Monta os campos pré-preenchidos do Laudo Técnico a partir da Inspeção de Regularidade (IN 04) mais recente do cliente. */
+function prefillDaVistoria(vistoria: VistoriaManutencaoState, tipo: LaudoTecnicoTipo): Partial<LaudoTecnicoWizardState> {
+  const base: Partial<LaudoTecnicoWizardState> = {
+    rt_id: vistoria.rt?.id,
+    rt: vistoria.rt,
+    data_vistoria: vistoria.data_vistoria,
+  };
+
+  if (tipo === "alarme") {
+    const equipamentos = extrairEquipamentosDaVistoria(vistoria, "alarme");
+    if (equipamentos.length === 0) return base;
+    return {
+      ...base,
+      medicoesAlarme: equipamentos.map((eq) => ({ id: crypto.randomUUID(), local: rotuloLocal(eq.pavimento, eq.identificacao), nivelLocalDb: "", nivelAlarmeDb: "" })),
+    };
+  }
+
+  if (tipo === "iluminacao") {
+    if (vistoria.pavimentos.length === 0) return base;
+    return {
+      ...base,
+      medicoesIluminacao: vistoria.pavimentos.map((p) => ({ id: crypto.randomUUID(), pavimento: p.nome, medicaoPlanoLux: "", medicaoDesnivelLux: "" })),
+    };
+  }
+
+  if (tipo === "gas") {
+    const equipamentos = extrairEquipamentosDaVistoria(vistoria, "gas");
+    if (equipamentos.length === 0) return base;
+    return {
+      ...base,
+      medicoesGas: equipamentos.map((eq) => ({ id: crypto.randomUUID(), redeTestada: rotuloLocal(eq.pavimento, eq.identificacao), estanque: "" as const, data: "" })),
+    };
+  }
+
+  if (tipo === "extintor") {
+    const equipamentos = extrairEquipamentosDaVistoria(vistoria, "extintores");
+    if (equipamentos.length === 0) return base;
+    return {
+      ...base,
+      medicoesExtintor: equipamentos.map((eq) => ({ id: crypto.randomUUID(), identificacao: rotuloLocal(eq.pavimento, eq.identificacao), tipoCapacidade: "", validadeRecarga: "", validadeTesteHidrostatico: "", resultado: "" as const })),
+    };
+  }
+
+  const equipamentos = extrairEquipamentosDaVistoria(vistoria, "hidrantes");
+  if (equipamentos.length === 0) return base;
+  return {
+    ...base,
+    medicoesShp: equipamentos.map((eq) => ({ id: crypto.randomUUID(), identificacao: rotuloLocal(eq.pavimento, eq.identificacao), pressaoDinamica: "", vazaoLmin: "", resultado: "" as const })),
+  };
+}
+
+/** Só importa se o bloco de medições do tipo escolhido ainda estiver vazio — evita sobrescrever edições já feitas ao voltar e reselecionar o cliente. */
+function medicoesVazias(tipo: LaudoTecnicoTipo, state: LaudoTecnicoWizardState) {
+  if (tipo === "alarme") return (state.medicoesAlarme ?? []).every((m) => !m.local && !m.nivelLocalDb && !m.nivelAlarmeDb);
+  if (tipo === "iluminacao") return (state.medicoesIluminacao ?? []).every((m) => !m.pavimento && !m.medicaoPlanoLux && !m.medicaoDesnivelLux);
+  if (tipo === "gas") return (state.medicoesGas ?? []).every((m) => !m.redeTestada && !m.estanque && !m.data);
+  if (tipo === "extintor") return (state.medicoesExtintor ?? []).every((m) => !m.identificacao && !m.tipoCapacidade && !m.validadeRecarga && !m.resultado);
+  return (state.medicoesShp ?? []).every((m) => !m.identificacao && !m.pressaoDinamica && !m.vazaoLmin && !m.resultado);
+}
 
 const DRAFT_KEY = "scfire_laudos_tecnicos_wizard_draft";
 const STEPS = [{ label: "Tipo" }, { label: "Cliente" }, { label: "Identificação" }, { label: "Medições" }, { label: "Fotos" }, { label: "Revisão" }];
@@ -21,7 +96,7 @@ const inputClass =
   "w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all";
 const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider";
 
-const TIPO_ICON: Record<LaudoTecnicoTipo, typeof Bell> = { alarme: Bell, iluminacao: Lightbulb, gas: Droplets };
+const TIPO_ICON: Record<LaudoTecnicoTipo, typeof Bell> = { extintor: FireExtinguisher, iluminacao: Lightbulb, shp: GlassWater, alarme: Bell, gas: Droplets };
 
 function badgeResultado(r: ResultadoMedicao) {
   if (r === "aprovado") return <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">APROVADO</span>;
@@ -31,10 +106,11 @@ function badgeResultado(r: ResultadoMedicao) {
 
 interface WizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   initialState?: LaudoTecnicoWizardState;
 }
 
-export function LaudoTecnicoWizard({ clientes, initialState }: WizardProps) {
+export function LaudoTecnicoWizard({ clientes, profissionais, initialState }: WizardProps) {
   const router = useRouter();
   const [state, setState] = useState<LaudoTecnicoWizardState>(() => initialState ?? { step: 0 });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -42,6 +118,8 @@ export function LaudoTecnicoWizard({ clientes, initialState }: WizardProps) {
   const [salvando, setSalvando] = useState(false);
   const [baixando, setBaixando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [importando, setImportando] = useState(false);
+  const [origemVistoria, setOrigemVistoria] = useState<{ codigo?: string; data_vistoria?: string } | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -85,10 +163,38 @@ export function LaudoTecnicoWizard({ clientes, initialState }: WizardProps) {
     avancarPara(1, {
       tipo,
       instrumento: state.instrumento || config.instrumentoDefault,
+      medicoesExtintor: tipo === "extintor" ? state.medicoesExtintor ?? [novaMedicaoExtintor()] : state.medicoesExtintor,
+      medicoesShp: tipo === "shp" ? state.medicoesShp ?? [novaMedicaoShp()] : state.medicoesShp,
       medicoesAlarme: tipo === "alarme" ? state.medicoesAlarme ?? [novaMedicaoAlarme()] : state.medicoesAlarme,
       medicoesIluminacao: tipo === "iluminacao" ? state.medicoesIluminacao ?? [novaMedicaoIluminacao()] : state.medicoesIluminacao,
       medicoesGas: tipo === "gas" ? state.medicoesGas ?? [novaMedicaoGas()] : state.medicoesGas,
     });
+  }
+
+  async function handleClienteSelecionado(clienteId: string, cliente: ClienteSnapshot) {
+    const partial: Partial<LaudoTecnicoWizardState> = { cliente_id: clienteId, cliente };
+
+    if (state.tipo && medicoesVazias(state.tipo, state)) {
+      setImportando(true);
+      try {
+        const result = await buscarUltimaVistoriaManutencaoPorCliente(clienteId);
+        const vistoria = "data" in result ? result.data : null;
+        if (vistoria) {
+          const dados = vistoria.dados as unknown as VistoriaManutencaoState;
+          Object.assign(partial, prefillDaVistoria(dados, state.tipo));
+          setOrigemVistoria({ codigo: dados.codigo, data_vistoria: dados.data_vistoria });
+        } else {
+          setOrigemVistoria(null);
+        }
+      } catch (err) {
+        console.error("Erro ao importar dados da Inspeção de Regularidade:", err);
+        setOrigemVistoria(null);
+      } finally {
+        setImportando(false);
+      }
+    }
+
+    avancarPara(2, partial);
   }
 
   async function handleSalvar() {
@@ -134,18 +240,22 @@ export function LaudoTecnicoWizard({ clientes, initialState }: WizardProps) {
   const config = state.tipo ? LAUDOS_TECNICOS_CONFIG[state.tipo] : undefined;
 
   const qtdReprovados =
-    state.tipo === "alarme"
-      ? (state.medicoesAlarme ?? []).filter((m) => resultadoAlarme(m) === "reprovado").length
-      : state.tipo === "iluminacao"
-        ? (state.medicoesIluminacao ?? []).filter((m) => resultadoIluminacao(m) === "reprovado").length
-        : (state.medicoesGas ?? []).filter((m) => resultadoGas(m) === "reprovado").length;
+    state.tipo === "extintor"
+      ? (state.medicoesExtintor ?? []).filter((m) => resultadoExtintor(m) === "reprovado").length
+      : state.tipo === "shp"
+        ? (state.medicoesShp ?? []).filter((m) => resultadoShp(m) === "reprovado").length
+        : state.tipo === "alarme"
+          ? (state.medicoesAlarme ?? []).filter((m) => resultadoAlarme(m) === "reprovado").length
+          : state.tipo === "iluminacao"
+            ? (state.medicoesIluminacao ?? []).filter((m) => resultadoIluminacao(m) === "reprovado").length
+            : (state.medicoesGas ?? []).filter((m) => resultadoGas(m) === "reprovado").length;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white font-display">Novo Laudo Técnico</h1>
-          <p className="text-sm text-gray-400 mt-1">Decorrente da Inspeção de Regularidade (IN 04) — Alarme, Iluminação de Emergência ou Rede de Gás.</p>
+          <p className="text-sm text-gray-400 mt-1">Decorrente da Inspeção de Regularidade (IN 04) — um laudo por sistema preventivo: Extintores, Iluminação de Emergência, SHP, Alarme ou Rede de Gás.</p>
         </div>
         <button
           onClick={handleCancelar}
@@ -198,19 +308,49 @@ export function LaudoTecnicoWizard({ clientes, initialState }: WizardProps) {
       )}
 
       {step === 1 && (
-        <ClientePicker
-          clientes={clientes}
-          clienteIdInicial={state.cliente_id}
-          redirectToNovoCliente="/documentos/laudos-tecnicos/novo"
-          titulo="Selecione o Cliente"
-          onNext={(clienteId, cliente) => avancarPara(2, { cliente_id: clienteId, cliente })}
-        />
+        <div className="space-y-3">
+          <ClientePicker
+            clientes={clientes}
+            clienteIdInicial={state.cliente_id}
+            redirectToNovoCliente="/documentos/laudos-tecnicos/novo"
+            titulo="Selecione o Cliente"
+            onNext={handleClienteSelecionado}
+          />
+          {importando && (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Buscando dados da última Inspeção de Regularidade (IN 04) deste cliente…
+            </div>
+          )}
+        </div>
       )}
 
       {step === 2 && config && (
-        <StepIdentificacao state={state} config={config} onBack={() => avancarPara(1)} onNext={(partial) => avancarPara(3, partial)} />
+        <StepIdentificacao
+          state={state}
+          config={config}
+          profissionais={profissionais}
+          origemVistoria={origemVistoria}
+          onBack={() => avancarPara(1)}
+          onNext={(partial) => avancarPara(3, partial)}
+        />
       )}
 
+      {step === 3 && state.tipo === "extintor" && (
+        <StepMedicoesExtintor
+          medicoes={state.medicoesExtintor ?? []}
+          onChange={(medicoesExtintor) => setState((s) => ({ ...s, medicoesExtintor }))}
+          onBack={() => avancarPara(2)}
+          onNext={() => avancarPara(4)}
+        />
+      )}
+      {step === 3 && state.tipo === "shp" && (
+        <StepMedicoesShp
+          medicoes={state.medicoesShp ?? []}
+          onChange={(medicoesShp) => setState((s) => ({ ...s, medicoesShp }))}
+          onBack={() => avancarPara(2)}
+          onNext={() => avancarPara(4)}
+        />
+      )}
       {step === 3 && state.tipo === "alarme" && (
         <StepMedicoesAlarme
           medicoes={state.medicoesAlarme ?? []}
@@ -340,16 +480,21 @@ export function LaudoTecnicoWizard({ clientes, initialState }: WizardProps) {
 function StepIdentificacao({
   state,
   config,
+  profissionais,
+  origemVistoria,
   onBack,
   onNext,
 }: {
   state: LaudoTecnicoWizardState;
   config: LaudoTecnicoConfig;
+  profissionais: Profissional[];
+  origemVistoria: { codigo?: string; data_vistoria?: string } | null;
   onBack: () => void;
   onNext: (partial: Partial<LaudoTecnicoWizardState>) => void;
 }) {
   const [form, setForm] = useState({
-    rt_selecionado: state.rt_selecionado ?? "rt1",
+    rt_id: state.rt_id ?? "",
+    rt: state.rt as ProfissionalSnapshot | undefined,
     data_vistoria: state.data_vistoria ?? new Date().toISOString().slice(0, 10),
     instrumento: state.instrumento ?? config.instrumentoDefault,
     numeroSerie: state.numeroSerie ?? "",
@@ -369,14 +514,20 @@ function StepIdentificacao({
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-6">
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2">Identificação do laudo — {config.subtitulo}</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className={labelClass}>Responsável Técnico (RT)</label>
-          <select required value={form.rt_selecionado} onChange={(e) => update("rt_selecionado", e.target.value)} className={inputClass}>
-            <option value="rt1" className="bg-[#111625]">Dione Borges</option>
-            <option value="rt2" className="bg-[#111625]">Paulo Roberto Ramos</option>
-          </select>
+      {origemVistoria && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
+          <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+          Identificação e pontos de medição importados da Inspeção de Regularidade {origemVistoria.codigo ?? ""} de {origemVistoria.data_vistoria ?? "-"}. Revise antes de continuar.
         </div>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ProfissionalCampoSelect
+          profissionais={profissionais}
+          value={form.rt_id}
+          label="Responsável Técnico (RT)"
+          redirectToNovoProfissional="/documentos/laudos-tecnicos/novo"
+          onChange={(id, p) => setForm((f) => ({ ...f, rt_id: id, rt: p }))}
+        />
         <div className="space-y-1.5">
           <label className={labelClass}>Data da vistoria</label>
           <input type="date" className={inputClass} value={form.data_vistoria} onChange={(e) => update("data_vistoria", e.target.value)} />
@@ -448,6 +599,122 @@ function BotoesNavegacaoMedicoes({ onBack, onNext, onAdicionar, labelAdicionar }
           Continuar <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
+    </div>
+  );
+}
+
+function StepMedicoesExtintor({
+  medicoes,
+  onChange,
+  onBack,
+  onNext,
+}: {
+  medicoes: MedicaoExtintor[];
+  onChange: (medicoes: MedicaoExtintor[]) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  function update(id: string, patch: Partial<MedicaoExtintor>) {
+    onChange(medicoes.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  }
+  function remover(id: string) {
+    onChange(medicoes.filter((m) => m.id !== id));
+  }
+
+  return (
+    <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-5">
+      <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2">Resultados das medições — Extintores de Incêndio</h4>
+      <p className="text-xs text-gray-500">O critério de aprovação (faixa do manômetro, peso do CO2, prazos) varia por tipo de agente extintor — lance o resultado manualmente para cada extintor.</p>
+      <div className="space-y-3">
+        {medicoes.map((m, i) => (
+          <div key={m.id} className="rounded-xl bg-black/20 border border-white/[0.08] p-4 grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_1fr_auto_auto] gap-3 items-end">
+            <div className="space-y-1.5">
+              <label className={labelClass}>Identificação {i + 1}</label>
+              <input className={inputClass} value={m.identificacao} onChange={(e) => update(m.id, { identificacao: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Tipo/Capacidade</label>
+              <input className={inputClass} placeholder="Ex.: PQS 6kg" value={m.tipoCapacidade} onChange={(e) => update(m.id, { tipoCapacidade: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Validade da recarga</label>
+              <input type="date" className={inputClass} value={m.validadeRecarga} onChange={(e) => update(m.id, { validadeRecarga: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Validade do teste hidrostático</label>
+              <input type="date" className={inputClass} value={m.validadeTesteHidrostatico} onChange={(e) => update(m.id, { validadeTesteHidrostatico: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Resultado</label>
+              <select className={inputClass} value={m.resultado} onChange={(e) => update(m.id, { resultado: e.target.value as ResultadoMedicao })}>
+                <option value="" className="bg-[#111625]">--</option>
+                <option value="aprovado" className="bg-[#111625]">Aprovado</option>
+                <option value="reprovado" className="bg-[#111625]">Reprovado</option>
+              </select>
+            </div>
+            <button type="button" onClick={() => remover(m.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-all">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <BotoesNavegacaoMedicoes onBack={onBack} onNext={onNext} onAdicionar={() => onChange([...medicoes, novaMedicaoExtintor()])} labelAdicionar="Adicionar extintor" />
+    </div>
+  );
+}
+
+function StepMedicoesShp({
+  medicoes,
+  onChange,
+  onBack,
+  onNext,
+}: {
+  medicoes: MedicaoShp[];
+  onChange: (medicoes: MedicaoShp[]) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  function update(id: string, patch: Partial<MedicaoShp>) {
+    onChange(medicoes.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  }
+  function remover(id: string) {
+    onChange(medicoes.filter((m) => m.id !== id));
+  }
+
+  return (
+    <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-5">
+      <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2">Resultados das medições — SHP (Hidrantes/Mangotinhos)</h4>
+      <p className="text-xs text-gray-500">A pressão e a vazão mínimas exigidas variam com a classificação de risco/altura da edificação (projeto aprovado) — lance o resultado manualmente para cada ponto.</p>
+      <div className="space-y-3">
+        {medicoes.map((m, i) => (
+          <div key={m.id} className="rounded-xl bg-black/20 border border-white/[0.08] p-4 grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto_auto] gap-3 items-end">
+            <div className="space-y-1.5">
+              <label className={labelClass}>Ponto testado {i + 1}</label>
+              <input className={inputClass} value={m.identificacao} onChange={(e) => update(m.id, { identificacao: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Pressão dinâmica</label>
+              <input className={inputClass} placeholder="Ex.: 10 mca" value={m.pressaoDinamica} onChange={(e) => update(m.id, { pressaoDinamica: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Vazão (L/min)</label>
+              <input className={inputClass} value={m.vazaoLmin} onChange={(e) => update(m.id, { vazaoLmin: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelClass}>Resultado</label>
+              <select className={inputClass} value={m.resultado} onChange={(e) => update(m.id, { resultado: e.target.value as ResultadoMedicao })}>
+                <option value="" className="bg-[#111625]">--</option>
+                <option value="aprovado" className="bg-[#111625]">Aprovado</option>
+                <option value="reprovado" className="bg-[#111625]">Reprovado</option>
+              </select>
+            </div>
+            <button type="button" onClick={() => remover(m.id)} className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/[0.08] hover:border-red-500/50 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-all">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <BotoesNavegacaoMedicoes onBack={onBack} onNext={onNext} onAdicionar={() => onChange([...medicoes, novaMedicaoShp()])} labelAdicionar="Adicionar ponto testado" />
     </div>
   );
 }

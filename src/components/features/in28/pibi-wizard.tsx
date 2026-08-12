@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper, Search } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { ImageUploader } from "@/components/features/shared/image-uploader";
 import { salvarPibi } from "@/app/actions/in28";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { PibiState } from "@/lib/in28/types";
 
 const DRAFT_KEY = "scfire_in28_pibi_wizard_draft";
@@ -35,11 +36,12 @@ const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider
 
 interface PibiWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: PibiState;
 }
 
-export function PibiWizard({ clientes, clienteIdInicial, initialState }: PibiWizardProps) {
+export function PibiWizard({ clientes, profissionais, clienteIdInicial, initialState }: PibiWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<PibiState>(() => initialState ?? { step: clienteIdInicial ? 1 : 0 });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -227,7 +229,14 @@ export function PibiWizard({ clientes, clienteIdInicial, initialState }: PibiWiz
         />
       )}
 
-      {step === 1 && <StepImovelResponsaveis state={state} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />}
+      {step === 1 && (
+        <StepImovelResponsaveis
+          state={state}
+          profissionais={profissionais}
+          onBack={() => avancarPara(0)}
+          onNext={(partial) => avancarPara(2, partial)}
+        />
+      )}
 
       {step === 2 && <StepComposicaoBrigada state={state} onBack={() => avancarPara(1)} onNext={(partial) => avancarPara(3, partial)} />}
 
@@ -298,7 +307,17 @@ export function PibiWizard({ clientes, clienteIdInicial, initialState }: PibiWiz
   );
 }
 
-function StepImovelResponsaveis({ state, onBack, onNext }: { state: PibiState; onBack: () => void; onNext: (partial: Partial<PibiState>) => void }) {
+function StepImovelResponsaveis({
+  state,
+  profissionais,
+  onBack,
+  onNext,
+}: {
+  state: PibiState;
+  profissionais: Profissional[];
+  onBack: () => void;
+  onNext: (partial: Partial<PibiState>) => void;
+}) {
   const [form, setForm] = useState({
     razao_social: state.razao_social ?? "",
     nome_fantasia: state.nome_fantasia ?? "",
@@ -324,9 +343,8 @@ function StepImovelResponsaveis({ state, onBack, onNext }: { state: PibiState; o
     responsavel_numero: state.responsavel_numero ?? "",
     responsavel_cidade_uf: state.responsavel_cidade_uf ?? "",
     responsavel_telefone: state.responsavel_telefone ?? "",
-    rt_nome: state.rt_nome ?? "",
-    rt_cpf: state.rt_cpf ?? "",
-    rt_registro: state.rt_registro ?? "",
+    rt_id: state.rt_id ?? "",
+    rt: state.rt,
     rt_atribuicao: state.rt_atribuicao ?? "",
   });
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -494,19 +512,14 @@ function StepImovelResponsaveis({ state, onBack, onNext }: { state: PibiState; o
       </div>
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">3. Dados do Responsável Técnico</h4>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="space-y-1.5">
-          <label className={labelClass}>Responsável técnico</label>
-          <input className={inputClass} value={form.rt_nome} onChange={(e) => update("rt_nome", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>CPF</label>
-          <input className={inputClass} value={form.rt_cpf} onChange={(e) => update("rt_cpf", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nº registro profissional</label>
-          <input className={inputClass} value={form.rt_registro} onChange={(e) => update("rt_registro", e.target.value)} />
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ProfissionalCampoSelect
+          profissionais={profissionais}
+          value={form.rt_id}
+          label="Responsável técnico"
+          redirectToNovoProfissional="/documentos/in28/pibi/novo"
+          onChange={(id, p) => setForm((f) => ({ ...f, rt_id: id, rt: p }))}
+        />
         <div className="space-y-1.5">
           <label className={labelClass}>Atribuição</label>
           <input className={inputClass} value={form.rt_atribuicao} onChange={(e) => update("rt_atribuicao", e.target.value)} />

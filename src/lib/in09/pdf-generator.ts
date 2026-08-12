@@ -7,7 +7,7 @@
 
 import { jsPDF } from "jspdf";
 import { applyPlugin } from "jspdf-autotable";
-import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
+import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, formatarRegistroProfissional, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
 import { desenharSecaoChecklist, quebrarSeNecessario, type DocWithAutoTable } from "../shared/checklist-pdf";
 import { SECOES_ELEVADOR } from "./constants";
 import type { ComissionamentoElevadorState } from "./types";
@@ -22,11 +22,24 @@ function nomeArquivo(state: ComissionamentoElevadorState): string {
   return `Anexo_E_Comissionamento_Elevador_${state.codigo || "rascunho"}_${nome}.pdf`;
 }
 
+/** RT agora e um Profissional cadastrado; os campos digitados a mao (rt_nome/rt_registro/rt_email/rt_fone) so aparecem em laudos salvos antes dessa mudanca. */
+function resolverRt(state: ComissionamentoElevadorState): { nome: string; registro: string; contato: string } {
+  if (state.rt) {
+    return {
+      nome: state.rt.nome,
+      registro: formatarRegistroProfissional({ nome: state.rt.nome, registroTipo: state.rt.registro_tipo, registroNumero: state.rt.registro_numero }),
+      contato: [state.rt.email, state.rt.telefone].filter(Boolean).join(" "),
+    };
+  }
+  return { nome: state.rt_nome ?? "", registro: state.rt_registro ?? "", contato: `${state.rt_email || ""} ${state.rt_fone || ""}`.trim() };
+}
+
 /** Gera o PDF do Anexo E (Relatório de Comissionamento do Elevador de Emergência, IN 09/CBMSC) e dispara o download. */
 export async function gerarPdfComissionamentoElevador(state: ComissionamentoElevadorState): Promise<string> {
   const doc = new jsPDF() as DocWithAutoTable;
 
   let y = await drawCabecalhoOficialCBMSC(doc, "ANEXO E — Relatório de Comissionamento do Elevador de Emergência");
+  const rt = resolverRt(state);
 
   y = desenharTabelaRotulos(doc, y, [
     [{ label: "Logradouro", valor: `${state.logradouro || ""}  Nº: ${state.numero || ""}  Complemento: ${state.complemento || ""}` }],
@@ -44,10 +57,10 @@ export async function gerarPdfComissionamentoElevador(state: ComissionamentoElev
       { label: "E-mail/Fone", valor: `${state.responsavel_imovel_email || ""} ${state.responsavel_imovel_fone || ""}` },
     ],
     [
-      { label: "Responsável Técnico", valor: state.rt_nome || "" },
-      { label: "Nº de registro", valor: state.rt_registro || "" },
+      { label: "Responsável Técnico", valor: rt.nome },
+      { label: "Nº de registro", valor: rt.registro },
     ],
-    [{ label: "E-mail/Fone do RT", valor: `${state.rt_email || ""} ${state.rt_fone || ""}` }],
+    [{ label: "E-mail/Fone do RT", valor: rt.contato }],
   ]);
   y += 5;
 
@@ -87,7 +100,7 @@ export async function gerarPdfComissionamentoElevador(state: ComissionamentoElev
   y += 15;
   doc.line(margin, y, margin + 100, y);
   y += 5;
-  doc.text(`Responsável Técnico (Assinatura Digital): ${state.rt_nome || ""}`, margin, y);
+  doc.text(`Responsável Técnico (Assinatura Digital): ${rt.nome}${rt.registro ? ` — ${rt.registro}` : ""}`, margin, y);
 
   const fileName = nomeArquivo(state);
   doc.save(fileName);

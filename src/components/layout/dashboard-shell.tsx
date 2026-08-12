@@ -20,7 +20,6 @@ import {
   X,
   TrendingUp,
   Home,
-  ShoppingCart,
   ShieldCheck,
   Building2,
   LibraryBig,
@@ -58,13 +57,13 @@ function getNavItems(role: AppRole): NavItem[] {
     { label: "Subtemas", href: "/treinamentos/subtemas", icon: BookOpen },
     { label: "Cursos", href: "/treinamentos/cursos", icon: GraduationCap },
     { label: "Apresentação", href: "/apresentacao", icon: Presentation },
-    { label: "Comercial", href: "/comercial", icon: ShoppingCart },
     { type: "group", label: "CRM (Vendas)", icon: TrendingUp, basePath: "/crm", items: crmItems },
 
     { label: "Área de Estudos", href: "/estudos", icon: LibraryBig },
     { label: "Treinador", href: "/treinador", icon: BookMarked },
 
     { label: "Clientes", href: "/clientes", icon: Users },
+    { label: "Profissionais", href: "/profissionais", icon: UserCog },
 
     { type: "section", label: "Documentos Técnicos" },
 

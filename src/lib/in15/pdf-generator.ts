@@ -12,7 +12,7 @@
 
 import { jsPDF } from "jspdf";
 import { applyPlugin } from "jspdf-autotable";
-import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
+import { drawCabecalhoOficialCBMSC, desenharTabelaRotulos, formatarRegistroProfissional, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
 import { desenharSecaoChecklist, quebrarSeNecessario, type DocWithAutoTable } from "../shared/checklist-pdf";
 import { formatarDataBR } from "../shared/date-format";
 import { SECOES_CHUVEIROS } from "./constants";
@@ -27,7 +27,20 @@ function respostaTexto(v: RespostaSN | undefined): string {
   return v === "sim" ? "SIM" : v === "nao" ? "NÃO" : "";
 }
 
+/** RT agora e um Profissional cadastrado; os campos digitados a mao (rt_nome/rt_registro/rt_email/rt_fone) so aparecem em laudos salvos antes dessa mudanca. */
+function resolverRt(state: ChuveirosState): { nome: string; registro: string; contato: string } {
+  if (state.rt) {
+    return {
+      nome: state.rt.nome,
+      registro: formatarRegistroProfissional({ nome: state.rt.nome, registroTipo: state.rt.registro_tipo, registroNumero: state.rt.registro_numero }),
+      contato: [state.rt.email, state.rt.telefone].filter(Boolean).join(" "),
+    };
+  }
+  return { nome: state.rt_nome ?? "", registro: state.rt_registro ?? "", contato: `${state.rt_email || ""} ${state.rt_fone || ""}`.trim() };
+}
+
 function desenharIdentificacao(doc: DocWithAutoTable, y: number, state: ChuveirosState): number {
+  const rt = resolverRt(state);
   return desenharTabelaRotulos(doc, y, [
     [{ label: "Endereço", valor: `${state.endereco || ""}  Nº: ${state.numero || ""}  Complemento: ${state.complemento || ""}` }],
     [
@@ -40,10 +53,10 @@ function desenharIdentificacao(doc: DocWithAutoTable, y: number, state: Chuveiro
       { label: "E-mail/Fone", valor: `${state.responsavel_imovel_email || ""} ${state.responsavel_imovel_fone || ""}` },
     ],
     [
-      { label: "Responsável Técnico", valor: state.rt_nome || "" },
-      { label: "Nº de registro", valor: state.rt_registro || "" },
+      { label: "Responsável Técnico", valor: rt.nome },
+      { label: "Nº de registro", valor: rt.registro },
     ],
-    [{ label: "E-mail/Fone do RT", valor: `${state.rt_email || ""} ${state.rt_fone || ""}` }],
+    [{ label: "E-mail/Fone do RT", valor: rt.contato }],
     [
       { label: "Ocupação (IN-01)", valor: state.ocupacao_in01 || "" },
       { label: "Ocupações (Tab. A-1 NBR 10.897)", valor: state.ocupacoes_nbr10897 || "" },
@@ -65,6 +78,7 @@ function desenharIdentificacao(doc: DocWithAutoTable, y: number, state: Chuveiro
 }
 
 function desenharConclusaoAssinaturas(doc: DocWithAutoTable, y: number, state: ChuveirosState): void {
+  const rt = resolverRt(state);
   let cursorY = quebrarSeNecessario(doc, y, 60);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -82,9 +96,9 @@ function desenharConclusaoAssinaturas(doc: DocWithAutoTable, y: number, state: C
     doc.text(`Nome do instalador: ${state.nome_instalador}`, margin, cursorY);
     cursorY += 6;
   }
-  doc.text(`Responsável Técnico (Assinatura Digital): ${state.rt_nome || ""}`, margin, cursorY);
+  doc.text(`Responsável Técnico (Assinatura Digital): ${rt.nome}`, margin, cursorY);
   cursorY += 6;
-  doc.text(`Nº do Registro Profissional: ${state.rt_registro || ""}`, margin, cursorY);
+  doc.text(`Nº do Registro Profissional: ${rt.registro}`, margin, cursorY);
   cursorY += 10;
 
   if (state.informacoes_adicionais) {

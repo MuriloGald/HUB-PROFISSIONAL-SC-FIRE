@@ -12,20 +12,27 @@ export interface ResponsavelTecnico {
   telefone: string;
 }
 
+/**
+ * @deprecated RTs agora sao cadastrados em src/app/actions/profissionais.ts —
+ * este dict fica só como fallback pra reabrir/regerar documentos salvos antes
+ * dessa mudança (que guardavam apenas a chave "rt1"/"rt2"). `classe`/`nr_rt`
+ * já vêm com o prefixo CREA/CFT porque documentos antigos nunca tiveram esse
+ * dado separado.
+ */
 export const RESPONSAVEIS_TECNICOS: Record<string, ResponsavelTecnico> = {
   rt1: {
     nome: "DIONE BORGES",
     cpf: "004.260.880-50",
-    classe: "177797-2",
-    nr_rt: "177797-2",
+    classe: "CREA/SC 177797-2",
+    nr_rt: "CREA/SC 177797-2",
     email: "contato@scfire.com.br",
     telefone: "48 3093-6140",
   },
   rt2: {
     nome: "PAULO ROBERTO RAMOS",
     cpf: "070.256.320-49",
-    classe: "70256632049",
-    nr_rt: "70256632049",
+    classe: "CFT 70256632049",
+    nr_rt: "CFT 70256632049",
     email: "contato@scfire.com.br",
     telefone: "48 3093-6140",
   },

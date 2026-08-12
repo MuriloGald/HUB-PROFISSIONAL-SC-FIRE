@@ -9,7 +9,7 @@ import { StepCapitulo2 } from "./step-capitulo2";
 import { StepCapitulo3 } from "./step-capitulo3";
 import { StepCapitulo4 } from "./step-capitulo4";
 import { StepRevisao } from "./step-revisao";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { ClausulaLaudo, LaudoTecnicoWizardState } from "@/lib/save-in23/types";
 
 const DRAFT_KEY = "scfire_save23_laudo_draft";
@@ -35,12 +35,13 @@ function estadoInicial(clienteIdInicial: string | undefined): LaudoTecnicoWizard
 
 interface LaudoTecnicoWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clausulasPadrao: { id: string; titulo: string; texto: string }[];
   clienteIdInicial?: string;
   initialState?: LaudoTecnicoWizardState;
 }
 
-export function LaudoTecnicoWizard({ clientes, clausulasPadrao, clienteIdInicial, initialState }: LaudoTecnicoWizardProps) {
+export function LaudoTecnicoWizard({ clientes, profissionais, clausulasPadrao, clienteIdInicial, initialState }: LaudoTecnicoWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<LaudoTecnicoWizardState>(() => initialState ?? estadoInicial(clienteIdInicial));
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -139,7 +140,7 @@ export function LaudoTecnicoWizard({ clientes, clausulasPadrao, clienteIdInicial
         />
       )}
 
-      {step === 2 && <StepIdentificacaoCap1 state={state} onNext={(partial) => avancarPara(3, partial)} />}
+      {step === 2 && <StepIdentificacaoCap1 state={state} profissionais={profissionais} onNext={(partial) => avancarPara(3, partial)} />}
 
       {step === 3 && (
         <StepCapitulo2

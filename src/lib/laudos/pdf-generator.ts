@@ -24,6 +24,25 @@ const margin = 14;
 const pageWidth = 210; // A4 largura em mm
 const contentWidth = pageWidth - margin * 2;
 
+interface RtResolvido {
+  nome: string;
+  cpf: string;
+  telefone: string;
+  registro: string;
+}
+
+/** RT agora vem do cadastro de Profissionais (campos rt_* achatados em Respostas); o dict fixo RESPONSAVEIS_TECNICOS so serve de fallback pra reabrir laudos salvos antes dessa mudanca. */
+function resolverRt(state: EventoWizardState): RtResolvido {
+  const respostas = [state.respostas_pequeno, state.respostas_medio, state.respostas_grande].find((r) => r?.rt_nome);
+  if (respostas?.rt_nome) {
+    return { nome: respostas.rt_nome, cpf: respostas.rt_cpf ?? "", telefone: respostas.rt_telefone ?? "", registro: respostas.rt_registro ?? "" };
+  }
+  const rtKey =
+    state.respostas_pequeno?.rt_selecionado || state.respostas_medio?.rt_selecionado || state.respostas_grande?.rt_selecionado || "rt1";
+  const fixo = RESPONSAVEIS_TECNICOS[rtKey] ?? RESPONSAVEIS_TECNICOS.rt1;
+  return { nome: fixo.nome, cpf: fixo.cpf, telefone: fixo.telefone, registro: fixo.nr_rt };
+}
+
 // jspdf-autotable v5 nao aceita mais cellWidth em porcentagem (so 'auto' | 'wrap' | numero em mm),
 // diferente da versao 3.x usada no app legado — por isso os valores abaixo em mm.
 
@@ -47,12 +66,7 @@ function drawHeader(doc: DocWithAutoTable, title: string, subtitle: string): num
  */
 function drawIdentificacao(doc: DocWithAutoTable, startY: number, state: EventoWizardState, comEstiloRotulo = false): number {
   const c = state.cliente || ({} as NonNullable<EventoWizardState["cliente"]>);
-  const rtKey =
-    state.respostas_pequeno?.rt_selecionado ||
-    state.respostas_medio?.rt_selecionado ||
-    state.respostas_grande?.rt_selecionado ||
-    "rt1";
-  const rt = RESPONSAVEIS_TECNICOS[rtKey];
+  const rt = resolverRt(state);
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -355,12 +369,7 @@ function drawAssinaturas(
   comEstiloRotulo = false
 ): void {
   const c = state.cliente || ({} as NonNullable<EventoWizardState["cliente"]>);
-  const rtKey =
-    state.respostas_pequeno?.rt_selecionado ||
-    state.respostas_medio?.rt_selecionado ||
-    state.respostas_grande?.rt_selecionado ||
-    "rt1";
-  const rt = RESPONSAVEIS_TECNICOS[rtKey];
+  const rt = resolverRt(state);
 
   let startY = startYInput;
   if (startY > 250) {
@@ -405,11 +414,11 @@ function drawAssinaturas(
     let finalY: number;
 
     if (comEstiloRotulo) {
-      finalY = desenharFaixaTitulo(doc, startY + 3, "RESPONSÁVEL TÉCNICO PELO LAUDO TÉCNICO", `Nº documento de RT: ${rt.nr_rt}`);
+      finalY = desenharFaixaTitulo(doc, startY + 3, "RESPONSÁVEL TÉCNICO PELO LAUDO TÉCNICO", `Nº documento de RT: ${rt.registro}`);
       finalY = desenharTabelaRotulos(doc, finalY, [
         [
           { label: "Nome", valor: rt.nome },
-          { label: "Nº C. Classe", valor: rt.classe },
+          { label: "Nº C. Classe", valor: rt.registro },
         ],
         [
           { label: "End.", valor: `${EMPRESA.endereco}, ${EMPRESA.numero}` },
@@ -453,9 +462,9 @@ function drawAssinaturas(
       const rtData: RowInput[] = [
         [
           { content: "RESPONSÁVEL TÉCNICO PELO LAUDO TÉCNICO", styles: { fillColor: [240, 240, 240], fontStyle: "bold" } },
-          { content: `Nº documento de RT: ${rt.nr_rt}`, styles: { fillColor: [240, 240, 240] } },
+          { content: `Nº documento de RT: ${rt.registro}`, styles: { fillColor: [240, 240, 240] } },
         ],
-        [`Nome: ${rt.nome}`, `Nº C. Classe: ${rt.classe}`],
+        [`Nome: ${rt.nome}`, `Nº C. Classe: ${rt.registro}`],
         [`End.: ${EMPRESA.endereco}, ${EMPRESA.numero}`, `CEP: ${EMPRESA.cep}`],
         [`Bairro: ${EMPRESA.bairro}`, `Cidade: ${EMPRESA.cidade}`],
         [{ content: `Complemento: ${EMPRESA.complemento}`, colSpan: 2 }],

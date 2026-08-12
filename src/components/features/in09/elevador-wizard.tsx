@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { ChecklistGenerico } from "@/components/features/shared/resposta-toggle";
 import { salvarComissionamentoElevador } from "@/app/actions/in09";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import { SECOES_ELEVADOR } from "@/lib/in09/constants";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { ComissionamentoElevadorState, RespostaChecklist3 } from "@/lib/in09/types";
 
 const DRAFT_KEY = "scfire_in09_elevador_wizard_draft";
@@ -20,11 +21,12 @@ const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider
 
 interface ElevadorWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: ComissionamentoElevadorState;
 }
 
-export function ElevadorWizard({ clientes, clienteIdInicial, initialState }: ElevadorWizardProps) {
+export function ElevadorWizard({ clientes, profissionais, clienteIdInicial, initialState }: ElevadorWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<ComissionamentoElevadorState>(() => initialState ?? { step: clienteIdInicial ? 1 : 0, respostas: {} });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -203,7 +205,9 @@ export function ElevadorWizard({ clientes, clienteIdInicial, initialState }: Ele
         />
       )}
 
-      {step === 1 && <StepIdentificacao state={state} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />}
+      {step === 1 && (
+        <StepIdentificacao state={state} profissionais={profissionais} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />
+      )}
 
       {step === 2 && (
         <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-6">
@@ -299,10 +303,12 @@ export function ElevadorWizard({ clientes, clienteIdInicial, initialState }: Ele
 
 function StepIdentificacao({
   state,
+  profissionais,
   onBack,
   onNext,
 }: {
   state: ComissionamentoElevadorState;
+  profissionais: Profissional[];
   onBack: () => void;
   onNext: (partial: Partial<ComissionamentoElevadorState>) => void;
 }) {
@@ -316,10 +322,8 @@ function StepIdentificacao({
     responsavel_imovel_nome: state.responsavel_imovel_nome ?? "",
     responsavel_imovel_email: state.responsavel_imovel_email ?? "",
     responsavel_imovel_fone: state.responsavel_imovel_fone ?? "",
-    rt_nome: state.rt_nome ?? "",
-    rt_registro: state.rt_registro ?? "",
-    rt_email: state.rt_email ?? "",
-    rt_fone: state.rt_fone ?? "",
+    rt_id: state.rt_id ?? "",
+    rt: state.rt,
     qtd_elevadores: state.qtd_elevadores ?? "",
     altura_edificacao: state.altura_edificacao ?? "",
   });
@@ -392,24 +396,12 @@ function StepIdentificacao({
       </div>
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Responsável Técnico</h4>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nome</label>
-          <input className={inputClass} value={form.rt_nome} onChange={(e) => update("rt_nome", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nº de registro</label>
-          <input className={inputClass} value={form.rt_registro} onChange={(e) => update("rt_registro", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>E-mail</label>
-          <input className={inputClass} value={form.rt_email} onChange={(e) => update("rt_email", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Fone</label>
-          <input className={inputClass} value={form.rt_fone} onChange={(e) => update("rt_fone", e.target.value)} />
-        </div>
-      </div>
+      <ProfissionalCampoSelect
+        profissionais={profissionais}
+        value={form.rt_id}
+        redirectToNovoProfissional="/documentos/in09/novo"
+        onChange={(id, p) => setForm((f) => ({ ...f, rt_id: id, rt: p }))}
+      />
 
       <div className="flex justify-between pt-2">
         <button type="button" onClick={onBack} className="px-4 py-2 border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white hover:text-red-500 text-xs font-semibold rounded-lg transition-all flex items-center gap-2">

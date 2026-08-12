@@ -1,5 +1,6 @@
 import { listarClausulasPadrao, buscarLaudoTecnico } from "@/app/actions/save-in23";
 import { listarClientes, buscarCliente } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { LaudoTecnicoWizard } from "@/components/features/save-in23/laudo/laudo-tecnico-wizard";
 import { preencherLacunasSnapshot } from "@/lib/clientes/snapshot";
 import type { LaudoTecnicoWizardState } from "@/lib/save-in23/types";
@@ -10,7 +11,11 @@ export default async function NovoLaudoSave23Page({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const [{ data: clientes }, { data: clausulasPadrao }] = await Promise.all([listarClientes(), listarClausulasPadrao()]);
+  const [{ data: clientes }, { data: clausulasPadrao }, { data: profissionais }] = await Promise.all([
+    listarClientes(),
+    listarClausulasPadrao(),
+    listarProfissionais(),
+  ]);
 
   let initialState: LaudoTecnicoWizardState | undefined;
   if (editarId) {
@@ -28,5 +33,13 @@ export default async function NovoLaudoSave23Page({
     }
   }
 
-  return <LaudoTecnicoWizard clientes={clientes} clausulasPadrao={clausulasPadrao} clienteIdInicial={clienteId} initialState={initialState} />;
+  return (
+    <LaudoTecnicoWizard
+      clientes={clientes}
+      profissionais={profissionais}
+      clausulasPadrao={clausulasPadrao}
+      clienteIdInicial={clienteId}
+      initialState={initialState}
+    />
+  );
 }

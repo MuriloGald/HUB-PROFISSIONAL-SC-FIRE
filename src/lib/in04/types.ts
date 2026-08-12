@@ -1,4 +1,5 @@
 import type { ClienteSnapshot } from "@/lib/clientes/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
 import type { Imagem } from "@/components/features/shared/image-uploader";
 
 export type RespostaChecklist3 = "sim" | "nao" | "na" | "";
@@ -50,6 +51,11 @@ export interface VistoriaManutencaoState {
   cliente_id?: string;
   cliente?: ClienteSnapshot;
 
+  vistoriador_id?: string;
+  vistoriador_profissional?: ProfissionalSnapshot;
+  rt_id?: string;
+  rt?: ProfissionalSnapshot;
+  /** @deprecated nome/registro digitados a mao — so aparecem em vistorias salvas antes do Vistoriador/RT virarem Profissionais cadastrados. */
   vistoriador?: string;
   rt_nome?: string;
   rt_registro?: string;

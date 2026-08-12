@@ -1,4 +1,5 @@
 import { listarClientes } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { buscarControleFumaca } from "@/app/actions/in10";
 import { FumacaWizard } from "@/components/features/in10/fumaca-wizard";
 import type { ControleFumacaState } from "@/lib/in10/types";
@@ -9,7 +10,7 @@ export default async function NovoControleFumacaPage({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const { data: clientes } = await listarClientes();
+  const [{ data: clientes }, { data: profissionais }] = await Promise.all([listarClientes(), listarProfissionais()]);
 
   let initialState: ControleFumacaState | undefined;
   if (editarId) {
@@ -19,5 +20,5 @@ export default async function NovoControleFumacaPage({
     }
   }
 
-  return <FumacaWizard clientes={clientes} clienteIdInicial={clienteId} initialState={initialState} />;
+  return <FumacaWizard clientes={clientes} profissionais={profissionais} clienteIdInicial={clienteId} initialState={initialState} />;
 }

@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { ChecklistGenerico, RespostaToggle } from "@/components/features/shared/resposta-toggle";
 import { salvarControleFumaca } from "@/app/actions/in10";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import { DOCS_DEIXADOS, INTEGRIDADE_COMPONENTES, ENSAIOS_FUMACA } from "@/lib/in10/constants";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { ControleFumacaState, RespostaSN } from "@/lib/in10/types";
 
 const DRAFT_KEY = "scfire_in10_fumaca_wizard_draft";
@@ -20,11 +21,12 @@ const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider
 
 interface FumacaWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: ControleFumacaState;
 }
 
-export function FumacaWizard({ clientes, clienteIdInicial, initialState }: FumacaWizardProps) {
+export function FumacaWizard({ clientes, profissionais, clienteIdInicial, initialState }: FumacaWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<ControleFumacaState>(() => initialState ?? { step: clienteIdInicial ? 1 : 0, fluxo: "comissionamento" });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -212,7 +214,9 @@ export function FumacaWizard({ clientes, clienteIdInicial, initialState }: Fumac
         />
       )}
 
-      {step === 1 && <StepIdentificacao state={state} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />}
+      {step === 1 && (
+        <StepIdentificacao state={state} profissionais={profissionais} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />
+      )}
 
       {step === 2 && (
         <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-6">
@@ -318,10 +322,12 @@ export function FumacaWizard({ clientes, clienteIdInicial, initialState }: Fumac
 
 function StepIdentificacao({
   state,
+  profissionais,
   onBack,
   onNext,
 }: {
   state: ControleFumacaState;
+  profissionais: Profissional[];
   onBack: () => void;
   onNext: (partial: Partial<ControleFumacaState>) => void;
 }) {
@@ -339,10 +345,8 @@ function StepIdentificacao({
     proprietario_fone: state.proprietario_fone ?? "",
     responsavel_uso_nome: state.responsavel_uso_nome ?? "",
     responsavel_uso_email: state.responsavel_uso_email ?? "",
-    rt_nome: state.rt_nome ?? "",
-    rt_registro: state.rt_registro ?? "",
-    rt_email: state.rt_email ?? "",
-    rt_fone: state.rt_fone ?? "",
+    rt_id: state.rt_id ?? "",
+    rt: state.rt,
   });
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -433,24 +437,12 @@ function StepIdentificacao({
       </div>
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Responsável Técnico pelo Comissionamento/Inspeção</h4>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nome</label>
-          <input className={inputClass} value={form.rt_nome} onChange={(e) => update("rt_nome", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nº de registro</label>
-          <input className={inputClass} value={form.rt_registro} onChange={(e) => update("rt_registro", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>E-mail</label>
-          <input className={inputClass} value={form.rt_email} onChange={(e) => update("rt_email", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Fone</label>
-          <input className={inputClass} value={form.rt_fone} onChange={(e) => update("rt_fone", e.target.value)} />
-        </div>
-      </div>
+      <ProfissionalCampoSelect
+        profissionais={profissionais}
+        value={form.rt_id}
+        redirectToNovoProfissional="/documentos/in10/novo"
+        onChange={(id, p) => setForm((f) => ({ ...f, rt_id: id, rt: p }))}
+      />
 
       <div className="flex justify-between pt-2">
         <button type="button" onClick={onBack} className="px-4 py-2 border border-white/[0.08] hover:border-red-500/50 hover:bg-white/[0.04] text-white hover:text-red-500 text-xs font-semibold rounded-lg transition-all flex items-center gap-2">

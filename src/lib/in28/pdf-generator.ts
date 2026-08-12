@@ -8,12 +8,34 @@
  */
 
 import { jsPDF } from "jspdf";
-import { drawCabecalhoOficialCBMSC, drawCabecalhoInstitucional, desenharTabelaRotulos, carregarImagemComoDataUrl, MARGIN_TOP, MARGIN_LEFT, MARGIN_RIGHT, PAGE_WIDTH } from "../shared/pdf-branding";
+import {
+  drawCabecalhoOficialCBMSC,
+  drawCabecalhoInstitucional,
+  desenharTabelaRotulos,
+  carregarImagemComoDataUrl,
+  formatarRegistroProfissional,
+  MARGIN_TOP,
+  MARGIN_LEFT,
+  MARGIN_RIGHT,
+  PAGE_WIDTH,
+} from "../shared/pdf-branding";
 import { quebrarSeNecessario } from "../shared/checklist-pdf";
 import type { PibiState, RelatorioFormacaoState, RelatorioPrestacaoState } from "./types";
 
 const margin = MARGIN_LEFT;
 const contentWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+
+/** RT agora e um Profissional cadastrado; os campos digitados a mao (rt_nome/rt_cpf/rt_registro) so aparecem em laudos salvos antes dessa mudanca. */
+function resolverRt(state: PibiState): { nome: string; cpf: string; registro: string } {
+  if (state.rt) {
+    return {
+      nome: state.rt.nome,
+      cpf: state.rt.cpf ?? "",
+      registro: formatarRegistroProfissional({ nome: state.rt.nome, registroTipo: state.rt.registro_tipo, registroNumero: state.rt.registro_numero }),
+    };
+  }
+  return { nome: state.rt_nome ?? "", cpf: state.rt_cpf ?? "", registro: state.rt_registro ?? "" };
+}
 
 function desenharBlocoTexto(doc: jsPDF, y: number, titulo: string, texto: string | undefined): number {
   if (!texto) return y;
@@ -36,6 +58,7 @@ function nomeArquivoPibi(state: PibiState, sufixo = ""): string {
 /** Desenha o corpo do PIBI (seções 1-4, planta/croquis e assinatura) — idêntico entre a via oficial CBMSC e a segunda via com identidade visual SC Fire; só o cabeçalho muda entre elas. */
 async function desenharCorpoPibi(doc: jsPDF, yInicial: number, state: PibiState): Promise<number> {
   let y = yInicial;
+  const rt = resolverRt(state);
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -93,11 +116,11 @@ async function desenharCorpoPibi(doc: jsPDF, yInicial: number, state: PibiState)
   y += 3;
   y = desenharTabelaRotulos(doc, y, [
     [
-      { label: "Responsável técnico", valor: state.rt_nome || "" },
-      { label: "CPF", valor: state.rt_cpf || "" },
+      { label: "Responsável técnico", valor: rt.nome },
+      { label: "CPF", valor: rt.cpf },
     ],
     [
-      { label: "Nº registro profissional", valor: state.rt_registro || "" },
+      { label: "Nº registro profissional", valor: rt.registro },
       { label: "Atribuição", valor: state.rt_atribuicao || "" },
     ],
   ]);
@@ -160,9 +183,9 @@ async function desenharCorpoPibi(doc: jsPDF, yInicial: number, state: PibiState)
   y += 15;
   doc.line(margin, y, margin + 80, y);
   y += 5;
-  doc.text(`Assinatura: ${state.rt_nome || ""}`, margin, y);
+  doc.text(`Assinatura: ${rt.nome}`, margin, y);
   y += 5;
-  doc.text("Nome completo do responsável técnico", margin, y);
+  doc.text(["Nome completo do responsável técnico", rt.registro].filter(Boolean).join(" — "), margin, y);
 
   return y;
 }

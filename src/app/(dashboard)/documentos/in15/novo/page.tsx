@@ -1,4 +1,5 @@
 import { listarClientes } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { buscarChuveiros } from "@/app/actions/in15";
 import { ChuveirosWizard } from "@/components/features/in15/chuveiros-wizard";
 import type { ChuveirosState } from "@/lib/in15/types";
@@ -9,7 +10,7 @@ export default async function NovoChuveirosPage({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const { data: clientes } = await listarClientes();
+  const [{ data: clientes }, { data: profissionais }] = await Promise.all([listarClientes(), listarProfissionais()]);
 
   let initialState: ChuveirosState | undefined;
   if (editarId) {
@@ -19,5 +20,5 @@ export default async function NovoChuveirosPage({
     }
   }
 
-  return <ChuveirosWizard clientes={clientes} clienteIdInicial={clienteId} initialState={initialState} />;
+  return <ChuveirosWizard clientes={clientes} profissionais={profissionais} clienteIdInicial={clienteId} initialState={initialState} />;
 }

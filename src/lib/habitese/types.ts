@@ -1,4 +1,5 @@
 import type { ClienteSnapshot } from "@/lib/clientes/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
 
 /** Mirror de Imagem (src/lib/save-in23/types.ts). */
 export interface Imagem {
@@ -6,6 +7,7 @@ export interface Imagem {
   legenda?: string;
 }
 
+/** @deprecated Formato antigo do RT (fixo rt1/rt2 ou "outro" digitado a mao) — mantido so pra ler rascunhos/termos salvos antes do RT virar um Cliente cadastrado. */
 export interface ResponsavelTecnicoCustom {
   nome: string;
   cpf: string;
@@ -14,7 +16,7 @@ export interface ResponsavelTecnicoCustom {
   registro: string;
 }
 
-/** Responsavel tecnico pela execucao da obra — RT fixo da SC Fire (rt1/rt2) ou um profissional avulso ("outro"). */
+/** @deprecated ver ResponsavelTecnicoCustom. */
 export interface ResponsavelTecnicoObra {
   chave: "rt1" | "rt2" | "outro";
   custom?: ResponsavelTecnicoCustom;
@@ -40,7 +42,9 @@ export interface HabiteseWizardState {
   cliente_id?: string;
   cliente?: ClienteSnapshot;
 
-  rt?: ResponsavelTecnicoObra;
+  /** RT selecionado no cadastro de Profissionais. `ResponsavelTecnicoObra` so aparece em termos salvos antes dessa mudanca. */
+  rt_id?: string;
+  rt?: ProfissionalSnapshot | ResponsavelTecnicoObra;
 
   imovel_re?: string;
   imovel_cnpj_cpf?: string;

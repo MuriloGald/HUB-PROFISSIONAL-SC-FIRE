@@ -1,4 +1,5 @@
 import type { ClienteSnapshot } from "@/lib/clientes/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
 
 export type Fluxo10 = "comissionamento" | "inspecao";
 export type RespostaSN = "sim" | "nao" | "";
@@ -25,6 +26,9 @@ export interface ControleFumacaState {
   proprietario_fone?: string;
   responsavel_uso_nome?: string;
   responsavel_uso_email?: string;
+  rt_id?: string;
+  rt?: ProfissionalSnapshot;
+  /** @deprecated nome/registro/e-mail/fone digitados a mao — so aparecem em laudos salvos antes do RT virar um Profissional cadastrado. */
   rt_nome?: string;
   rt_registro?: string;
   rt_email?: string;

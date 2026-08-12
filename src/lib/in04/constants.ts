@@ -64,6 +64,9 @@ export const CATEGORIAS_IN04: CategoriaChecklist[] = [
       { chave: "gas.2", texto: "Pressão do manômetro da rede primária abaixo de 1,5 kgf/cm² e registro de corte funcional." },
       { chave: "gas.3", texto: "Laudo de estanqueidade da rede de gás quinquenal, assinado por RT com DRT.", exigeAcompanhamento: true, tipoAcompanhamento: "drt", periodicidadeMeses: 60 },
       { chave: "gas.4", texto: "Trecho de GLP a granel (ponto de reabastecimento → vasilhame) não passa pelo interior da edificação." },
+      { chave: "gas.5", texto: "Abrigo de medidores íntegro, com validade dos componentes em dia." },
+      { chave: "gas.6", texto: "Pontos de consumo (apartamentos): conexões, mangueiras e registro de fecho rápido dentro da validade e em condições de uso." },
+      { chave: "gas.7", texto: "Aberturas de ventilação permanente dos ambientes com queima de gás desobstruídas." },
     ],
   },
   {
@@ -81,6 +84,12 @@ export const CATEGORIAS_IN04: CategoriaChecklist[] = [
       { chave: "sai.5", texto: "DRT anual de dispositivos automatizados de compartimentação (portas/cortinas corta-fogo).", exigeAcompanhamento: true, tipoAcompanhamento: "drt", periodicidadeMeses: 12 },
       { chave: "sai.6", texto: "Catracas liberam automaticamente na falta de energia ou disparo do alarme." },
       { chave: "sai.7", texto: "Fechaduras eletrônicas/magnéticas liberam via central de alarme e têm botoeira com bateria." },
+      { chave: "sai.8", texto: "Fachadas totalmente envidraçadas / \"pele de vidro\": íntegros os elementos de fixação e de isolamento vertical." },
+      { chave: "sai.9", texto: "Local de resgate aéreo (se houver) fechado, com chave em botoeira tipo quebra-vidro." },
+      { chave: "sai.10", texto: "Elevador de emergência com chave para comando em casos de emergência disponível." },
+      { chave: "sai.11", texto: "Dutos de escada desobstruídos, sem cabeamento ou tubulação predial (elétrica, gás, esgoto, dados) passando por eles." },
+      { chave: "sai.12", texto: "Placas indicativas de pavimento e de lotação máxima fixadas e legíveis." },
+      { chave: "sai.13", texto: "Controle de lotação de público automatizado funcionando (quando houver)." },
     ],
   },
   {
@@ -109,6 +118,7 @@ export const CATEGORIAS_IN04: CategoriaChecklist[] = [
       { chave: "ala.3", texto: "DRT anual (sistemas com detecção automática ou automação integrada).", exigeAcompanhamento: true, tipoAcompanhamento: "drt", periodicidadeMeses: 12 },
       { chave: "ala.4", texto: "DRT trienal (sistemas só com botoeiras manuais).", exigeAcompanhamento: true, tipoAcompanhamento: "drt", periodicidadeMeses: 36 },
       { chave: "ala.5", texto: "Central retém histórico de eventos (5.000 endereçável Classe A/B, 10.000 algorítmica) e não apaga ao reiniciar." },
+      { chave: "ala.6", texto: "Detectores de incêndio e acionadores manuais verificados e em funcionamento." },
     ],
   },
   {
@@ -129,6 +139,9 @@ export const CATEGORIAS_IN04: CategoriaChecklist[] = [
         exigeAcompanhamento: true,
         tipoAcompanhamento: "drt",
       },
+      { chave: "ele.6", texto: "Quadros de distribuição com conexões apertadas e em bom estado de conservação (sem ferrugem/sujeira)." },
+      { chave: "ele.7", texto: "Finalidade dos quadros e equipamentos identificada por placas/etiquetas." },
+      { chave: "ele.8", texto: "Disjuntores dos quadros identificados, com correspondência clara aos respectivos circuitos." },
     ],
   },
   {
@@ -143,6 +156,10 @@ export const CATEGORIAS_IN04: CategoriaChecklist[] = [
       { chave: "bri.2", texto: "Reciclagem da brigada válida (a cada 2 anos).", exigeAcompanhamento: true, tipoAcompanhamento: "validade", periodicidadeMeses: 24 },
       { chave: "bri.3", texto: "Plantas de risco e emergência fixadas nas paredes." },
       { chave: "bri.4", texto: "Ata do último simulado de abandono documentada (a cada 12 meses, guardada por 5 anos).", exigeAcompanhamento: true, tipoAcompanhamento: "validade", periodicidadeMeses: 12 },
+      { chave: "bri.5", texto: "Equipamentos de proteção do PIBI disponibilizados aos brigadistas." },
+      { chave: "bri.6", texto: "Capacitação para desfibrilador (DEA) e RCP em número suficiente, quando houver o equipamento." },
+      { chave: "bri.7", texto: "Brigadista particular uniformizado/identificado e relação nominal atualizada disponível." },
+      { chave: "bri.8", texto: "Cópia atualizada do PIBI e certificados de curso dos brigadistas voluntários na edificação." },
     ],
   },
 ];

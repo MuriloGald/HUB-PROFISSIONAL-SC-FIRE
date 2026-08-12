@@ -9,7 +9,7 @@ import { FormsPequeno } from "./forms-pequeno";
 import { FormsMedio } from "./forms-medio";
 import { FormsGrande } from "./forms-grande";
 import { StepRevisao } from "./step-revisao";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { EventoWizardState, Respostas } from "@/lib/laudos/types";
 
 const DRAFT_KEY = "scfire_wizard_draft";
@@ -23,11 +23,12 @@ const STEPS = [
 
 interface EventoWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: EventoWizardState;
 }
 
-export function EventoWizard({ clientes, clienteIdInicial, initialState }: EventoWizardProps) {
+export function EventoWizard({ clientes, profissionais, clienteIdInicial, initialState }: EventoWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<EventoWizardState>(() => initialState ?? { step: clienteIdInicial ? 2 : 1 });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -102,6 +103,7 @@ export function EventoWizard({ clientes, clienteIdInicial, initialState }: Event
       return (
         <FormsPequeno
           respostas={state.respostas_pequeno ?? {}}
+          profissionais={profissionais}
           onBack={(respostas) => avancarPara(2, { respostas_pequeno: respostas })}
           onNext={(respostas: Respostas) => avancarPara(4, { respostas_pequeno: respostas })}
         />
@@ -111,6 +113,7 @@ export function EventoWizard({ clientes, clienteIdInicial, initialState }: Event
       return (
         <FormsMedio
           respostas={state.respostas_medio ?? {}}
+          profissionais={profissionais}
           onBack={(respostas) => avancarPara(2, { respostas_medio: respostas })}
           onNext={(respostas) => avancarPara(4, { respostas_medio: respostas })}
         />
@@ -119,6 +122,7 @@ export function EventoWizard({ clientes, clienteIdInicial, initialState }: Event
     return (
       <FormsGrande
         respostas={state.respostas_grande ?? {}}
+        profissionais={profissionais}
         onBack={(respostas) => avancarPara(2, { respostas_grande: respostas })}
         onNext={(respostas) => avancarPara(4, { respostas_grande: respostas })}
       />

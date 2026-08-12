@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ArrowRight, Plus, Trash2 } from "lucide-react";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
+import type { Profissional } from "@/lib/supabase/types";
 import type { HistoricoItem, LaudoTecnicoWizardState } from "@/lib/save-in23/types";
 
 const inputClass =
@@ -10,19 +12,20 @@ const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider
 
 const TITULO_SUGERIDO = "LAUDO TÉCNICO DE CONFORMIDADE – IMPLANTAÇÃO DE SAVE (IN 23/CBMSC)";
 const SUBTITULO_SUGERIDO = "Regularização do Sistema de Alimentação para Veículos Elétricos via dispensa de PBD";
-const RESP_TECNICO_SUGERIDO = "Eng.ª Dione Borges — CREA-SC 177797-2";
 
 interface StepProps {
   state: LaudoTecnicoWizardState;
+  profissionais: Profissional[];
   onNext: (partial: Partial<LaudoTecnicoWizardState>) => void;
 }
 
-export function StepIdentificacaoCap1({ state, onNext }: StepProps) {
+export function StepIdentificacaoCap1({ state, profissionais, onNext }: StepProps) {
   const [tituloDocumento, setTituloDocumento] = useState(state.tituloDocumento ?? "");
   const [subtitulo, setSubtitulo] = useState(state.subtitulo ?? "");
   const [propriedade, setPropriedade] = useState(state.propriedade ?? "");
   const [revisao, setRevisao] = useState(state.revisao ?? "REV00");
-  const [respTecnico, setRespTecnico] = useState(state.respTecnico ?? "");
+  const [rtId, setRtId] = useState(state.rt_id ?? "");
+  const [rt, setRt] = useState(state.rt);
 
   const [areaConstruida, setAreaConstruida] = useState(state.capitulo1.areaConstruida ?? state.cliente?.area_construida ?? "");
   const [pavimentos, setPavimentos] = useState(state.capitulo1.pavimentos ?? state.cliente?.pavimentos ?? "");
@@ -50,7 +53,8 @@ export function StepIdentificacaoCap1({ state, onNext }: StepProps) {
       subtitulo: subtitulo.trim() || SUBTITULO_SUGERIDO,
       propriedade: propriedade.trim() || propriedadeSugerida,
       revisao,
-      respTecnico: respTecnico.trim() || RESP_TECNICO_SUGERIDO,
+      rt_id: rtId,
+      rt,
       capitulo1: { areaConstruida, pavimentos, altura, validadeAtestado, textoIntro, historico, notaObservacao },
     });
   }
@@ -92,15 +96,16 @@ export function StepIdentificacaoCap1({ state, onNext }: StepProps) {
             <input className={inputClass} placeholder="REV00" value={revisao} onChange={(e) => setRevisao(e.target.value)} />
           </div>
         </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Responsável Técnico</label>
-          <input
-            className={inputClass}
-            placeholder={RESP_TECNICO_SUGERIDO}
-            value={respTecnico}
-            onChange={(e) => setRespTecnico(e.target.value)}
-          />
-        </div>
+        <ProfissionalCampoSelect
+          profissionais={profissionais}
+          value={rtId}
+          label="Responsável Técnico"
+          redirectToNovoProfissional="/relatorios/save-in23/laudos/novo"
+          onChange={(id, p) => {
+            setRtId(id);
+            setRt(p);
+          }}
+        />
       </div>
 
       <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-4">

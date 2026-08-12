@@ -4,13 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, FileDown, Loader2, PartyPopper, Plus, X } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { ImageUploader } from "@/components/features/shared/image-uploader";
 import { ChecklistCategoria } from "./checklist-categoria";
 import { salvarVistoriaManutencao } from "@/app/actions/in04";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import { CATEGORIAS_IN04 } from "@/lib/in04/constants";
 import { novoPavimento } from "@/lib/in04/types";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
 import type { CategoriaKey, EquipamentoVistoriado, VistoriaManutencaoState } from "@/lib/in04/types";
 
 const DRAFT_KEY = "scfire_in04_manutencao_wizard_draft";
@@ -22,10 +24,11 @@ const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider
 
 interface ManutencaoWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   initialState?: VistoriaManutencaoState;
 }
 
-export function ManutencaoWizard({ clientes, initialState }: ManutencaoWizardProps) {
+export function ManutencaoWizard({ clientes, profissionais, initialState }: ManutencaoWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<VistoriaManutencaoState>(() => initialState ?? { step: 0, pavimentos: [] });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -192,7 +195,7 @@ export function ManutencaoWizard({ clientes, initialState }: ManutencaoWizardPro
         />
       )}
 
-      {step === 1 && <StepIdentificacao state={state} onBack={() => avancarPara(0)} onNext={iniciarPavimentos} />}
+      {step === 1 && <StepIdentificacao state={state} profissionais={profissionais} onBack={() => avancarPara(0)} onNext={iniciarPavimentos} />}
 
       {step === 2 && pavimentoAtual && (
         <div className="space-y-5">
@@ -280,8 +283,8 @@ export function ManutencaoWizard({ clientes, initialState }: ManutencaoWizardPro
 
           <div className="rounded-xl bg-black/20 border border-white/[0.08] p-5 space-y-2 text-sm text-gray-300">
             <p><strong className="text-white">Cliente:</strong> {state.cliente?.razao_social || "-"}</p>
-            <p><strong className="text-white">Vistoriador:</strong> {state.vistoriador || "-"}</p>
-            <p><strong className="text-white">Responsável Técnico:</strong> {state.rt_nome || "-"}</p>
+            <p><strong className="text-white">Vistoriador:</strong> {state.vistoriador_profissional?.nome || "-"}</p>
+            <p><strong className="text-white">Responsável Técnico:</strong> {state.rt?.nome || "-"}</p>
             <p><strong className="text-white">Pavimentos vistoriados:</strong> {state.pavimentos.length}</p>
             <p><strong className="text-white">Itens lançados:</strong> {totalItens}</p>
             <p>
@@ -362,17 +365,20 @@ export function ManutencaoWizard({ clientes, initialState }: ManutencaoWizardPro
 
 function StepIdentificacao({
   state,
+  profissionais,
   onBack,
   onNext,
 }: {
   state: VistoriaManutencaoState;
+  profissionais: Profissional[];
   onBack: () => void;
   onNext: (partial: Partial<VistoriaManutencaoState>) => void;
 }) {
   const [form, setForm] = useState({
-    vistoriador: state.vistoriador ?? "",
-    rt_nome: state.rt_nome ?? "",
-    rt_registro: state.rt_registro ?? "",
+    vistoriador_id: state.vistoriador_id ?? "",
+    vistoriador_profissional: state.vistoriador_profissional as ProfissionalSnapshot | undefined,
+    rt_id: state.rt_id ?? "",
+    rt: state.rt as ProfissionalSnapshot | undefined,
     data_vistoria: state.data_vistoria ?? new Date().toISOString().slice(0, 10),
   });
 
@@ -389,24 +395,26 @@ function StepIdentificacao({
     <form onSubmit={handleSubmit} className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-6">
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2">Identificação da vistoria</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className={labelClass}>Vistoriador</label>
-          <input className={inputClass} value={form.vistoriador} onChange={(e) => update("vistoriador", e.target.value)} />
-        </div>
+        <ProfissionalCampoSelect
+          profissionais={profissionais}
+          value={form.vistoriador_id}
+          label="Vistoriador"
+          redirectToNovoProfissional="/documentos/in04/novo"
+          onChange={(id, p) => setForm((f) => ({ ...f, vistoriador_id: id, vistoriador_profissional: p }))}
+        />
         <div className="space-y-1.5">
           <label className={labelClass}>Data da vistoria</label>
           <input type="date" className={inputClass} value={form.data_vistoria} onChange={(e) => update("data_vistoria", e.target.value)} />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className={labelClass}>Responsável Técnico</label>
-          <input className={inputClass} value={form.rt_nome} onChange={(e) => update("rt_nome", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nº de registro do RT</label>
-          <input className={inputClass} value={form.rt_registro} onChange={(e) => update("rt_registro", e.target.value)} />
-        </div>
+        <ProfissionalCampoSelect
+          profissionais={profissionais}
+          value={form.rt_id}
+          label="Responsável Técnico"
+          redirectToNovoProfissional="/documentos/in04/novo"
+          onChange={(id, p) => setForm((f) => ({ ...f, rt_id: id, rt: p }))}
+        />
       </div>
 
       <div className="flex justify-between pt-2">

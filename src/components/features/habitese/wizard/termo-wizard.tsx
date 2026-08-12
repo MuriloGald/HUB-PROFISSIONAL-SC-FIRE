@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
-import { StepTecnico } from "./step-tecnico";
+import { ProfissionalPicker } from "@/components/features/profissionais/profissional-picker";
 import { StepImovel } from "./step-imovel";
 import { StepSolicitacao } from "./step-solicitacao";
 import { StepConformidade } from "./step-conformidade";
 import { StepImagens } from "./step-imagens";
 import { StepRevisao } from "./step-revisao";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { HabiteseWizardState } from "@/lib/habitese/types";
 
 const DRAFT_KEY = "scfire_habitese_wizard_draft";
@@ -27,11 +27,12 @@ const STEPS = [
 
 interface TermoWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: HabiteseWizardState;
 }
 
-export function TermoWizard({ clientes, clienteIdInicial, initialState }: TermoWizardProps) {
+export function TermoWizard({ clientes, profissionais, clienteIdInicial, initialState }: TermoWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<HabiteseWizardState>(() => initialState ?? { step: clienteIdInicial ? 2 : 1 });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -148,7 +149,15 @@ export function TermoWizard({ clientes, clienteIdInicial, initialState }: TermoW
         />
       )}
 
-      {step === 2 && <StepTecnico rt={state.rt} onBack={() => avancarPara(1)} onNext={(rt) => avancarPara(3, { rt })} />}
+      {step === 2 && (
+        <ProfissionalPicker
+          profissionais={profissionais}
+          profissionalIdInicial={state.rt_id}
+          redirectToNovoProfissional="/habitese/novo"
+          titulo="Selecione o Responsável Técnico"
+          onNext={(rtId, rt) => avancarPara(3, { rt_id: rtId, rt })}
+        />
+      )}
 
       {step === 3 && <StepImovel state={state} onBack={() => avancarPara(2)} onNext={(partial) => avancarPara(4, partial)} />}
 

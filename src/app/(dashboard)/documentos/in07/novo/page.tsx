@@ -1,4 +1,5 @@
 import { listarClientes } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { buscarComissionamentoSHP } from "@/app/actions/in07";
 import { ShpWizard } from "@/components/features/in07/shp-wizard";
 import type { ComissionamentoSHPState } from "@/lib/in07/types";
@@ -9,7 +10,7 @@ export default async function NovoComissionamentoSHPPage({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const { data: clientes } = await listarClientes();
+  const [{ data: clientes }, { data: profissionais }] = await Promise.all([listarClientes(), listarProfissionais()]);
 
   let initialState: ComissionamentoSHPState | undefined;
   if (editarId) {
@@ -19,5 +20,5 @@ export default async function NovoComissionamentoSHPPage({
     }
   }
 
-  return <ShpWizard clientes={clientes} clienteIdInicial={clienteId} initialState={initialState} />;
+  return <ShpWizard clientes={clientes} profissionais={profissionais} clienteIdInicial={clienteId} initialState={initialState} />;
 }

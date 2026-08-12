@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Plus, X } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { SetorForm } from "./setor-form";
 import { StepRevisao } from "./step-revisao";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { SetorVistoria, VistoriaWizardState } from "@/lib/save-in23/types";
 
 const DRAFT_KEY = "scfire_save23_vistoria_draft";
@@ -25,11 +26,12 @@ function novoSetor(): SetorVistoria {
 
 interface VistoriaWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: VistoriaWizardState;
 }
 
-export function VistoriaWizard({ clientes, clienteIdInicial, initialState }: VistoriaWizardProps) {
+export function VistoriaWizard({ clientes, profissionais, clienteIdInicial, initialState }: VistoriaWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<VistoriaWizardState>(
     () => initialState ?? { step: clienteIdInicial ? 2 : 1, setores: [] }
@@ -143,22 +145,20 @@ export function VistoriaWizard({ clientes, clienteIdInicial, initialState }: Vis
           <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-4">
             <h3 className="text-lg font-bold text-white">Identificação da vistoria</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Vistoriador</label>
-                <input
-                  className="w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500"
-                  value={state.vistoriador ?? ""}
-                  onChange={(e) => setState((s) => ({ ...s, vistoriador: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Responsável Técnico</label>
-                <input
-                  className="w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500"
-                  value={state.respTecnico ?? ""}
-                  onChange={(e) => setState((s) => ({ ...s, respTecnico: e.target.value }))}
-                />
-              </div>
+              <ProfissionalCampoSelect
+                profissionais={profissionais}
+                value={state.vistoriador_id}
+                label="Vistoriador"
+                redirectToNovoProfissional="/relatorios/save-in23/vistorias/nova"
+                onChange={(id, p) => setState((s) => ({ ...s, vistoriador_id: id, vistoriador_profissional: p }))}
+              />
+              <ProfissionalCampoSelect
+                profissionais={profissionais}
+                value={state.rt_id}
+                label="Responsável Técnico"
+                redirectToNovoProfissional="/relatorios/save-in23/vistorias/nova"
+                onChange={(id, p) => setState((s) => ({ ...s, rt_id: id, rt: p }))}
+              />
             </div>
           </div>
 

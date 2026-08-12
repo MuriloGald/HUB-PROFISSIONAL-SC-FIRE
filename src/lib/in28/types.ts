@@ -1,4 +1,5 @@
 import type { ClienteSnapshot } from "@/lib/clientes/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
 
 export interface Imagem {
   url: string;
@@ -39,10 +40,14 @@ export interface PibiState {
   responsavel_cidade_uf?: string;
   responsavel_telefone?: string;
 
+  rt_id?: string;
+  rt?: ProfissionalSnapshot;
+  /** Atribuição/especialidade do profissional só neste laudo (não é um dado fixo da pessoa cadastrada). */
+  rt_atribuicao?: string;
+  /** @deprecated nome/CPF/registro digitados a mao — so aparecem em laudos salvos antes do RT virar um Profissional cadastrado. */
   rt_nome?: string;
   rt_cpf?: string;
   rt_registro?: string;
-  rt_atribuicao?: string;
 
   coordenador_brigada?: string;
   brigadistas_particulares_qtd?: string;

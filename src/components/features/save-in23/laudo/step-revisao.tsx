@@ -60,7 +60,7 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
         <h4 className="text-sm font-bold text-red-400 border-b border-white/[0.08] pb-2 mb-2">Resumo do Laudo</h4>
         <p><strong className="text-white">Título:</strong> {state.tituloDocumento || "N/A"}</p>
         <p><strong className="text-white">Edificação:</strong> {state.cliente?.razao_social || "N/A"}</p>
-        <p><strong className="text-white">Responsável Técnico:</strong> {state.respTecnico || "N/A"}</p>
+        <p><strong className="text-white">Responsável Técnico:</strong> {state.rt?.nome || "N/A"}</p>
         <p><strong className="text-white">Revisão:</strong> {state.revisao || "N/A"}</p>
         <p><strong className="text-white">Cláusulas incluídas (Cap. 2):</strong> {clausulasIncluidas}</p>
         <p><strong className="text-white">Cenários (Cap. 3):</strong> {state.capitulo3.cenarios.length} — {totalSubsecoes} subseção(ões)</p>

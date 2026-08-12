@@ -4,7 +4,11 @@ import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Plus, Trash2 } from "lucide-react";
 import { Question } from "./question";
 import { PERGUNTAS_MAP } from "@/lib/laudos/constants";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
+import { formatarRegistroProfissional } from "@/lib/shared/pdf-branding";
 import type { LocalSaida, Respostas } from "@/lib/laudos/types";
+import type { Profissional } from "@/lib/supabase/types";
+import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
 
 const inputClass =
   "w-full px-3 py-2 text-sm text-white bg-black/20 border border-white/[0.08] rounded-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all";
@@ -24,18 +28,31 @@ const LOCAL_VAZIO: LocalSaida = { nome: "", boate: "Não", carac: "", publico: "
 
 interface FormsGrandeProps {
   respostas: Respostas;
+  profissionais: Profissional[];
   onBack: (respostas: Respostas) => void;
   onNext: (respostas: Respostas) => void;
 }
 
 /** Questionário de evento de Grande Porte (Anexo D + Anexo E) — 9 sub-etapas. */
-export function FormsGrande({ respostas: inicial, onBack, onNext }: FormsGrandeProps) {
+export function FormsGrande({ respostas: inicial, profissionais, onBack, onNext }: FormsGrandeProps) {
   const [subStep, setSubStep] = useState(1);
   const [respostas, setRespostas] = useState<Respostas>(inicial);
   const [locais, setLocais] = useState<LocalSaida[]>(() => parseLocais(inicial.locais));
 
   function set(key: string, value: string) {
     setRespostas((r) => ({ ...r, [key]: value }));
+  }
+
+  function setRt(profissionalId: string, p: ProfissionalSnapshot | undefined) {
+    setRespostas((r) => ({
+      ...r,
+      rt_selecionado: profissionalId,
+      rt_nome: p?.nome ?? "",
+      rt_cpf: p?.cpf ?? "",
+      rt_telefone: p?.telefone ?? "",
+      rt_email: p?.email ?? "",
+      rt_registro: p ? formatarRegistroProfissional({ nome: p.nome, registroTipo: p.registro_tipo, registroNumero: p.registro_numero }) : "",
+    }));
   }
 
   function respostasComLocais(): Respostas {
@@ -204,14 +221,13 @@ export function FormsGrande({ respostas: inicial, onBack, onNext }: FormsGrandeP
           </div>
 
           <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Responsável Técnico (RT)</h4>
-          <div className="space-y-1.5">
-            <label className={labelClass}>Selecione o RT que assinará o Laudo</label>
-            <select required value={respostas.rt_selecionado ?? ""} onChange={(e) => set("rt_selecionado", e.target.value)} className={inputClass}>
-              <option value="" className="bg-[#111625]">-- Selecione --</option>
-              <option value="rt1" className="bg-[#111625]">Dione Borges</option>
-              <option value="rt2" className="bg-[#111625]">Paulo Roberto Ramos</option>
-            </select>
-          </div>
+          <ProfissionalCampoSelect
+            profissionais={profissionais}
+            value={respostas.rt_selecionado}
+            label="Selecione o RT que assinará o Laudo"
+            redirectToNovoProfissional="/laudos/eventos/novo"
+            onChange={setRt}
+          />
         </>
       )}
 

@@ -1,5 +1,6 @@
 import { buscarLaudoEvento } from "@/app/actions/laudos";
 import { listarClientes } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { EventoWizard } from "@/components/features/laudos/wizard/evento-wizard";
 import type { EventoWizardState } from "@/lib/laudos/types";
 
@@ -9,7 +10,7 @@ export default async function NovoEventoPage({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const { data: clientes } = await listarClientes();
+  const [{ data: clientes }, { data: profissionais }] = await Promise.all([listarClientes(), listarProfissionais()]);
 
   let initialState: EventoWizardState | undefined;
   if (editarId) {
@@ -19,5 +20,5 @@ export default async function NovoEventoPage({
     }
   }
 
-  return <EventoWizard clientes={clientes} clienteIdInicial={clienteId} initialState={initialState} />;
+  return <EventoWizard clientes={clientes} profissionais={profissionais} clienteIdInicial={clienteId} initialState={initialState} />;
 }

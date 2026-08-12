@@ -12,12 +12,12 @@
 
 import { jsPDF } from "jspdf";
 import { applyPlugin, type RowInput } from "jspdf-autotable";
-import { RESPONSAVEIS_TECNICOS } from "./constants";
 import { avaliarSetor } from "./classificador";
 import {
   carregarImagemComoDataUrl,
   drawCabecalhoInstitucional,
   desenharTabelaRotulos,
+  formatarRegistroProfissional,
   type CelulaRotulo,
   COR_VERMELHO_ESCURO,
   COR_CINZA_INSTITUCIONAL,
@@ -151,8 +151,24 @@ async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: 
  * VISTORIA DE CAMPO
  * ============================================================ */
 
+/** Vistoriador/RT agora sao Profissionais cadastrados; os nomes digitados a mao (vistoriador/respTecnico) so aparecem em documentos salvos antes dessa mudanca. */
+function resolverPessoa(
+  profissional: { nome: string; registro_tipo?: string; registro_numero?: string } | undefined,
+  nomeLegado: string | undefined
+): { nome: string; registro: string } {
+  if (profissional) {
+    return {
+      nome: profissional.nome,
+      registro: formatarRegistroProfissional({ nome: profissional.nome, registroTipo: profissional.registro_tipo, registroNumero: profissional.registro_numero }),
+    };
+  }
+  return { nome: nomeLegado ?? "", registro: "" };
+}
+
 function drawIdentificacaoVistoria(doc: DocWithAutoTable, startY: number, state: VistoriaWizardState): number {
   const c = (state.cliente || {}) as ClienteSnapshot;
+  const vistoriador = resolverPessoa(state.vistoriador_profissional, state.vistoriador);
+  const rt = resolverPessoa(state.rt, state.respTecnico);
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -166,10 +182,10 @@ function drawIdentificacaoVistoria(doc: DocWithAutoTable, startY: number, state:
     ],
     [
       { label: "Responsável pelo imóvel", valor: c.nome_responsavel || "" },
-      { label: "Responsável Técnico", valor: state.respTecnico || "" },
+      { label: "Responsável Técnico", valor: [rt.nome, rt.registro].filter(Boolean).join(" — ") },
     ],
     [
-      { label: "Vistoriador", valor: state.vistoriador || "" },
+      { label: "Vistoriador", valor: [vistoriador.nome, vistoriador.registro].filter(Boolean).join(" — ") },
       { label: "Edificação preexistente", valor: c.preexistente ? "Sim" : "Não" },
     ],
   ];
@@ -384,6 +400,8 @@ async function drawSetorAnexo(
 }
 
 function drawAssinaturasVistoria(doc: DocWithAutoTable, startY: number, state: VistoriaWizardState): void {
+  const vistoriador = resolverPessoa(state.vistoriador_profissional, state.vistoriador);
+  const rt = resolverPessoa(state.rt, state.respTecnico);
   let y = startY;
   if (y > PAGE_BREAK_Y) {
     doc.addPage();
@@ -393,11 +411,13 @@ function drawAssinaturasVistoria(doc: DocWithAutoTable, startY: number, state: V
   doc.setFont("helvetica", "normal");
   doc.line(margin, y + 20, margin + 75, y + 20);
   doc.text("Vistoriador", margin, y + 25);
-  doc.text(state.vistoriador || "", margin, y + 30);
+  doc.text(vistoriador.nome, margin, y + 30);
+  if (vistoriador.registro) doc.text(vistoriador.registro, margin, y + 34);
 
   doc.line(pageWidth - MARGIN_RIGHT - 75, y + 20, pageWidth - MARGIN_RIGHT, y + 20);
   doc.text("Responsável Técnico", pageWidth - MARGIN_RIGHT - 75, y + 25);
-  doc.text(state.respTecnico || "", pageWidth - MARGIN_RIGHT - 75, y + 30);
+  doc.text(rt.nome, pageWidth - MARGIN_RIGHT - 75, y + 30);
+  if (rt.registro) doc.text(rt.registro, pageWidth - MARGIN_RIGHT - 75, y + 34);
 }
 
 function nomeArquivoVistoria(state: VistoriaWizardState): string {
@@ -647,7 +667,7 @@ function drawConclusao(doc: DocWithAutoTable, startY: number, state: LaudoTecnic
   return formatarCorpo(doc, state.capitulo4.texto, margin, y);
 }
 
-function drawAssinaturaLaudo(doc: DocWithAutoTable, startY: number, respTecnico: string): void {
+function drawAssinaturaLaudo(doc: DocWithAutoTable, startY: number, rt: { nome: string; registro: string }): void {
   let y = startY + 15;
   if (y > PAGE_BREAK_Y) {
     doc.addPage();
@@ -657,10 +677,10 @@ function drawAssinaturaLaudo(doc: DocWithAutoTable, startY: number, respTecnico:
   doc.line(pageWidth / 2 - 40, y, pageWidth / 2 + 40, y);
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text(respTecnico || RESPONSAVEIS_TECNICOS.rt1.nome, pageWidth / 2, y + 5, { align: "center" });
+  doc.text(rt.nome, pageWidth / 2, y + 5, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text("Responsável Técnico", pageWidth / 2, y + 10, { align: "center" });
+  doc.text(["Responsável Técnico", rt.registro].filter(Boolean).join(" — "), pageWidth / 2, y + 10, { align: "center" });
 }
 
 function nomeArquivoLaudo(state: LaudoTecnicoWizardState): string {
@@ -701,7 +721,7 @@ export async function gerarPdfLaudo(estadoRecebido: LaudoTecnicoWizardState): Pr
   }
 
   y = drawConclusao(doc, y, state, capNum + 1);
-  drawAssinaturaLaudo(doc, y, state.respTecnico || "");
+  drawAssinaturaLaudo(doc, y, resolverPessoa(state.rt, state.respTecnico));
   numerarPaginas(doc);
 
   const fileName = nomeArquivoLaudo(state);

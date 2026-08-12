@@ -8,9 +8,14 @@ import { salvarTermoHabitese } from "@/app/actions/habitese";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import type { HabiteseWizardState } from "@/lib/habitese/types";
 
+/** Formato antigo (chave fixa rt1/rt2 ou "outro") so aparece em termos salvos antes do RT virar um Cliente cadastrado. */
 function nomeRt(state: HabiteseWizardState): string {
-  if (state.rt?.chave === "outro") return state.rt.custom?.nome || "Não informado";
-  return RESPONSAVEIS_TECNICOS[state.rt?.chave ?? "rt1"].nome;
+  const rt = state.rt;
+  if (rt && "chave" in rt) {
+    if (rt.chave === "outro") return rt.custom?.nome || "Não informado";
+    return RESPONSAVEIS_TECNICOS[rt.chave ?? "rt1"].nome;
+  }
+  return rt?.nome || "Não informado";
 }
 
 interface StepRevisaoProps {

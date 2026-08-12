@@ -58,8 +58,8 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
         <h4 className="text-sm font-bold text-red-400 border-b border-white/[0.08] pb-2">Resumo da Vistoria</h4>
         <div className="text-sm text-gray-300 space-y-1">
           <p><strong className="text-white">Edificação:</strong> {state.cliente?.razao_social || "N/A"}</p>
-          <p><strong className="text-white">Vistoriador:</strong> {state.vistoriador || "N/A"}</p>
-          <p><strong className="text-white">Responsável Técnico:</strong> {state.respTecnico || "N/A"}</p>
+          <p><strong className="text-white">Vistoriador:</strong> {state.vistoriador_profissional?.nome || "N/A"}</p>
+          <p><strong className="text-white">Responsável Técnico:</strong> {state.rt?.nome || "N/A"}</p>
           <p><strong className="text-white">Setores avaliados:</strong> {state.setores.length}</p>
         </div>
 

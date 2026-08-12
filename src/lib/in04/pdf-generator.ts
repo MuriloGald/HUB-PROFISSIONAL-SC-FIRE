@@ -15,6 +15,7 @@ import {
   drawCabecalhoInstitucional,
   desenharTabelaRotulos,
   carregarImagemComoDataUrl,
+  formatarRegistroProfissional,
   COR_CINZA_INSTITUCIONAL,
   MARGIN_TOP,
   MARGIN_LEFT,
@@ -35,6 +36,17 @@ const contentWidth = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
 function nomeArquivo(state: VistoriaManutencaoState): string {
   const nome = (state.cliente?.razao_social || "imovel").replace(/\s+/g, "_");
   return `Vistoria_Manutencao_SMSCI_${state.codigo || "rascunho"}_${nome}.pdf`;
+}
+
+/** Vistoriador/RT agora sao Profissionais cadastrados; os campos digitados a mao (vistoriador/rt_nome/rt_registro) so aparecem em vistorias salvas antes dessa mudanca. */
+function resolverPessoa(profissional: { nome: string; registro_tipo?: string; registro_numero?: string } | undefined, nomeLegado: string | undefined, registroLegado?: string): { nome: string; registro: string } {
+  if (profissional) {
+    return {
+      nome: profissional.nome,
+      registro: formatarRegistroProfissional({ nome: profissional.nome, registroTipo: profissional.registro_tipo, registroNumero: profissional.registro_numero }),
+    };
+  }
+  return { nome: nomeLegado ?? "", registro: registroLegado ?? "" };
 }
 
 function categoriasComItens(state: VistoriaManutencaoState): CategoriaChecklist[] {
@@ -191,6 +203,8 @@ export async function gerarPdfVistoriaManutencao(state: VistoriaManutencaoState)
   let y = await drawCabecalhoInstitucional(doc, "RELATÓRIO DE VISTORIA TÉCNICA", "Avaliação de Conformidade dos SMSCI — IN 04/CBMSC", state.codigo);
 
   const c = state.cliente;
+  const vistoriador = resolverPessoa(state.vistoriador_profissional, state.vistoriador);
+  const rt = resolverPessoa(state.rt, state.rt_nome, state.rt_registro);
   y = desenharTabelaRotulos(doc, y, [
     [{ label: "Cliente", valor: c?.razao_social || "" }],
     [
@@ -200,11 +214,11 @@ export async function gerarPdfVistoriaManutencao(state: VistoriaManutencaoState)
     [{ label: "Localização", valor: [c?.logradouro, c?.numero, c?.bairro, c?.cidade && c?.estado ? `${c.cidade}/${c.estado}` : c?.cidade].filter(Boolean).join(", ") }],
     [
       { label: "Data da vistoria", valor: formatarDataBR(state.data_vistoria) },
-      { label: "Vistoriador", valor: state.vistoriador || "" },
+      { label: "Vistoriador", valor: vistoriador.nome },
     ],
     [
-      { label: "Responsável Técnico", valor: state.rt_nome || "" },
-      { label: "Nº de registro", valor: state.rt_registro || "" },
+      { label: "Responsável Técnico", valor: rt.nome },
+      { label: "Nº de registro", valor: rt.registro },
     ],
   ]);
   y += 5;
@@ -302,20 +316,20 @@ export async function gerarPdfVistoriaManutencao(state: VistoriaManutencaoState)
 
   y = quebrarSeNecessario(doc, y, 20);
   doc.line(margin, y, margin + 80, y);
-  doc.text(state.vistoriador || "", margin, y + 5);
+  doc.text(vistoriador.nome, margin, y + 5);
   doc.setFontSize(8);
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-  doc.text("Vistoriador", margin, y + 9);
+  doc.text(`Vistoriador${vistoriador.registro ? ` — ${vistoriador.registro}` : ""}`, margin, y + 9);
 
   const x2 = margin + contentWidth - 80;
   doc.setDrawColor(0, 0, 0);
   doc.line(x2, y, x2 + 80, y);
   doc.setFontSize(9);
   doc.setTextColor(0, 0, 0);
-  doc.text(state.rt_nome || "", x2, y + 5);
+  doc.text(rt.nome, x2, y + 5);
   doc.setFontSize(8);
   doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-  doc.text(`Responsável Técnico${state.rt_registro ? ` — ${state.rt_registro}` : ""}`, x2, y + 9);
+  doc.text(`Responsável Técnico${rt.registro ? ` — ${rt.registro}` : ""}`, x2, y + 9);
 
   await drawFotosAnexadas(doc, state);
 

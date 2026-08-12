@@ -1,4 +1,5 @@
 import { listarClientes } from "@/app/actions/clientes";
+import { listarProfissionais } from "@/app/actions/profissionais";
 import { buscarPibi } from "@/app/actions/in28";
 import { PibiWizard } from "@/components/features/in28/pibi-wizard";
 import type { PibiState } from "@/lib/in28/types";
@@ -9,7 +10,7 @@ export default async function NovoPibiPage({
   searchParams: Promise<{ clienteId?: string; editarId?: string }>;
 }) {
   const { clienteId, editarId } = await searchParams;
-  const { data: clientes } = await listarClientes();
+  const [{ data: clientes }, { data: profissionais }] = await Promise.all([listarClientes(), listarProfissionais()]);
 
   let initialState: PibiState | undefined;
   if (editarId) {
@@ -19,5 +20,5 @@ export default async function NovoPibiPage({
     }
   }
 
-  return <PibiWizard clientes={clientes} clienteIdInicial={clienteId} initialState={initialState} />;
+  return <PibiWizard clientes={clientes} profissionais={profissionais} clienteIdInicial={clienteId} initialState={initialState} />;
 }

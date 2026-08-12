@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, X, CheckCircle2, FileDown, Loader2, PartyPopper } from "lucide-react";
 import { ClientePicker } from "@/components/features/clientes/cliente-picker";
+import { ProfissionalCampoSelect } from "@/components/features/profissionais/profissional-campo-select";
 import { ChecklistSecao } from "./checklist-secao";
 import { salvarComissionamentoSHP } from "@/app/actions/in07";
 import { mensagemErroGeracao } from "@/lib/shared/errors";
 import { SECOES_SHP } from "@/lib/in07/constants";
-import type { Cliente } from "@/lib/supabase/types";
+import type { Cliente, Profissional } from "@/lib/supabase/types";
 import type { ComissionamentoSHPState, RespostaChecklist } from "@/lib/in07/types";
 
 const DRAFT_KEY = "scfire_in07_shp_wizard_draft";
@@ -20,11 +21,12 @@ const labelClass = "text-[10px] font-bold text-gray-400 uppercase tracking-wider
 
 interface ShpWizardProps {
   clientes: Cliente[];
+  profissionais: Profissional[];
   clienteIdInicial?: string;
   initialState?: ComissionamentoSHPState;
 }
 
-export function ShpWizard({ clientes, clienteIdInicial, initialState }: ShpWizardProps) {
+export function ShpWizard({ clientes, profissionais, clienteIdInicial, initialState }: ShpWizardProps) {
   const router = useRouter();
   const [state, setState] = useState<ComissionamentoSHPState>(() => initialState ?? { step: clienteIdInicial ? 1 : 0, respostas: {} });
   const [hydrated, setHydrated] = useState(Boolean(initialState));
@@ -202,7 +204,9 @@ export function ShpWizard({ clientes, clienteIdInicial, initialState }: ShpWizar
         />
       )}
 
-      {step === 1 && <StepIdentificacao state={state} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />}
+      {step === 1 && (
+        <StepIdentificacao state={state} profissionais={profissionais} onBack={() => avancarPara(0)} onNext={(partial) => avancarPara(2, partial)} />
+      )}
 
       {step === 2 && (
         <div className="rounded-2xl bg-white/[0.02] border border-white/[0.08] p-6 space-y-6">
@@ -274,7 +278,7 @@ export function ShpWizard({ clientes, clienteIdInicial, initialState }: ShpWizar
           <div className="rounded-xl bg-black/20 border border-white/[0.08] p-5 space-y-2 text-sm text-gray-300">
             <p><strong className="text-white">Proprietário:</strong> {state.proprietario_nome || "-"}</p>
             <p><strong className="text-white">RE:</strong> {state.re || "-"}</p>
-            <p><strong className="text-white">Responsável Técnico:</strong> {state.rt_nome || "-"}</p>
+            <p><strong className="text-white">Responsável Técnico:</strong> {state.rt?.nome || "-"}</p>
             <p><strong className="text-white">Itens avaliados:</strong> {Object.values(respostas).filter((v) => v).length} de {SECOES_SHP.reduce((n, s) => n + s.itens.length, 0)}</p>
             <p><strong className="text-white">Vazão medida:</strong> {state.vazao_medida || "-"} l/min</p>
           </div>
@@ -330,10 +334,12 @@ export function ShpWizard({ clientes, clienteIdInicial, initialState }: ShpWizar
 
 function StepIdentificacao({
   state,
+  profissionais,
   onBack,
   onNext,
 }: {
   state: ComissionamentoSHPState;
+  profissionais: Profissional[];
   onBack: () => void;
   onNext: (partial: Partial<ComissionamentoSHPState>) => void;
 }) {
@@ -348,9 +354,8 @@ function StepIdentificacao({
     proprietario_email: state.proprietario_email ?? "",
     responsavel_uso_nome: state.responsavel_uso_nome ?? "",
     responsavel_uso_email: state.responsavel_uso_email ?? "",
-    rt_nome: state.rt_nome ?? "",
-    rt_registro: state.rt_registro ?? "",
-    rt_email: state.rt_email ?? "",
+    rt_id: state.rt_id ?? "",
+    rt: state.rt,
     ocupacao_tipo: state.ocupacao_tipo ?? "",
   });
 
@@ -426,20 +431,12 @@ function StepIdentificacao({
       </div>
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Responsável Técnico pelo Comissionamento/Inspeção</h4>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nome</label>
-          <input className={inputClass} value={form.rt_nome} onChange={(e) => update("rt_nome", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>Nº de registro</label>
-          <input className={inputClass} value={form.rt_registro} onChange={(e) => update("rt_registro", e.target.value)} />
-        </div>
-        <div className="space-y-1.5">
-          <label className={labelClass}>E-mail</label>
-          <input className={inputClass} value={form.rt_email} onChange={(e) => update("rt_email", e.target.value)} />
-        </div>
-      </div>
+      <ProfissionalCampoSelect
+        profissionais={profissionais}
+        value={form.rt_id}
+        redirectToNovoProfissional="/documentos/in07/novo"
+        onChange={(id, p) => setForm((f) => ({ ...f, rt_id: id, rt: p }))}
+      />
 
       <div className="flex justify-between pt-2">
         <button

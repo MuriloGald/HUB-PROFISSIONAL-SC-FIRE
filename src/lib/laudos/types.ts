@@ -2,7 +2,14 @@ import type { Porte } from "./classificador";
 import type { ClienteSnapshot } from "@/lib/clientes/types";
 
 export type Respostas = Record<string, string> & {
+  /** Id do profissional selecionado (src/lib/profissionais) — os campos rt_* abaixo sao o snapshot achatado dele, pois Respostas so aceita valores string. */
   rt_selecionado?: string;
+  rt_nome?: string;
+  rt_cpf?: string;
+  rt_telefone?: string;
+  rt_email?: string;
+  /** Já formatado como "CREA/SC ####" ou "CFT ####" — ver formatarRegistroProfissional. */
+  rt_registro?: string;
   OBS?: string;
   locais?: string;
 };
