@@ -22,7 +22,7 @@ export function AvaliacaoPanel({ classId, studentId, trainingId }: AvaliacaoPane
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     (async () => {
-      const [questoesRes, resultadoRes] = await Promise.all([buscarQuestoesAvaliacao(trainingId), buscarAvaliacaoDoAluno(classId, studentId)]);
+      const [questoesRes, resultadoRes] = await Promise.all([buscarQuestoesAvaliacao(trainingId, studentId), buscarAvaliacaoDoAluno(classId, studentId)]);
       setQuestoes(questoesRes.data);
       if (resultadoRes.data) setResultado(resultadoRes.data);
       setCarregando(false);

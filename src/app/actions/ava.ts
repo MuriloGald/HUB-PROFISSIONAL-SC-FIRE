@@ -33,8 +33,28 @@ export async function buscarTurmaParaAva(token: string) {
   return { data: turma };
 }
 
-/** Achata as questões de verificação de todos os subtemas do curso — vira o banco de perguntas da Avaliação. */
-export async function buscarQuestoesAvaliacao(trainingId: string) {
+function seededShuffle<T>(array: T[], seedStr: string): T[] {
+  const result = [...array];
+  let h = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    h = (Math.imul(31, h) + seedStr.charCodeAt(i)) | 0;
+  }
+  const random = () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/** Achata as questões de verificação de todos os subtemas e sorteia no máximo `limit` questões (padrão 10). */
+export async function buscarQuestoesAvaliacao(trainingId: string, studentId?: string, limit = 10) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("training_subthemes")
@@ -45,11 +65,20 @@ export async function buscarQuestoesAvaliacao(trainingId: string) {
   if (error) return { error: error.message, data: [] as QuestaoAvaliacao[] };
 
   const rows = (data ?? []) as unknown as { subtheme: { name: string; conteudo: ConteudoAula | null } | null }[];
-  const questoes: QuestaoAvaliacao[] = [];
+  const banco: QuestaoAvaliacao[] = [];
   for (const r of rows) {
     const perguntas = r.subtheme?.conteudo?.verificacao?.questoes ?? [];
     for (const q of perguntas) {
-      questoes.push({ subtemaNome: r.subtheme?.name ?? "", pergunta: q.pergunta, opcoes: q.opcoes });
+      banco.push({ subtemaNome: r.subtheme?.name ?? "", pergunta: q.pergunta, opcoes: q.opcoes });
+    }
+  }
+
+  let questoes = banco;
+  if (questoes.length > limit) {
+    if (studentId) {
+      questoes = seededShuffle(banco, studentId).slice(0, limit);
+    } else {
+      questoes = banco.slice(0, limit);
     }
   }
 
@@ -72,7 +101,7 @@ export async function buscarAvaliacaoDoAluno(classId: string, studentId: string)
 
 /** Recebe as respostas do aluno, recalcula o score no servidor (não confia no cliente) e grava. */
 export async function enviarAvaliacao(classId: string, studentId: string, trainingId: string, respostas: number[]) {
-  const { data: questoes, error: errQuestoes } = await buscarQuestoesAvaliacao(trainingId);
+  const { data: questoes, error: errQuestoes } = await buscarQuestoesAvaliacao(trainingId, studentId, 10);
   if (errQuestoes) return { error: errQuestoes };
 
   let acertos = 0;
