@@ -336,7 +336,10 @@ export async function gerarPdf(state: HabiteseWizardState): Promise<string> {
  * ============================================================ */
 
 function drawResponsavelTecnicoAnexoI(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
-  const startY = drawSecaoTitulo(doc, y, "1. RESPONSÁVEL TÉCNICO PELA EXECUÇÃO DA OBRA");
+  // Reserva a altura aproximada de título + tabela (4 linhas curtas) antes de decidir
+  // a quebra de página — título e tabela sempre ficam juntos, nunca um título órfão
+  // no fim de uma página com a tabela começando na seguinte.
+  const startY = drawSecaoTitulo(doc, quebrarSeNecessario(doc, y, 48), "1. RESPONSÁVEL TÉCNICO PELA EXECUÇÃO DA OBRA");
   const rt = resolverRt(state);
 
   const body: RowInput[] = [
@@ -354,13 +357,18 @@ function drawResponsavelTecnicoAnexoI(doc: DocWithAutoTable, y: number, state: H
     styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
     columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
     margin: { left: margin, right: MARGIN_RIGHT },
+    // Nunca parte a tabela no meio entre duas páginas — se não couber inteira aqui,
+    // desce inteira pra próxima em vez de deixar metade das linhas em cada página.
+    pageBreak: "avoid",
   });
 
   return doc.lastAutoTable.finalY + 8;
 }
 
 function drawDescricaoImovelAnexoI(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
-  const startY = drawSecaoTitulo(doc, y, "2. DESCRIÇÃO DO IMÓVEL");
+  // Reserva um pouco mais de altura que a seção 1 — a linha de "Detalhes" pode
+  // quebrar em 2+ linhas dependendo do texto, então a tabela fica mais alta.
+  const startY = drawSecaoTitulo(doc, quebrarSeNecessario(doc, y, 65), "2. DESCRIÇÃO DO IMÓVEL");
   const c = state.cliente || ({} as NonNullable<HabiteseWizardState["cliente"]>);
 
   const body: RowInput[] = [
@@ -382,6 +390,9 @@ function drawDescricaoImovelAnexoI(doc: DocWithAutoTable, y: number, state: Habi
     styles: { fontSize: 9, cellPadding: 2, textColor: 0, lineColor: 0, lineWidth: 0.2 },
     columnStyles: { 0: { cellWidth: contentWidth / 2 }, 1: { cellWidth: contentWidth / 2 } },
     margin: { left: margin, right: MARGIN_RIGHT },
+    // Idem — um "Detalhes" mais longo não deve partir a tabela ao meio; ou ela cabe
+    // inteira aqui, ou desce inteira (com o RE, CNPJ etc. junto) pra próxima página.
+    pageBreak: "avoid",
   });
 
   return doc.lastAutoTable.finalY + 8;
@@ -391,11 +402,13 @@ function statusSimNao(v: SistemaConformidade["conformePpci"]): string {
   return v === "sim" ? "SIM" : v === "nao" ? "NÃO" : "";
 }
 
-function drawRelatorioSistemas(doc: DocWithAutoTable, state: HabiteseWizardState): number {
-  // Sempre comeca em pagina nova — a tabela de conformidade fica mais
-  // apresentavel separada dos dados de identificacao das secoes 1 e 2.
-  doc.addPage();
-  const startY = drawSecaoTitulo(doc, MARGIN_TOP + 10, "3. RELATÓRIO DOS SISTEMAS E MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO");
+function drawRelatorioSistemas(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): number {
+  // So quebra a pagina se nem o titulo tiver espaco — se as secoes 1 e 2 couberem
+  // com folga na primeira pagina, essa tabela continua nela em vez de forçar uma
+  // pagina nova sempre. `pageBreak: "avoid"` no autoTable abaixo garante que, se a
+  // tabela toda nao couber a partir daqui, ela desce inteira pra proxima pagina em
+  // vez de partir no meio.
+  const startY = drawSecaoTitulo(doc, quebrarSeNecessario(doc, y, 25), "3. RELATÓRIO DOS SISTEMAS E MEDIDAS DE SEGURANÇA CONTRA INCÊNDIO E PÂNICO");
 
   const porChave = new Map((state.sistemas || []).map((s) => [s.chave, s]));
 
@@ -424,6 +437,7 @@ function drawRelatorioSistemas(doc: DocWithAutoTable, state: HabiteseWizardState
       3: { cellWidth: contentWidth - 91 },
     },
     margin: { left: margin, right: MARGIN_RIGHT },
+    pageBreak: "avoid",
   });
 
   return doc.lastAutoTable.finalY + 8;
@@ -468,7 +482,7 @@ export async function gerarPdfAnexoI(state: HabiteseWizardState): Promise<string
   let y = await drawCabecalhoOficialCBMSC(doc, "Relatório de conformidade e termo de responsabilidade - ATESTADO PARA HABITE-SE");
   y = drawResponsavelTecnicoAnexoI(doc, y, state);
   y = drawDescricaoImovelAnexoI(doc, y, state);
-  y = drawRelatorioSistemas(doc, state);
+  y = drawRelatorioSistemas(doc, y, state);
   drawDeclaracaoAnexoI(doc, y, state);
 
   const fileName = nomeArquivoAnexoI(state);
