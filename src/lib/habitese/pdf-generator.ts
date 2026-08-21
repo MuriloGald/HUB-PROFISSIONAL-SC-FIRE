@@ -444,17 +444,23 @@ function drawRelatorioSistemas(doc: DocWithAutoTable, y: number, state: Habitese
 }
 
 function drawDeclaracaoAnexoI(doc: DocWithAutoTable, y: number, state: HabiteseWizardState): void {
-  let cursorY = quebrarSeNecessario(doc, y);
-
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   const texto =
     "Na qualidade de responsável técnico pela execução dos SMSCI, declaro que as informações prestadas neste documento são verdadeiras e estou ciente de minha responsabilidade acerca dos SMSCI instalados no imóvel, conforme definido pela Lei Estadual nº 16.157 de 2013. Estou ciente que a concessão do atestado para habite-se está condicionada à existência e a operacionalidade dos SMSCI. O descumprimento ocasiona aplicação das sanções legais cabíveis, além de possível responsabilidade civil e criminal.";
   const linhas = doc.splitTextToSize(texto, contentWidth);
-  doc.text(linhas, margin, cursorY);
-  cursorY += linhas.length * 5 + 20;
 
-  cursorY = quebrarSeNecessario(doc, cursorY);
+  // Altura do bloco inteiro (texto + assinatura) calculada antes de desenhar, pra
+  // decidir a quebra de página uma única vez — texto e assinatura sempre ficam
+  // juntos, senão o texto cabia no fim de uma página e a assinatura sozinha
+  // acabava indo parar isolada no topo da página seguinte.
+  const alturaTexto = linhas.length * 5 + 20;
+  const alturaAssinatura = 20; // linha + nome + "Data/Hora"
+  let cursorY = quebrarSeNecessario(doc, y, alturaTexto + alturaAssinatura);
+
+  doc.text(linhas, margin, cursorY);
+  cursorY += alturaTexto;
+
   const rt = resolverRt(state);
   const agora = new Date(state.data_emissao || Date.now());
   const dataEmissao = agora.toLocaleDateString("pt-BR");
