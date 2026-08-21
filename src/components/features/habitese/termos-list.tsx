@@ -156,13 +156,16 @@ export function TermosList({ laudos }: { laudos: Laudo[] }) {
             <h4 className="text-sm font-bold text-red-400 mb-2">Quantidades</h4>
             <div className="rounded-lg border border-white/[0.08] mb-2 text-xs text-gray-300 divide-y divide-white/[0.04]">
               <div className="flex items-center justify-between px-3 py-2">
-                <span>Extintor PQS 4KG</span><span className="font-semibold text-white">{detalhes.extintores_qtd || "0"}</span>
+                <span>Extintores (quantidade total)</span><span className="font-semibold text-white">{detalhes.extintores_qtd || "0"}</span>
               </div>
               <div className="flex items-center justify-between px-3 py-2">
                 <span>Iluminação de emergência</span><span className="font-semibold text-white">{detalhes.iluminacao_qtd || "0"}</span>
               </div>
               <div className="flex items-center justify-between px-3 py-2">
                 <span>Placa saída fotoluminescente</span><span className="font-semibold text-white">{detalhes.placa_qtd || "0"}</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-2">
+                <span>Placa saída luminosa</span><span className="font-semibold text-white">{detalhes.placa_luminosa_qtd || "0"}</span>
               </div>
             </div>
 

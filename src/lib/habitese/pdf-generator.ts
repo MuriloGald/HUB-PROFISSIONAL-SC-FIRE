@@ -128,9 +128,12 @@ function drawDescricaoImovel(doc: DocWithAutoTable, y: number, state: HabiteseWi
     [{ label: "Cidade", valor: `${state.imovel_cidade || ""}   CEP: ${state.imovel_cep || ""}` }],
     [{ label: "Detalhes (se houver)", valor: state.imovel_detalhes || "" }],
     [
-      { label: "Extintor PQS 4KG", valor: state.extintores_qtd || "0" },
+      { label: "Extintores (quantidade total)", valor: state.extintores_qtd || "0" },
       { label: "Iluminação de emergência", valor: state.iluminacao_qtd || "0" },
+    ],
+    [
       { label: "Placa fotoluminescente", valor: state.placa_qtd || "0" },
+      { label: "Placa luminosa", valor: state.placa_luminosa_qtd || "0" },
     ],
   ]);
 
@@ -192,7 +195,14 @@ function alturaDescritivoSistemasIntro(doc: DocWithAutoTable): number {
   return 6 /* titulo */ + 5 + linhas.length * 5 + 6;
 }
 
-/** Fotos dos sistemas instalados, sempre a partir de uma página nova — anexo do formulário, não parte dele. */
+/**
+ * Fotos dos sistemas instalados, sempre a partir de uma página nova — anexo do
+ * formulário, não parte dele. Duas colunas por linha (em vez de uma foto por
+ * linha) pra caber mais fotos por página e ficar mais compacto; as imagens são
+ * reamostradas pro tamanho de exibição e reexportadas em JPEG (em vez do PNG
+ * sem perdas de antes), senão fotos de celular em resolução original inflam o
+ * PDF final facilmente acima de 10MB.
+ */
 async function drawFotosAnexadas(doc: DocWithAutoTable, imagens: { url: string; legenda?: string }[]): Promise<void> {
   if (imagens.length === 0) return;
 
@@ -200,28 +210,36 @@ async function drawFotosAnexadas(doc: DocWithAutoTable, imagens: { url: string; 
   let cursorY = drawSecaoTitulo(doc, MARGIN_TOP + 10, "FOTOS DOS SISTEMAS INSTALADOS (ANEXO AO TERMO DE ENTREGA)");
   cursorY += 8;
 
-  const w = 100;
-  const h = 65;
-  let n = 1;
-  for (const img of imagens) {
+  const gap = 8;
+  const w = (contentWidth - gap) / 2;
+  const h = (w * 65) / 100;
+  const opcoesCompressao = { maxDim: 1200, jpegQuality: 0.82 };
+
+  for (let i = 0; i < imagens.length; i += 2) {
     // Reserva o bloco inteiro (imagem + legenda) antes de decidir se quebra a
     // pagina — checar so o Y atual (sem a altura da imagem) deixava a foto
     // "vazar" pra baixo da margem quando ela nao cabia inteira na pagina.
     cursorY = quebrarSeNecessario(doc, cursorY, h + 14);
-    const carregada = await carregarImagemComoDataUrl(img.url);
-    if (!carregada) {
+    const par = [imagens[i], imagens[i + 1]].filter((img): img is { url: string; legenda?: string } => Boolean(img));
+
+    for (let col = 0; col < par.length; col++) {
+      const img = par[col];
+      const x = margin + col * (w + gap);
+      const n = i + col + 1;
+      const carregada = await carregarImagemComoDataUrl(img.url, opcoesCompressao);
+      if (!carregada) {
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "italic");
+        doc.text(`[Imagem indisponível: ${img.legenda || img.url}]`, x, cursorY + h / 2, { maxWidth: w });
+        continue;
+      }
+      doc.addImage(carregada.dataUrl, carregada.format, x, cursorY, w, h, undefined, "MEDIUM");
       doc.setFontSize(8);
-      doc.setFont("helvetica", "italic");
-      doc.text(`[Imagem indisponível: ${img.legenda || img.url}]`, margin, cursorY);
-      cursorY += 6;
-      continue;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
+      doc.text(`Imagem ${String(n).padStart(2, "0")}${img.legenda ? ` – ${img.legenda}` : ""}`, x, cursorY + h + 4, { maxWidth: w });
+      doc.setTextColor(0, 0, 0);
     }
-    doc.addImage(carregada.dataUrl, carregada.format, margin, cursorY, w, h, undefined, "MEDIUM");
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...COR_CINZA_INSTITUCIONAL);
-    doc.text(`Imagem ${String(n++).padStart(2, "0")}${img.legenda ? ` – ${img.legenda}` : ""}`, margin, cursorY + h + 4);
-    doc.setTextColor(0, 0, 0);
     cursorY += h + 10;
   }
 }
@@ -240,11 +258,12 @@ function drawDeclaracao(doc: DocWithAutoTable, y: number, state: HabiteseWizardS
   // capitulo 6 sempre vai inteiro pra pagina seguinte quando nao cabe todo na atual,
   // em vez de quebrar no meio e deixar uma assinatura sozinha.
   const alturaTitulo = 6;
+  const alturaLocalData = 6;
   const alturaTexto1 = linhasRecebimento.length * 5 + 16;
   const alturaAssinatura1 = 18;
   const alturaTexto2 = linhasEntrega.length * 5 + 16;
   const alturaAssinatura2 = 10;
-  const alturaTotal = alturaTitulo + alturaTexto1 + alturaAssinatura1 + alturaTexto2 + alturaAssinatura2;
+  const alturaTotal = alturaTitulo + alturaLocalData + alturaTexto1 + alturaAssinatura1 + alturaTexto2 + alturaAssinatura2;
 
   let cursorY = quebrarSeNecessario(doc, y, alturaTotal);
 
@@ -253,8 +272,17 @@ function drawDeclaracao(doc: DocWithAutoTable, y: number, state: HabiteseWizardS
   doc.text("6. DECLARAÇÃO DE ENTREGA E RECEBIMENTO", margin, cursorY);
   cursorY += alturaTitulo;
 
+  // Cidade do imóvel entregue, não a sede da SC Fire — é ali que a entrega e as
+  // assinaturas acontecem. `data_emissao` é gravado como timestamp real (não uma
+  // data "yyyy-mm-dd" pura), então usar Date diretamente aqui não sofre do bug de
+  // fuso horário que `formatarDataBR` existe pra evitar em datas soltas.
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
+  const cidadeAssinatura = state.imovel_cidade || state.cliente?.cidade || EMPRESA.cidade;
+  const dataAssinatura = new Date(state.data_emissao || Date.now()).toLocaleDateString("pt-BR");
+  doc.text(`${cidadeAssinatura}, ${dataAssinatura}`, margin, cursorY);
+  cursorY += alturaLocalData;
+
   doc.text(linhasRecebimento, margin, cursorY);
   cursorY += alturaTexto1;
 

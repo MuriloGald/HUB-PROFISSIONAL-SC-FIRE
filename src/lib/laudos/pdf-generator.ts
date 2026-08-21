@@ -394,7 +394,7 @@ function drawAssinaturas(
 
     const dataEmissao = new Date(state.data_emissao || Date.now());
     const dataFormatada = dataEmissao.toLocaleDateString("pt-BR");
-    const cidade = EMPRESA.cidade || "Florianópolis";
+    const cidade = c.cidade || EMPRESA.cidade || "Florianópolis";
     const textoLocalData = `${cidade}, ${dataFormatada}`;
 
     doc.text(textoLocalData, margin + 5, startY + 54);
@@ -509,7 +509,7 @@ function drawAssinaturas(
 
     const dataEmissao = new Date(state.data_emissao || Date.now());
     const dataFormatada = dataEmissao.toLocaleDateString("pt-BR");
-    const cidade = EMPRESA.cidade || "Florianópolis";
+    const cidade = c.cidade || EMPRESA.cidade || "Florianópolis";
     const textoLocalData = `${cidade}, ${dataFormatada}`;
 
     doc.text(textoLocalData, margin + 5, finalY + 44);

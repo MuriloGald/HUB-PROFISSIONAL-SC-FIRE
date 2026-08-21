@@ -30,7 +30,7 @@ export const RESPONSAVEIS_TECNICOS: Record<string, ResponsavelTecnico> = {
   },
   rt2: {
     nome: "PAULO ROBERTO RAMOS",
-    cpf: "070.256.320-49",
+    cpf: "702.566.320-49",
     classe: "CFT 70256632049",
     nr_rt: "CFT 70256632049",
     email: "contato@scfire.com.br",

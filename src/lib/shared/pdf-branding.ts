@@ -36,6 +36,18 @@ export const PAGE_BREAK_Y = PAGE_HEIGHT - MARGIN_BOTTOM - 10;
 export const COR_VERMELHO_ESCURO: [number, number, number] = [168, 29, 7];
 export const COR_CINZA_INSTITUCIONAL: [number, number, number] = [100, 116, 139];
 
+export interface OpcoesCompressaoImagem {
+  /** Maior dimensão (largura ou altura) em pixels — imagens maiores são reamostradas antes de virar data URL. */
+  maxDim?: number;
+  /**
+   * Qualidade JPEG (0–1). Quando informada, a imagem é reexportada como JPEG em vez
+   * de PNG — fotos (que não têm transparência) comprimem muito melhor assim; um PNG
+   * sem perdas de uma foto de celular de 12MP facilmente passa de 10–15MB por imagem
+   * e explode o tamanho do PDF final.
+   */
+  jpegQuality?: number;
+}
+
 /**
  * Busca a imagem e a redesenha via <canvas> antes de virar data URL — o jsPDF
  * embute os bytes originais sem transcodificar, então se o arquivo for WEBP,
@@ -44,20 +56,37 @@ export const COR_CINZA_INSTITUCIONAL: [number, number, number] = [100, 116, 139]
  * um espaço em branco onde a foto deveria estar (o visualizador de PDF não
  * decodifica os bytes crus errados). Passando pelo canvas, o próprio navegador
  * decodifica a imagem (em qualquer formato que ele suporte) e a gente sempre
- * re-exporta como PNG — daí o jsPDF recebe bytes que batem com o rótulo.
+ * re-exporta como PNG (ou JPEG, se `opcoes.jpegQuality` for informado) — daí o
+ * jsPDF recebe bytes que batem com o rótulo. `opcoes.maxDim` reamostra a imagem
+ * pro tamanho que ela de fato ocupa no PDF antes de reexportar, em vez de embutir
+ * a resolução original da foto (normalmente muito maior do que o necessário pra
+ * uma imagem impressa a poucos centímetros de largura).
  */
-export async function carregarImagemComoDataUrl(url: string): Promise<{ dataUrl: string; format: string } | null> {
+export async function carregarImagemComoDataUrl(
+  url: string,
+  opcoes?: OpcoesCompressaoImagem
+): Promise<{ dataUrl: string; format: string } | null> {
   try {
     const res = await fetch(url);
     const blob = await res.blob();
     const bitmap = await createImageBitmap(blob);
+    let largura = bitmap.width;
+    let altura = bitmap.height;
+    if (opcoes?.maxDim && Math.max(largura, altura) > opcoes.maxDim) {
+      const escala = opcoes.maxDim / Math.max(largura, altura);
+      largura = Math.round(largura * escala);
+      altura = Math.round(altura * escala);
+    }
     const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
+    canvas.width = largura;
+    canvas.height = altura;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D context indisponível");
-    ctx.drawImage(bitmap, 0, 0);
+    ctx.drawImage(bitmap, 0, 0, largura, altura);
     bitmap.close();
+    if (opcoes?.jpegQuality) {
+      return { dataUrl: canvas.toDataURL("image/jpeg", opcoes.jpegQuality), format: "JPEG" };
+    }
     return { dataUrl: canvas.toDataURL("image/png"), format: "PNG" };
   } catch (err) {
     console.error(`Não consegui carregar a imagem para o PDF: ${url}`, err);

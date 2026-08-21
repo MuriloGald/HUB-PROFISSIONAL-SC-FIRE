@@ -32,6 +32,7 @@ export function StepImovel({ state, onBack, onNext }: StepImovelProps) {
     extintores_qtd: state.extintores_qtd ?? "",
     iluminacao_qtd: state.iluminacao_qtd ?? "",
     placa_qtd: state.placa_qtd ?? "",
+    placa_luminosa_qtd: state.placa_luminosa_qtd ?? "",
   });
   const [mesmoEndereco, setMesmoEndereco] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -168,9 +169,9 @@ export function StepImovel({ state, onBack, onNext }: StepImovelProps) {
 
       <h4 className="text-sm font-bold text-white border-l-2 border-red-500 pl-2 pt-2">Quantidade de Equipamentos Instalados</h4>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className={labelClass}>Extintor PQS 4KG</label>
+          <label className={labelClass}>Extintores (quantidade total)</label>
           <input type="number" min="0" className={inputClass} value={form.extintores_qtd} onChange={(e) => update("extintores_qtd", e.target.value)} />
         </div>
         <div className="space-y-1.5">
@@ -180,6 +181,16 @@ export function StepImovel({ state, onBack, onNext }: StepImovelProps) {
         <div className="space-y-1.5">
           <label className={labelClass}>Placa Saída Fotoluminescente</label>
           <input type="number" min="0" className={inputClass} value={form.placa_qtd} onChange={(e) => update("placa_qtd", e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <label className={labelClass}>Placa Saída Luminosa</label>
+          <input
+            type="number"
+            min="0"
+            className={inputClass}
+            value={form.placa_luminosa_qtd}
+            onChange={(e) => update("placa_luminosa_qtd", e.target.value)}
+          />
         </div>
       </div>
 

@@ -60,6 +60,8 @@ export interface HabiteseWizardState {
   extintores_qtd?: string;
   iluminacao_qtd?: string;
   placa_qtd?: string;
+  /** Placa de saída luminosa (com fonte de energia própria/central) — distinta da fotoluminescente (`placa_qtd`), IN 13. */
+  placa_luminosa_qtd?: string;
 
   area_total?: string;
   protocolo?: string;

@@ -117,9 +117,10 @@ export function StepRevisao({ state, onBack, onClearDraft }: StepRevisaoProps) {
 
         <h4 className="text-sm font-bold text-red-400 border-b border-white/[0.08] pb-2 pt-2">Equipamentos</h4>
         <div className="text-sm text-gray-300 space-y-1">
-          <p><strong className="text-white">Extintor PQS 4KG:</strong> {state.extintores_qtd || "0"}</p>
+          <p><strong className="text-white">Extintores (quantidade total):</strong> {state.extintores_qtd || "0"}</p>
           <p><strong className="text-white">Iluminação de Emergência:</strong> {state.iluminacao_qtd || "0"}</p>
           <p><strong className="text-white">Placa Saída Fotoluminescente:</strong> {state.placa_qtd || "0"}</p>
+          <p><strong className="text-white">Placa Saída Luminosa:</strong> {state.placa_luminosa_qtd || "0"}</p>
           <p><strong className="text-white">Fotos anexadas:</strong> {state.imagens?.length ?? 0}</p>
         </div>
       </div>
