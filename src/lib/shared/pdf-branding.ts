@@ -94,6 +94,28 @@ export async function carregarImagemComoDataUrl(
   }
 }
 
+/**
+ * Calcula o tamanho e o deslocamento pra desenhar uma imagem inteira dentro de
+ * uma caixa `boxW x boxH` sem distorcer a proporção original — as galerias de
+ * fotos anexadas (Habite-se, SAVE 23) reservam uma caixa de tamanho fixo por
+ * foto pra manter a paginação previsível, mas uma foto retrato numa caixa
+ * paisagem (ou vice-versa) esticava/achatava a imagem quando desenhada com
+ * `addImage(..., boxW, boxH)` direto, já que o jsPDF não preserva proporção
+ * sozinho. Aqui a imagem é encaixada ("contida") na caixa e centralizada,
+ * deixando uma margem em vez de distorcer.
+ */
+export function encaixarImagemNaCaixa(doc: jsPDF, dataUrl: string, boxW: number, boxH: number): { w: number; h: number; offsetX: number; offsetY: number } {
+  const props = doc.getImageProperties(dataUrl);
+  const aspecto = props.width / props.height;
+  let w = boxW;
+  let h = w / aspecto;
+  if (h > boxH) {
+    h = boxH;
+    w = h * aspecto;
+  }
+  return { w, h, offsetX: (boxW - w) / 2, offsetY: (boxH - h) / 2 };
+}
+
 let logoCache: { dataUrl: string; format: string } | null | undefined;
 
 export async function carregarLogoScFire(): Promise<{ dataUrl: string; format: string } | null> {

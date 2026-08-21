@@ -70,7 +70,7 @@ export function ProfissionaisList({ profissionais }: { profissionais: Profission
             <div>
               <div className="flex items-center gap-2 mb-0.5">
                 <h3 className="text-white font-semibold">{p.nome}</h3>
-                {p.registro_tipo && (
+                {(p.registro_tipo === "crea" || p.registro_tipo === "cft") && (
                   <span className="px-2 py-0.5 text-[10px] font-bold text-gray-400 bg-white/[0.04] border border-white/[0.08] rounded-full uppercase">
                     {p.registro_tipo}
                   </span>

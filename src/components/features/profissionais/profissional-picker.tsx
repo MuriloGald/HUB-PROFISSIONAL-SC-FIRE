@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Plus, ArrowRight } from "lucide-react";
 import type { Profissional } from "@/lib/supabase/types";
 import type { ProfissionalSnapshot } from "@/lib/profissionais/types";
-import { profissionalParaSnapshot } from "@/lib/profissionais/snapshot";
+import { profissionalParaSnapshot, rotuloIdentificacaoProfissional } from "@/lib/profissionais/snapshot";
 
 interface ProfissionalPickerProps {
   profissionais: Profissional[];
@@ -42,7 +42,7 @@ export function ProfissionalPicker({
           </option>
           {profissionais.map((p) => (
             <option key={p.id} value={p.id} className="bg-[#111625]">
-              {p.nome} ({p.registro_tipo === "cft" ? "CFT" : "CREA/SC"} {p.registro_numero})
+              {p.nome} ({rotuloIdentificacaoProfissional(p)})
             </option>
           ))}
         </select>

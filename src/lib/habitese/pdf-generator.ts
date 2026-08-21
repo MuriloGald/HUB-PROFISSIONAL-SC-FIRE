@@ -18,6 +18,7 @@ import {
   drawCabecalhoOficialCBMSC,
   desenharTabelaRotulos,
   formatarRegistroProfissional,
+  encaixarImagemNaCaixa,
   COR_CINZA_INSTITUCIONAL,
   MARGIN_TOP,
   MARGIN_LEFT,
@@ -233,7 +234,8 @@ async function drawFotosAnexadas(doc: DocWithAutoTable, imagens: { url: string; 
         doc.text(`[Imagem indisponível: ${img.legenda || img.url}]`, x, cursorY + h / 2, { maxWidth: w });
         continue;
       }
-      doc.addImage(carregada.dataUrl, carregada.format, x, cursorY, w, h, undefined, "MEDIUM");
+      const encaixe = encaixarImagemNaCaixa(doc, carregada.dataUrl, w, h);
+      doc.addImage(carregada.dataUrl, carregada.format, x + encaixe.offsetX, cursorY + encaixe.offsetY, encaixe.w, encaixe.h, undefined, "MEDIUM");
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(...COR_CINZA_INSTITUCIONAL);

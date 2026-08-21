@@ -44,8 +44,11 @@ export function ProfissionalForm({ profissional, redirectTo }: ProfissionalFormP
       { key: "nome", label: "Nome", valor: nome },
       { key: "telefone", label: "Telefone", valor: telefone },
       { key: "email", label: "E-mail", valor: email },
-      { key: "registroNumero", label: "Número de Registro", valor: registroNumero },
     ];
+    // Só cobra Número de Registro de quem tem CREA/CFT — "nenhum" é identificado só pelo CPF.
+    if (registroTipo !== "nenhum") {
+      camposObrigatorios.push({ key: "registroNumero", label: "Número de Registro", valor: registroNumero });
+    }
     camposObrigatorios.forEach((c) => {
       if (!c.valor.trim()) avisos[c.key] = `${c.label} está em branco`;
     });
@@ -76,7 +79,7 @@ export function ProfissionalForm({ profissional, redirectTo }: ProfissionalFormP
       telefone,
       email,
       registro_tipo: registroTipo,
-      registro_numero: registroNumero,
+      registro_numero: registroTipo === "nenhum" ? "" : registroNumero,
     });
     setSalvando(false);
 
@@ -141,6 +144,7 @@ export function ProfissionalForm({ profissional, redirectTo }: ProfissionalFormP
               [
                 { value: "crea", label: "CREA" },
                 { value: "cft", label: "CFT" },
+                { value: "nenhum", label: "Nenhum (só CPF)" },
               ] as const
             ).map((opt) => (
               <button
@@ -160,7 +164,13 @@ export function ProfissionalForm({ profissional, redirectTo }: ProfissionalFormP
         </div>
         <div className="space-y-1.5">
           <label className={labelClass}>Número de Registro</label>
-          <input className={inputClass} value={registroNumero} onChange={(e) => setRegistroNumero(e.target.value)} />
+          <input
+            className={`${inputClass} disabled:opacity-40 disabled:cursor-not-allowed`}
+            value={registroTipo === "nenhum" ? "" : registroNumero}
+            onChange={(e) => setRegistroNumero(e.target.value)}
+            disabled={registroTipo === "nenhum"}
+            placeholder={registroTipo === "nenhum" ? "Sem registro — identificado pelo CPF" : ""}
+          />
           {pendingWarnings?.registroNumero && <span className={avisoClass}>{pendingWarnings.registroNumero}</span>}
         </div>
       </div>

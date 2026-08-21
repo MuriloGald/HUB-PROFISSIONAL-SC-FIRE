@@ -210,7 +210,8 @@ export interface Cliente {
   updated_at: string;
 }
 
-export type RegistroConselhoTipo = "crea" | "cft";
+/** "nenhum" = profissional sem registro em conselho de classe (CREA/CFT), identificado só pelo CPF. */
+export type RegistroConselhoTipo = "crea" | "cft" | "nenhum";
 
 /** Profissional (engenheiro/tecnico) que assina como Responsavel Tecnico nos documentos do hub. */
 export interface Profissional {

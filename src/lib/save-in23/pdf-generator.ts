@@ -18,6 +18,7 @@ import {
   drawCabecalhoInstitucional,
   desenharTabelaRotulos,
   formatarRegistroProfissional,
+  encaixarImagemNaCaixa,
   type CelulaRotulo,
   COR_VERMELHO_ESCURO,
   COR_CINZA_INSTITUCIONAL,
@@ -141,7 +142,8 @@ async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: 
       y += 6;
       continue;
     }
-    doc.addImage(carregada.dataUrl, carregada.format, margin, y, IMAGEM_W, IMAGEM_H, undefined, "MEDIUM");
+    const encaixe = encaixarImagemNaCaixa(doc, carregada.dataUrl, IMAGEM_W, IMAGEM_H);
+    doc.addImage(carregada.dataUrl, carregada.format, margin + encaixe.offsetX, y + encaixe.offsetY, encaixe.w, encaixe.h, undefined, "MEDIUM");
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...COR_CINZA);
