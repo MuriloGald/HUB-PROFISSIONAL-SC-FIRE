@@ -114,11 +114,16 @@ const IMAGEM_W = 100;
 const IMAGEM_H = 65;
 const IMAGEM_BLOCO_ALTURA = IMAGEM_H + 10; // imagem + legenda + espaçamento
 
+// Reamostra pro tamanho de exibição (100x65mm) e reexporta em JPEG em vez do PNG sem
+// perdas de antes — um laudo de vistoria com fotos de vários setores facilmente
+// passava dos 10-15MB por embutir cada foto de celular na resolução original.
+const OPCOES_COMPRESSAO_IMAGEM = { maxDim: 1200, jpegQuality: 0.82 };
+
 async function embutirImagens(doc: DocWithAutoTable, imagens: Imagem[], startY: number, contador: ContadorImagem): Promise<number> {
   let y = startY;
   for (let i = 0; i < imagens.length; i++) {
     const img = imagens[i];
-    const carregada = await carregarImagemComoDataUrl(img.url);
+    const carregada = await carregarImagemComoDataUrl(img.url, OPCOES_COMPRESSAO_IMAGEM);
     // Verifica se o BLOCO INTEIRO da imagem cabe antes da margem inferior real —
     // nao so se "y" ja passou de um limiar generico. Uma imagem de 65mm de altura
     // comecando perto do limiar genérico (PAGE_BREAK_Y) facilmente estourava a
