@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -12,6 +12,7 @@ import {
   Radio,
   GraduationCap,
   Check,
+  Maximize,
   MonitorPlay,
   PanelLeftClose,
   PanelLeftOpen,
@@ -53,6 +54,9 @@ export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps)
   const [totalPresentes, setTotalPresentes] = useState(0);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
+  const [aguardandoTelaCheia, setAguardandoTelaCheia] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const estavaEmTelaCheiaRef = useRef(false);
 
   const checkInUrl = turma && typeof window !== "undefined" ? `${window.location.origin}/aluno/ava?token=${turma.qrCodeToken}` : "";
 
@@ -63,12 +67,47 @@ export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps)
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "ArrowRight" || e.key === ".") setIndex((i) => Math.min(i + 1, aulas.length - 1));
-      if (e.key === "ArrowLeft") setIndex((i) => Math.max(i - 1, 0));
+      if (e.key === "ArrowRight" || e.key === ".") {
+        setAguardandoTelaCheia(false);
+        setIndex((i) => Math.min(i + 1, aulas.length - 1));
+      }
+      if (e.key === "ArrowLeft") {
+        setAguardandoTelaCheia(false);
+        setIndex((i) => Math.max(i - 1, 0));
+      }
       if (e.key === "Escape") setSidebarAberta(false);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [aulas.length]);
+
+  // Enquanto o Canva está em tela cheia (iframe de outra origem), o navegador não
+  // deixa a página capturar teclado — por isso não dá pra saber quando a última
+  // lauda do subtema foi atingida. O que dá pra detectar é a SAÍDA da tela cheia
+  // (instrutor aperta Esc pra encerrar a apresentação daquele subtema): nesse
+  // momento avançamos sozinhos pro próximo subtema e mostramos um botão único
+  // pra retomar a tela cheia — reentrar exige um clique real do usuário, o
+  // navegador bloqueia requestFullscreen() automático sem gesto do usuário.
+  useEffect(() => {
+    function onFullscreenChange() {
+      const emTelaCheia = document.fullscreenElement === iframeRef.current;
+      if (emTelaCheia) {
+        estavaEmTelaCheiaRef.current = true;
+        return;
+      }
+      if (estavaEmTelaCheiaRef.current) {
+        estavaEmTelaCheiaRef.current = false;
+        setIndex((i) => {
+          if (i < aulas.length - 1) {
+            setAguardandoTelaCheia(true);
+            return i + 1;
+          }
+          return i;
+        });
+      }
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, [aulas.length]);
 
   // Contador de presença ao vivo — poll simples, sem realtime (nenhum outro modulo do
@@ -202,7 +241,10 @@ export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps)
                 return (
                   <div
                     key={a.id}
-                    onClick={() => setIndex(idx)}
+                    onClick={() => {
+                      setAguardandoTelaCheia(false);
+                      setIndex(idx);
+                    }}
                     className={`w-full p-4 rounded-xl border text-left cursor-pointer transition-all duration-200 relative overflow-hidden group ${
                       isActive
                         ? "bg-primary/10 border-primary shadow-md shadow-primary/5"
@@ -246,7 +288,30 @@ export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps)
         <main className="flex-1 flex flex-col overflow-hidden bg-[#07080b] p-6 relative">
           <div className="flex-1 rounded-2xl overflow-hidden bg-card border border-border shadow-2xl relative">
             {embedUrl ? (
-              <iframe key={aula.id} src={embedUrl} className="w-full h-full border-0 absolute inset-0" allowFullScreen allow="fullscreen" title={aula.name} />
+              <>
+                <iframe
+                  key={aula.id}
+                  ref={iframeRef}
+                  src={embedUrl}
+                  className="w-full h-full border-0 absolute inset-0"
+                  allowFullScreen
+                  allow="fullscreen"
+                  title={aula.name}
+                />
+                {aguardandoTelaCheia && (
+                  <button
+                    onClick={() => {
+                      setAguardandoTelaCheia(false);
+                      iframeRef.current?.requestFullscreen().catch(() => {});
+                    }}
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/85 text-white backdrop-blur-sm"
+                  >
+                    <Maximize className="w-10 h-10 text-primary" />
+                    <span className="text-sm font-bold">Próximo subtema pronto</span>
+                    <span className="text-xs text-white/70">Clique para apresentar em tela cheia</span>
+                  </button>
+                )}
+              </>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 space-y-4">
                 <div className="w-16 h-16 rounded-2xl bg-surface flex items-center justify-center text-muted-foreground border border-border shadow-inner">
@@ -276,7 +341,10 @@ export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps)
                 {sidebarAberta ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
               </button>
               <button
-                onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+                onClick={() => {
+                  setAguardandoTelaCheia(false);
+                  setIndex((i) => Math.max(i - 1, 0));
+                }}
                 disabled={index === 0}
                 className="h-10 px-4 rounded-lg bg-surface border border-border text-xs font-semibold hover:text-foreground hover:bg-muted disabled:opacity-50 disabled:pointer-events-none flex items-center gap-1.5 transition-colors"
               >
@@ -293,7 +361,10 @@ export function CockpitInstrutor({ curso, aulas, turma }: CockpitInstrutorProps)
                 </button>
               ) : (
                 <button
-                  onClick={() => setIndex((i) => Math.min(i + 1, aulas.length - 1))}
+                  onClick={() => {
+                    setAguardandoTelaCheia(false);
+                    setIndex((i) => Math.min(i + 1, aulas.length - 1));
+                  }}
                   className="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow-md shadow-primary/10 hover:shadow-lg transition-all flex items-center gap-1.5"
                 >
                   Avançar <ChevronRight className="w-4 h-4" />
