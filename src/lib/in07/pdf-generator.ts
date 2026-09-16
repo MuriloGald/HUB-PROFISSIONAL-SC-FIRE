@@ -102,7 +102,11 @@ export async function gerarPdfComissionamentoSHP(state: ComissionamentoSHPState)
     doc.text(`${secao.numero}. ${secao.titulo}`, margin, y);
     y += 3;
 
-    const body = secao.itens.map((item) => [item.chave, item.texto, respostaTexto(respostas[item.chave])]);
+    const body = secao.itens.map((item, idx) => [
+      item.chave.includes(".") ? item.chave : `${secao.numero}.${idx + 1}`,
+      item.texto,
+      respostaTexto(respostas[item.chave]),
+    ]);
 
     doc.autoTable({
       startY: y,

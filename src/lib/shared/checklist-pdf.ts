@@ -18,6 +18,7 @@ export type DocWithAutoTable = jsPDF & {
 export interface ChecklistItemPdf {
   chave: string;
   texto: string;
+  numero?: string;
 }
 
 export interface SecaoChecklistPdf {
@@ -57,7 +58,11 @@ export function desenharSecaoChecklist(
   cursorY += 3;
 
   const larguraResposta = comNa ? 28 : 22;
-  const body = secao.itens.map((item) => [item.chave, item.texto, respostaTexto(respostas[item.chave])]);
+  const body = secao.itens.map((item, idx) => [
+    item.numero || (secao.numero ? `${secao.numero}.${idx + 1}` : `${idx + 1}`),
+    item.texto,
+    respostaTexto(respostas[item.chave]),
+  ]);
 
   doc.autoTable({
     startY: cursorY,
