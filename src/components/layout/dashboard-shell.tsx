@@ -137,6 +137,7 @@ function getNavItems(role: AppRole): NavItem[] {
         { label: "IN 07 — Hidrantes (SHP)", href: "/documentos/in07" },
         { label: "IN 09 — Elevador de Emergência", href: "/documentos/in09" },
         { label: "IN 10 — Controle de Fumaça", href: "/documentos/in10" },
+        { label: "IN 12 — Alarme de Incêndio", href: "/documentos/in12" },
         { label: "IN 15 — Chuveiros Automáticos", href: "/documentos/in15" },
         { label: "IN 27 — Eventos Pirotécnicos", href: "/documentos/in27" },
       ],
