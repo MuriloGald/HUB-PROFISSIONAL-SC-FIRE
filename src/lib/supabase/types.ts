@@ -237,6 +237,7 @@ export type LaudoTipoDocumento =
   | "IN07"
   | "IN09"
   | "IN10"
+  | "IN12"
   | "IN15"
   | "IN27"
   | "IN28"
