@@ -96,7 +96,7 @@ function drawIdentificacao(doc: DocWithAutoTable, y: number, data: RelatorioTurm
     [{ label: "Curso", valor: identificacao.trainingName || "" }],
     [
       { label: "Carga Horária", valor: identificacao.totalHours != null ? `${identificacao.totalHours}h` : "" },
-      { label: "Data", valor: formatarDataBR(identificacao.finishedAt || identificacao.scheduledAt) || "" },
+      { label: "Data", valor: formatarDataBR(identificacao.scheduledAt || identificacao.finishedAt) || "" },
     ],
     [
       { label: "Cliente", valor: identificacao.clienteNome || "—" },
@@ -235,7 +235,7 @@ function drawPesquisaSatisfacao(doc: DocWithAutoTable, y: number, data: Relatori
   return doc.lastAutoTable.finalY + 8;
 }
 
-function drawComentarios(doc: DocWithAutoTable, y: number, data: RelatorioTurmaData): void {
+function drawComentarios(doc: DocWithAutoTable, y: number, data: RelatorioTurmaData): number {
   const { comentarios } = data.satisfacao;
   const startY = drawSecaoTitulo(doc, y, "4. COMENTÁRIOS DOS ALUNOS");
   let cursorY = startY + 6;
@@ -246,7 +246,7 @@ function drawComentarios(doc: DocWithAutoTable, y: number, data: RelatorioTurmaD
     doc.setTextColor(...COR_TEXTO_SUAVE);
     doc.text("Nenhum comentário registrado.", margin, cursorY);
     doc.setTextColor(0, 0, 0);
-    return;
+    return cursorY + 10;
   }
 
   doc.setFontSize(8.5);
@@ -258,11 +258,28 @@ function drawComentarios(doc: DocWithAutoTable, y: number, data: RelatorioTurmaD
     doc.text(linhas, margin, cursorY);
     cursorY += linhas.length * 4.6 + 3;
   }
+  return cursorY + 5;
+}
+
+function drawObservacoes(doc: DocWithAutoTable, y: number, data: RelatorioTurmaData): void {
+  if (!data.observacoes) return;
+  const startY = drawSecaoTitulo(doc, y, "5. OBSERVAÇÕES DO INSTRUTOR");
+  let cursorY = startY + 6;
+
+  doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  const linhas: string[] = doc.splitTextToSize(data.observacoes, contentWidth);
+  for (const linha of linhas) {
+    cursorY = quebrarSeNecessario(doc, cursorY, 5);
+    doc.text(linha, margin, cursorY);
+    cursorY += 4.6;
+  }
 }
 
 function nomeArquivo(data: RelatorioTurmaData): string {
   const nome = (data.identificacao.trainingName || "curso").replace(/\s+/g, "_");
-  const data_ = (data.identificacao.finishedAt || data.identificacao.scheduledAt || "").slice(0, 10) || "sem_data";
+  const data_ = (data.identificacao.scheduledAt || data.identificacao.finishedAt || "").slice(0, 10) || "sem_data";
   return `Relatorio_Turma_${nome}_${data_}.pdf`;
 }
 
@@ -274,7 +291,8 @@ export async function gerarPdfRelatorioTurma(data: RelatorioTurmaData): Promise<
   y = drawIdentificacao(doc, y, data);
   y = drawAvaliacao(doc, y, data);
   y = drawPesquisaSatisfacao(doc, y, data);
-  drawComentarios(doc, y, data);
+  y = drawComentarios(doc, y, data);
+  drawObservacoes(doc, y, data);
 
   const fileName = nomeArquivo(data);
   doc.save(fileName);

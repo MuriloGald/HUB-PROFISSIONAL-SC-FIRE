@@ -9,7 +9,8 @@ import { formatarDataDia } from "@/lib/plano-ensino/formatters";
 import { PERGUNTAS_PESQUISA_SATISFACAO } from "@/lib/ava/types";
 import type { PlanoEnsinoWizardState } from "@/lib/plano-ensino/types";
 import type { PresencaRegistrada, Student, Turma, TurmaComDetalhes } from "@/lib/turmas/types";
-import type { RelatorioTurmaData } from "@/lib/turmas/relatorio-types";
+import type { RelatorioTurmaData, RelatorioTurmaEdicao } from "@/lib/turmas/relatorio-types";
+import { aplicarEdicaoRelatorio } from "@/lib/turmas/relatorio-edicao";
 
 /** Lista turmas agendadas ou em andamento, com nome do curso e do cliente — pro seletor de "Turma Cadastrada". */
 export async function listarTurmas() {
@@ -182,14 +183,49 @@ export async function finalizarTurma(classId: string) {
  * pode continuar enviando depois que o instrutor encerra a aula.
  */
 export async function buscarRelatorioTurma(classId: string): Promise<{ data: RelatorioTurmaData } | { error: string }> {
+  const res = await calcularRelatorioTurma(classId);
+  if ("error" in res) return res;
+  return { data: aplicarEdicaoRelatorio(res.data.base, res.data.edicao) };
+}
+
+/** Dados calculados + edição salva separados — pro formulário de edição mostrar o original e o editado. */
+export async function buscarRelatorioTurmaParaEdicao(
+  classId: string
+): Promise<{ data: { base: RelatorioTurmaData; edicao: RelatorioTurmaEdicao | null } } | { error: string }> {
+  return calcularRelatorioTurma(classId);
+}
+
+/** Salva a edição manual do relatório (null = descarta a edição e volta aos dados calculados). */
+export async function salvarEdicaoRelatorioTurma(classId: string, edicao: RelatorioTurmaEdicao | null) {
+  const vazio = !edicao || Object.keys(edicao).length === 0;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("classes")
+    .update({ relatorio_edicao: vazio ? null : edicao })
+    .eq("id", classId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/treinamentos/turmas");
+  return { success: true };
+}
+
+async function calcularRelatorioTurma(
+  classId: string
+): Promise<{ data: { base: RelatorioTurmaData; edicao: RelatorioTurmaEdicao | null } } | { error: string }> {
   const supabase = await createClient();
 
+  const colunasTurma = "instrutor_nome,scheduled_at,finished_at,training:trainings(name,total_hours),cliente:clientes(nome,razao_social)";
+  const buscarTurma = async () => {
+    const comEdicao = await supabase.from("classes").select(`${colunasTurma},relatorio_edicao`).eq("id", classId).single();
+    // Banco ainda sem a migration 033 (coluna relatorio_edicao): gera o relatório só com os dados calculados.
+    if (comEdicao.error && /relatorio_edicao/.test(comEdicao.error.message)) {
+      return supabase.from("classes").select(colunasTurma).eq("id", classId).single();
+    }
+    return comEdicao;
+  };
+
   const [turmaRes, presencasRes, avaliacaoRes, satisfacaoRes] = await Promise.all([
-    supabase
-      .from("classes")
-      .select("instrutor_nome,scheduled_at,finished_at,training:trainings(name,total_hours),cliente:clientes(nome,razao_social)")
-      .eq("id", classId)
-      .single(),
+    buscarTurma(),
     supabase.from("attendances").select("student_id").eq("class_id", classId),
     supabase.from("avaliacao_respostas").select("student_id,fase,acertos,total").eq("class_id", classId),
     supabase.from("pesquisas_satisfacao").select("student_id,notas,comentario").eq("class_id", classId),
@@ -201,6 +237,7 @@ export async function buscarRelatorioTurma(classId: string): Promise<{ data: Rel
     instrutor_nome: string | null;
     scheduled_at: string | null;
     finished_at: string | null;
+    relatorio_edicao?: RelatorioTurmaEdicao | null;
     training: { name: string; total_hours: number } | null;
     cliente: { nome: string; razao_social: string | null } | null;
   };
@@ -258,7 +295,7 @@ export async function buscarRelatorioTurma(classId: string): Promise<{ data: Rel
     satisfacao: { totalRespostas: satisfacaoRows.length, totalPresentes, mediaGeral, perguntas, comentarios },
   };
 
-  return { data };
+  return { data: { base: data, edicao: turmaRow.relatorio_edicao ?? null } };
 }
 
 /** Lista as presenças já registradas na turma — usado pro contador ao vivo no cockpit. */

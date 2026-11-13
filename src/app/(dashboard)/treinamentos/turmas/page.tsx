@@ -88,10 +88,10 @@ export default async function TurmasPage() {
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3 text-xs text-gray-500">
                   {t.instrutor_nome && <span>{t.instrutor_nome}</span>}
-                  {t.finished_at && (
+                  {(t.scheduled_at || t.finished_at) && (
                     <span className="inline-flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {formatarDataBR(t.finished_at)}
+                      {formatarDataBR(t.scheduled_at || t.finished_at)}
                     </span>
                   )}
                 </div>
